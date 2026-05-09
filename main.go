@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +24,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+//go:embed dashboard.html
+var dashboardHTML []byte
 
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 
@@ -111,27 +115,27 @@ type ComplianceInfo struct {
 }
 
 type FleetSummary struct {
-	TotalNodes    int `json:"totalNodes"`
-	Vulnerable    int `json:"vulnerable"`
-	Critical      int `json:"critical"`
-	High          int `json:"high"`
-	Medium        int `json:"medium"`
-	Low           int `json:"low"`
-	Patched       int `json:"patched"`
-	AlgifLoaded   int `json:"algifLoaded"`
-	AgentsLive    int `json:"agentsLive"`
-	RiskScore     int `json:"riskScore"`
+	TotalNodes  int `json:"totalNodes"`
+	Vulnerable  int `json:"vulnerable"`
+	Critical    int `json:"critical"`
+	High        int `json:"high"`
+	Medium      int `json:"medium"`
+	Low         int `json:"low"`
+	Patched     int `json:"patched"`
+	AlgifLoaded int `json:"algifLoaded"`
+	AgentsLive  int `json:"agentsLive"`
+	RiskScore   int `json:"riskScore"`
 }
 
 type Alert struct {
-	ID        string    `json:"id"`
-	Level     string    `json:"level"`
-	Title     string    `json:"title"`
-	Body      string    `json:"body"`
-	Cluster   string    `json:"cluster"`
-	Node      string    `json:"node"`
-	FiredAt   time.Time `json:"firedAt"`
-	Notified  bool      `json:"notified"`
+	ID       string    `json:"id"`
+	Level    string    `json:"level"`
+	Title    string    `json:"title"`
+	Body     string    `json:"body"`
+	Cluster  string    `json:"cluster"`
+	Node     string    `json:"node"`
+	FiredAt  time.Time `json:"firedAt"`
+	Notified bool      `json:"notified"`
 }
 
 type DashboardData struct {
@@ -431,13 +435,13 @@ func fetchCVEs(cfg Config) []CVEInfo {
 
 	var raw struct {
 		Data []struct {
-			CVEId           string `json:"cveId"`
-			Name            string `json:"name"`
-			Severity        string `json:"severity"`
-			DisclosureDate  string `json:"disclosureDate"`
-			PublishedDate   string `json:"publishedDate"`
-			FixedIn         string `json:"fixedIn"`
-			FixVersion      string `json:"fixVersion"`
+			CVEId          string `json:"cveId"`
+			Name           string `json:"name"`
+			Severity       string `json:"severity"`
+			DisclosureDate string `json:"disclosureDate"`
+			PublishedDate  string `json:"publishedDate"`
+			FixedIn        string `json:"fixedIn"`
+			FixVersion     string `json:"fixVersion"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &raw); err != nil {
@@ -607,10 +611,10 @@ func checkAlerts(s *State, current DashboardData) {
 				clusterList = append(clusterList, c)
 			}
 			newAlerts = append(newAlerts, Alert{
-				ID:    fmt.Sprintf("algif-bulk-%d", time.Now().Unix()),
-				Level: "critical",
-				Title: fmt.Sprintf("%d nodes have algif_aead loaded", algifCount),
-				Body:  fmt.Sprintf("algif_aead module is still loaded on %d nodes.\nClusters affected: %s\nDeploy mitigation DaemonSet immediately.", algifCount, strings.Join(clusterList, ", ")),
+				ID:      fmt.Sprintf("algif-bulk-%d", time.Now().Unix()),
+				Level:   "critical",
+				Title:   fmt.Sprintf("%d nodes have algif_aead loaded", algifCount),
+				Body:    fmt.Sprintf("algif_aead module is still loaded on %d nodes.\nClusters affected: %s\nDeploy mitigation DaemonSet immediately.", algifCount, strings.Join(clusterList, ", ")),
 				FiredAt: time.Now(),
 			})
 		}
@@ -622,10 +626,10 @@ func checkAlerts(s *State, current DashboardData) {
 		curr := current.Compliance
 		if prev.Linux-curr.Linux >= 3 {
 			newAlerts = append(newAlerts, Alert{
-				ID:    fmt.Sprintf("compliance-drop-%d", time.Now().Unix()),
-				Level: "high",
-				Title: "CIS Linux compliance dropped",
-				Body:  fmt.Sprintf("CIS Linux dropped from %.0f%% to %.0f%%\nDelta: -%.0f%% in last scan cycle\nLikely cause: new unpatched nodes added to fleet.", prev.Linux, curr.Linux, prev.Linux-curr.Linux),
+				ID:      fmt.Sprintf("compliance-drop-%d", time.Now().Unix()),
+				Level:   "high",
+				Title:   "CIS Linux compliance dropped",
+				Body:    fmt.Sprintf("CIS Linux dropped from %.0f%% to %.0f%%\nDelta: -%.0f%% in last scan cycle\nLikely cause: new unpatched nodes added to fleet.", prev.Linux, curr.Linux, prev.Linux-curr.Linux),
 				FiredAt: time.Now(),
 			})
 		}
@@ -643,10 +647,10 @@ func checkAlerts(s *State, current DashboardData) {
 			}
 			if !alreadyFired {
 				newAlerts = append(newAlerts, Alert{
-					ID:    "cve-30d-" + cve.ID,
-					Level: "high",
-					Title: cve.ID + " just crossed 30-day unpatched threshold",
-					Body:  fmt.Sprintf("CVE: %s\nSeverity: %s\nUnpatched for: %d days\nFix has been available since day 0.\nEscalate to patch pipeline immediately.", cve.ID, cve.Severity, cve.AgeDays),
+					ID:      "cve-30d-" + cve.ID,
+					Level:   "high",
+					Title:   cve.ID + " just crossed 30-day unpatched threshold",
+					Body:    fmt.Sprintf("CVE: %s\nSeverity: %s\nUnpatched for: %d days\nFix has been available since day 0.\nEscalate to patch pipeline immediately.", cve.ID, cve.Severity, cve.AgeDays),
 					FiredAt: time.Now(),
 				})
 			}
@@ -1024,23 +1028,8 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	// Try to serve from file first, fall back to embedded
-	if _, err := os.Stat("dashboard.html"); err == nil {
-		http.ServeFile(w, r, "dashboard.html")
-		return
-	}
-	// Try same directory as binary
-	exe, err := os.Executable()
-	if err == nil {
-		p := filepath.Join(filepath.Dir(exe), "dashboard.html")
-		if _, err := os.Stat(p); err == nil {
-			http.ServeFile(w, r, p)
-			return
-		}
-	}
-	// Fallback — redirect to API data so at least something works
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/api/data"></head><body>Redirecting to API...</body></html>`)
+	w.Write(dashboardHTML)
 }
 
 func handleSendTestDigest(w http.ResponseWriter, r *http.Request) {
