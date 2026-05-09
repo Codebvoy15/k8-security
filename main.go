@@ -1024,7 +1024,23 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	http.ServeFile(w, r, "dashboard.html")
+	// Try to serve from file first, fall back to embedded
+	if _, err := os.Stat("dashboard.html"); err == nil {
+		http.ServeFile(w, r, "dashboard.html")
+		return
+	}
+	// Try same directory as binary
+	exe, err := os.Executable()
+	if err == nil {
+		p := filepath.Join(filepath.Dir(exe), "dashboard.html")
+		if _, err := os.Stat(p); err == nil {
+			http.ServeFile(w, r, p)
+			return
+		}
+	}
+	// Fallback — redirect to API data so at least something works
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/api/data"></head><body>Redirecting to API...</body></html>`)
 }
 
 func handleSendTestDigest(w http.ResponseWriter, r *http.Request) {
