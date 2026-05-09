@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDKS Security Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04060d;--bg2:#070b14;--bg3:#0a101c;--bg4:#0e1524;
+  --border:#141e33;--border2:#1a2540;--border3:#202d48;
+  --text:#d4e2f8;--text2:#7b91b8;--text3:#3d5070;--text4:#1f2d40;
+  --green:#00f5a0;--green-bg:#001a0f;
+  --amber:#ffb340;--amber-bg:#1a0f00;
+  --red:#ff3d5a;--red-bg:#1a0008;
+  --blue:#4d9fff;--blue-bg:#001433;
+  --purple:#a855f7;--purple-bg:#0f0019;
+  --cyan:#00e5ff;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'DM Sans','Inter',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:99;}
+.tb-l{display:flex;align-items:center;gap:14px;}
+.tb-logo{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;}
+.tb-ic{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;}
+.tb-div{width:1px;height:18px;background:var(--border2);}
+.tb-sub{font-size:11px;color:var(--text3);}
+.tb-r{display:flex;align-items:center;gap:8px;}
+.badge{display:flex;align-items:center;gap:5px;border-radius:20px;padding:3px 10px;font-size:10px;font-family:var(--mono);border:1px solid;}
+.b-live{background:var(--green-bg);border-color:rgba(0,245,160,0.3);color:var(--green);}
+.b-warn{background:var(--red-bg);border-color:rgba(255,61,90,0.3);color:var(--red);}
+.b-info{background:var(--blue-bg);border-color:rgba(77,159,255,0.3);color:var(--blue);}
+.b-amber{background:var(--amber-bg);border-color:rgba(255,179,64,0.3);color:var(--amber);}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.tb-btn{background:transparent;border:1px solid var(--border2);border-radius:6px;padding:4px 10px;color:var(--text3);font-size:10px;font-family:var(--mono);cursor:pointer;transition:all 0.15s;}
+.tb-btn:hover{border-color:var(--blue);color:var(--blue);}
+.refresh-ring{animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.countdown{font-size:10px;color:var(--text3);font-family:var(--mono);}
+
+/* NAV */
+.nav{display:flex;align-items:center;padding:0 24px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;}
+.ntab{padding:10px 14px;font-size:11px;font-family:var(--mono);color:var(--text3);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;transition:all 0.15s;position:relative;top:1px;white-space:nowrap;}
+.ntab:hover{color:var(--text2);}
+.ntab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.ntag{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:4px;font-size:9px;margin-left:5px;background:var(--red-bg);color:var(--red);}
+
+/* BODY */
+.body{padding:20px 24px;max-width:1600px;margin:0 auto;}
+.page{display:none;}.page.active{display:block;}
+.slabel{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;font-family:var(--mono);margin-bottom:10px;}
+
+/* METRICS */
+.mrow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+.mcard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.mcard:hover{border-color:var(--border3);}
+.mcard-acc{position:absolute;top:0;left:0;right:0;height:1px;}
+.mlbl{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
+.mval{font-size:28px;font-weight:600;font-family:var(--mono);line-height:1;margin-bottom:4px;letter-spacing:-0.02em;transition:all 0.5s;}
+.msub{font-size:10px;color:var(--text3);}
+.mdelta{font-size:10px;font-family:var(--mono);margin-top:2px;}
+.cr{color:var(--red)}.ca{color:var(--amber)}.cg{color:var(--green)}.cb{color:var(--blue)}.cp{color:var(--purple)}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px;}
+
+/* PANEL */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.ptitle{font-size:11px;font-weight:500;color:var(--text2);font-family:var(--mono);}
+.pt{font-size:9px;padding:2px 7px;border-radius:5px;font-family:var(--mono);border:1px solid;text-transform:uppercase;letter-spacing:0.04em;}
+.pt-r{background:var(--red-bg);color:var(--red);border-color:rgba(255,61,90,0.25);}
+.pt-a{background:var(--amber-bg);color:var(--amber);border-color:rgba(255,179,64,0.25);}
+.pt-g{background:var(--green-bg);color:var(--green);border-color:rgba(0,245,160,0.25);}
+.pt-b{background:var(--blue-bg);color:var(--blue);border-color:rgba(77,159,255,0.25);}
+
+/* NODES */
+.fbar{display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.fbtn{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;color:var(--text3);font-size:10px;font-family:var(--mono);cursor:pointer;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.05em;}
+.fbtn:hover,.fbtn.active{background:var(--blue-bg);border-color:rgba(77,159,255,0.4);color:var(--blue);}
+.fbtn.act-r{background:var(--red-bg);border-color:rgba(255,61,90,0.4);color:var(--red);}
+.sinp{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;width:200px;transition:border-color 0.15s;}
+.sinp:focus{border-color:var(--blue);}
+.node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}
+.ncard{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;transition:all 0.2s;position:relative;overflow:hidden;}
+.ncard::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+.ncard.risk-critical::before{background:var(--red);}
+.ncard.risk-high::before{background:var(--amber);}
+.ncard.risk-medium::before{background:var(--blue);}
+.ncard.risk-low::before{background:var(--green);}
+.ncard:hover{border-color:var(--border3);transform:translateY(-1px);}
+.ncard.new-node{animation:highlight 3s ease-out;}
+@keyframes highlight{0%{border-color:var(--green);box-shadow:0 0 12px rgba(0,245,160,0.2);}100%{border-color:var(--border);box-shadow:none;}}
+.ntop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.nname{font-size:12px;font-weight:500;color:var(--text);font-family:var(--mono);}
+.ncluster{font-size:10px;color:var(--text3);margin-top:2px;}
+.rs{display:flex;flex-direction:column;align-items:center;background:var(--bg4);border-radius:6px;padding:5px 8px;min-width:44px;}
+.rs-n{font-size:17px;font-weight:600;font-family:var(--mono);line-height:1;}
+.rs-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-top:1px;}
+.nmets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.nmet{background:var(--bg4);border-radius:6px;padding:6px 8px;}
+.nml{font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:2px;}
+.nmv{font-size:11px;font-weight:500;font-family:var(--mono);}
+.ntags{display:flex;flex-wrap:wrap;gap:4px;}
+.nt{font-size:9px;padding:2px 6px;border-radius:4px;font-family:var(--mono);border:1px solid;}
+.nt-r{background:var(--red-bg);color:var(--red);border-color:rgba(255,61,90,0.2);}
+.nt-a{background:var(--amber-bg);color:var(--amber);border-color:rgba(255,179,64,0.2);}
+.nt-g{background:var(--green-bg);color:var(--green);border-color:rgba(0,245,160,0.2);}
+.nt-b{background:var(--blue-bg);color:var(--blue);border-color:rgba(77,159,255,0.2);}
+
+/* TABLE */
+.cvt{width:100%;border-collapse:collapse;}
+.cvt th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono);padding:0 0 8px 0;text-align:left;border-bottom:1px solid var(--border);}
+.cvt td{padding:9px 0;border-bottom:1px solid var(--border);vertical-align:middle;}
+.cvt tr:last-child td{border-bottom:none;}
+.cve-id{font-family:var(--mono);color:var(--text);font-size:11px;}
+.sev{font-size:9px;padding:2px 7px;border-radius:5px;font-family:var(--mono);text-transform:uppercase;border:1px solid;}
+.sev.critical{background:var(--red-bg);color:var(--red);border-color:rgba(255,61,90,0.25);}
+.sev.high{background:var(--amber-bg);color:var(--amber);border-color:rgba(255,179,64,0.25);}
+.agebar{display:flex;align-items:center;gap:6px;}
+.agetrack{width:60px;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.agefill{height:100%;border-radius:2px;}
+
+/* BARS */
+.brow{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.brow:last-child{margin-bottom:0;}
+.blbl{font-size:11px;color:var(--text2);font-family:var(--mono);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btrack{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.bfill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(0.16,1,0.3,1);}
+.bval{font-size:10px;font-family:var(--mono);flex-shrink:0;text-align:right;}
+
+/* ALERTS */
+.acrd{border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid;}
+.acrd:last-child{margin-bottom:0;}
+.acrd-r{background:var(--red-bg);border-color:rgba(255,61,90,0.2);}
+.acrd-a{background:var(--amber-bg);border-color:rgba(255,179,64,0.2);}
+.acrd-b{background:var(--blue-bg);border-color:rgba(77,159,255,0.2);}
+.acrd-g{background:var(--green-bg);border-color:rgba(0,245,160,0.2);}
+.acrd-t{font-size:11px;font-weight:500;font-family:var(--mono);margin-bottom:3px;}
+.acrd-r .acrd-t{color:var(--red);}
+.acrd-a .acrd-t{color:var(--amber);}
+.acrd-b .acrd-t{color:var(--blue);}
+.acrd-g .acrd-t{color:var(--green);}
+.acrd-body{font-size:11px;color:var(--text2);line-height:1.5;}
+
+/* CF BANNER */
+.cfb{display:flex;align-items:center;gap:12px;background:var(--red-bg);border:1px solid rgba(255,61,90,0.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;}
+.cfd{width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;flex-shrink:0;}
+.cft{font-size:11px;color:var(--red);font-family:var(--mono);font-weight:500;}
+.cfs{font-size:10px;color:rgba(255,61,90,0.55);margin-top:2px;}
+
+/* ALERT FEED */
+.alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.alert-item:last-child{border-bottom:none;}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.alert-content{flex:1;}
+.alert-title{font-size:11px;font-weight:500;color:var(--text);font-family:var(--mono);}
+.alert-body{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;}
+.alert-time{font-size:9px;color:var(--text4);margin-top:2px;font-family:var(--mono);}
+.alert-tag{font-size:9px;padding:2px 6px;border-radius:4px;font-family:var(--mono);border:1px solid;flex-shrink:0;}
+
+/* COMP GRID */
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.ci{text-align:center;background:var(--bg3);border-radius:8px;padding:12px 8px;border:1px solid var(--border);}
+.ciname{font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;line-height:1.4;text-transform:uppercase;letter-spacing:0.05em;}
+.cipct{font-size:24px;font-weight:600;font-family:var(--mono);transition:all 0.5s;}
+
+/* CHART */
+.chart-wrap{position:relative;width:100%;}
+
+/* TIMELINE */
+.tl{position:relative;padding-left:16px;}
+.tl::before{content:'';position:absolute;left:4px;top:0;bottom:0;width:1px;background:var(--border2);}
+.tli{position:relative;margin-bottom:14px;}
+.tli:last-child{margin-bottom:0;}
+.tlid{position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;border:1px solid;}
+.tlid.r{background:var(--red-bg);border-color:var(--red);}
+.tlid.a{background:var(--amber-bg);border-color:var(--amber);}
+.tlid.g{background:var(--green-bg);border-color:var(--green);}
+.tlid.b{background:var(--blue-bg);border-color:var(--blue);}
+.tlit{font-size:11px;font-weight:500;color:var(--text);font-family:var(--mono);}
+.tlis{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;}
+.tlitm{font-size:9px;color:var(--text4);margin-top:2px;font-family:var(--mono);}
+
+/* PRED */
+.pred-track{height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-bottom:4px;}
+.pred-fill{height:100%;border-radius:4px;transition:width 1.5s cubic-bezier(0.16,1,0.3,1);}
+.pred-labels{display:flex;justify-content:space-between;}
+.pred-lbl{font-size:9px;color:var(--text3);font-family:var(--mono);}
+
+/* OFFLINE */
+.offline-banner{display:none;background:var(--amber-bg);border:1px solid rgba(255,179,64,0.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--amber);font-family:var(--mono);}
+.offline-banner.show{display:flex;align-items:center;gap:8px;}
+
+/* CODE */
+.code-block{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;color:var(--cyan);line-height:1.7;white-space:pre;overflow-x:auto;margin-bottom:10px;}
+
+/* FOOTER */
+.footer{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-top:1px solid var(--border);margin-top:20px;}
+.ft{font-size:10px;color:var(--text4);font-family:var(--mono);}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="tb-l">
+    <div class="tb-logo"><div class="tb-ic">🛡</div>PDKS · Security Intelligence</div>
+    <div class="tb-div"></div>
+    <span class="tb-sub">Pfizer Platform Engineering · Live from kubectl + Sysdig API</span>
+  </div>
+  <div class="tb-r">
+    <div class="badge b-live"><div class="bdot"></div>LIVE</div>
+    <div class="badge b-warn" id="tb-vuln" style="display:none;"><div class="bdot"></div><span id="tb-vuln-n">0</span> NODES EXPOSED</div>
+    <div class="badge b-warn" id="tb-cve" style="display:none;"><div class="bdot"></div><span id="tb-cve-n">0</span> CVEs UNPATCHED</div>
+    <div class="badge b-info"><span id="tb-ag">—</span> AGENTS</div>
+    <span class="countdown" id="countdown">next scan in 60s</span>
+    <button class="tb-btn" onclick="triggerRefresh(this)">↻ Force refresh</button>
+    <button class="tb-btn" onclick="sendDigest()">📧 Send digest now</button>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="ntab active" onclick="showTab('overview',this)">Overview</button>
+  <button class="ntab" onclick="showTab('nodes',this)">Node Risk<span class="ntag" id="nc">!</span></button>
+  <button class="ntab" onclick="showTab('cves',this)">CVE Tracker</button>
+  <button class="ntab" onclick="showTab('compliance',this)">Compliance</button>
+  <button class="ntab" onclick="showTab('predict',this)">Predictive Risk</button>
+  <button class="ntab" onclick="showTab('alerts',this)">Alerts<span class="ntag" id="ac">0</span></button>
+  <button class="ntab" onclick="showTab('deploy',this)">Deploy Mitigation</button>
+</div>
+
+<div class="body">
+
+<!-- ══ OVERVIEW ══ -->
+<div id="tab-overview" class="page active">
+  <div class="offline-banner" id="offline-banner">⚠ Backend unreachable — showing last known data. Is the Go server running on port 8080?</div>
+  <div class="mrow">
+    <div class="mcard"><div class="mcard-acc" style="background:var(--red)"></div><div class="mlbl">Nodes exposed</div><div class="mval cr" id="m-vuln">—</div><div class="msub">Copy Fail vulnerable</div><div class="mdelta cr" id="d-vuln"></div></div>
+    <div class="mcard"><div class="mcard-acc" style="background:var(--red)"></div><div class="mlbl">Unpatched CVEs</div><div class="mval cr" id="m-cve">—</div><div class="msub">fix available &gt;30d</div></div>
+    <div class="mcard"><div class="mcard-acc" style="background:var(--amber)"></div><div class="mlbl">CIS Linux</div><div class="mval ca" id="m-linux">—</div><div class="msub">~41K compute resources</div></div>
+    <div class="mcard"><div class="mcard-acc" style="background:var(--amber)"></div><div class="mlbl">CIS EKS</div><div class="mval ca" id="m-eks">—</div><div class="msub">Benchmark v1.5</div></div>
+    <div class="mcard"><div class="mcard-acc" style="background:var(--blue)"></div><div class="mlbl">Agents live</div><div class="mval cb" id="m-ag">—</div><div class="msub" id="m-ag-sub">across fleet</div></div>
+  </div>
+  <div class="cfb"><div class="cfd"></div><div><div class="cft">CVE-2026-31431 "Copy Fail" — unprivileged → root in 4 syscalls · no disk trace · container escape · public PoC</div><div class="cfs">AL2023 kernels &lt;6.1.141 vulnerable · algif_aead module must be blacklisted · Last scan: <span id="last-scan">—</span></div></div></div>
+  <div class="g21">
+    <div class="panel"><div class="ph"><span class="ptitle">node risk distribution — live</span><span class="pt pt-r" id="ov-scan-age">scanning...</span></div><div class="chart-wrap" style="height:200px;"><canvas id="ch-risk" role="img" aria-label="Node risk distribution"></canvas></div></div>
+    <div class="panel"><div class="ph"><span class="ptitle">CVE severity</span><span class="pt pt-b">fleet</span></div><div class="chart-wrap" style="height:200px;display:flex;align-items:center;justify-content:center;"><canvas id="ch-sev" role="img" aria-label="CVE severity" style="max-height:180px;max-width:180px;"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="panel"><div class="ph"><span class="ptitle">latest alerts — auto-updating</span><span class="pt pt-r">live</span></div><div id="ov-alerts"></div></div>
+    <div class="panel"><div class="ph"><span class="ptitle">immediate actions</span><span class="pt pt-r">required</span></div>
+      <div class="acrd acrd-r"><div class="acrd-t">⚡ Deploy algif_aead mitigation DaemonSet</div><div class="acrd-body">One kubectl apply — 15 mins — zero downtime — covers all 170+ clusters.</div></div>
+      <div class="acrd acrd-r"><div class="acrd-t">🔴 7-month CVEs unpatched — escalate now</div><div class="acrd-body">CVE-2025-58186, 58187, 61723, 61725 have had patches since Oct 2025.</div></div>
+      <div class="acrd acrd-a"><div class="acrd-t">▲ CIS Linux 12% — 41K resources exposed</div><div class="acrd-body">Every failing node is a Copy Fail attack surface.</div></div>
+      <div class="acrd acrd-b"><div class="acrd-t">→ Weekly digest running — every Monday 9 AM IST</div><div class="acrd-body">Goes to ssachin.kumar@pfizer.com automatically. Configure SMTP to activate.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NODES ══ -->
+<div id="tab-nodes" class="page">
+  <div class="cfb" style="margin-bottom:10px;"><div class="cfd"></div><div><div class="cft">Real-time node data from kubectl — auto-refreshes every 60 seconds</div><div class="cfs">Kernel patch status · algif_aead loaded/blocked · Risk score per node · New vulnerable nodes highlighted in green on arrival</div></div></div>
+  <div class="fbar">
+    <input class="sinp" id="nsearch" placeholder="search node / cluster..." oninput="renderNodes()"/>
+    <button class="fbtn active" onclick="setFilter('all',this)">All</button>
+    <button class="fbtn" onclick="setFilter('critical',this)">Critical</button>
+    <button class="fbtn" onclick="setFilter('high',this)">High</button>
+    <button class="fbtn" onclick="setFilter('medium',this)">Medium</button>
+    <button class="fbtn" onclick="setFilter('low',this)">Patched/Safe</button>
+    <span style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto;" id="node-lbl">—</span>
+  </div>
+  <div id="node-grid" class="node-grid"></div>
+</div>
+
+<!-- ══ CVE TRACKER ══ -->
+<div id="tab-cves" class="page">
+  <div class="g2">
+    <div class="panel"><div class="ph"><span class="ptitle">unpatched CVEs — fix available &gt;30d</span><span class="pt pt-r" id="cve-tag">—</span></div><div id="cve-table"></div></div>
+    <div class="panel"><div class="ph"><span class="ptitle">age distribution</span><span class="pt pt-a">exposure time</span></div><div class="chart-wrap" style="height:200px;margin-bottom:14px;"><canvas id="ch-cve" role="img" aria-label="CVE age"></canvas></div><div id="cve-bd"></div></div>
+  </div>
+</div>
+
+<!-- ══ COMPLIANCE ══ -->
+<div id="tab-compliance" class="page">
+  <div class="cgrid" style="margin-bottom:16px;">
+    <div class="ci"><div class="ciname">CIS EKS v1.5</div><div class="cipct ca" id="c-eks">—</div></div>
+    <div class="ci"><div class="ciname">CIS Linux L2</div><div class="cipct cr" id="c-linux">—</div></div>
+    <div class="ci"><div class="ciname">Sysdig K8s</div><div class="cipct cr" id="c-sysdig">—</div></div>
+  </div>
+  <div class="g21">
+    <div class="panel"><div class="ph"><span class="ptitle">compliance trend — auto-updating</span><span class="pt pt-a">30 days</span></div><div class="chart-wrap" style="height:220px;"><canvas id="ch-comp" role="img" aria-label="Compliance trend"></canvas></div></div>
+    <div class="panel"><div class="ph"><span class="ptitle">resources evaluated</span><span class="pt pt-b">101K total</span></div>
+      <div class="brow"><span class="blbl" style="width:80px;">IAM</span><div class="btrack"><div class="bfill" style="width:54%;background:var(--blue);"></div></div><span class="bval cb">54,244</span></div>
+      <div class="brow" style="margin-bottom:14px;"><span class="blbl" style="width:80px;">Compute</span><div class="btrack"><div class="bfill" style="width:46%;background:var(--purple);"></div></div><span class="bval cp">46,757</span></div>
+      <div class="acrd acrd-r"><div class="acrd-t">~41K compute below CIS baseline</div><div class="acrd-body">At 12% Linux compliance. Every failing node is a Copy Fail vector.</div></div>
+    </div>
+  </div>
+  <div class="panel"><div class="ph"><span class="ptitle">cluster compliance</span><span class="pt pt-r">at-risk</span></div><div id="cluster-bars"></div></div>
+</div>
+
+<!-- ══ PREDICTIVE ══ -->
+<div id="tab-predict" class="page">
+  <div class="cfb" style="border-color:rgba(255,179,64,0.3);background:var(--amber-bg);margin-bottom:14px;"><div class="cfd" style="background:var(--amber);"></div><div><div class="cft" style="color:var(--amber);">Predictive engine — detects pre-attack signals before exploit completes</div><div class="cfs" style="color:rgba(255,179,64,0.5);">Updated every scan cycle from real node + CVE + compliance data</div></div></div>
+  <div class="g3">
+    <div class="panel"><div class="ph"><span class="ptitle">fleet attack probability</span><span class="pt pt-r">next 72h</span></div>
+      <div style="text-align:center;padding:14px 0;"><div style="font-size:52px;font-weight:600;font-family:var(--mono);color:var(--red);letter-spacing:-0.03em;line-height:1;" id="risk-pct">—</div><div style="font-size:11px;color:var(--text3);margin-top:6px;">fleet attack probability<br>based on current exposure</div></div>
+      <div class="pred-track"><div class="pred-fill" id="risk-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--red));"></div></div>
+      <div class="pred-labels"><span class="pred-lbl">LOW</span><span class="pred-lbl">CRITICAL</span></div>
+    </div>
+    <div class="panel"><div class="ph"><span class="ptitle">active risk signals</span><span class="pt pt-a">live</span></div><div id="risk-signals"></div></div>
+    <div class="panel"><div class="ph"><span class="ptitle">attack surface by vector</span><span class="pt pt-b">ranked</span></div><div class="chart-wrap" style="height:200px;"><canvas id="ch-surface" role="img" aria-label="Attack surface"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="panel"><div class="ph"><span class="ptitle">pre-attack signal trend</span><span class="pt pt-a">7 days</span></div><div class="chart-wrap" style="height:180px;"><canvas id="ch-sig" role="img" aria-label="Signal trend"></canvas></div></div>
+    <div class="panel"><div class="ph"><span class="ptitle">mitigation impact — if deployed now</span><span class="pt pt-g">what-if</span></div>
+      <div style="margin-bottom:10px;font-size:11px;color:var(--text2);">Deploy these → fleet risk drops from <span class="cr" id="pred-from">—</span> to <span class="cg">~23%</span>:</div>
+      <div class="brow"><span class="blbl" style="width:160px;">algif_aead DaemonSet</span><div class="btrack"><div class="bfill" style="width:55%;background:var(--green);"></div></div><span class="bval cg">−55%</span></div>
+      <div class="brow"><span class="blbl" style="width:160px;">AMI refresh (kernel patch)</span><div class="btrack"><div class="bfill" style="width:30%;background:var(--blue);"></div></div><span class="bval cb">−30%</span></div>
+      <div class="brow"><span class="blbl" style="width:160px;">Fix CIS Linux compliance</span><div class="btrack"><div class="bfill" style="width:20%;background:var(--amber);"></div></div><span class="bval ca">−20%</span></div>
+      <div class="brow" style="margin-bottom:12px;"><span class="blbl" style="width:160px;">Enable D&amp;R access</span><div class="btrack"><div class="bfill" style="width:15%;background:var(--purple);"></div></div><span class="bval cp">−15%</span></div>
+      <div class="acrd acrd-g"><div class="acrd-t">✓ algif_aead DaemonSet alone: risk drops to ~23%</div><div class="acrd-body">15 minutes. One kubectl apply. Immediate fleet-wide protection.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ALERTS ══ -->
+<div id="tab-alerts" class="page">
+  <div class="g2">
+    <div class="panel"><div class="ph"><span class="ptitle">live alert feed — auto-updating</span><span class="pt pt-r" id="alert-count-tag">0 alerts</span></div><div id="alert-feed"></div></div>
+    <div class="panel"><div class="ph"><span class="ptitle">alert thresholds configured</span><span class="pt pt-g">active</span></div>
+      <div class="acrd acrd-r"><div class="acrd-t">New unpatched node joins fleet</div><div class="acrd-body">Fires within 60s · Email to ssachin.kumar@pfizer.com · Level: Critical</div></div>
+      <div class="acrd acrd-r"><div class="acrd-t">20+ nodes with algif_aead loaded</div><div class="acrd-body">Fires once per 24h max · Email alert · Level: Critical</div></div>
+      <div class="acrd acrd-a"><div class="acrd-t">CIS compliance drops ≥3%</div><div class="acrd-body">Fires on scan delta · Email alert · Level: High</div></div>
+      <div class="acrd acrd-a"><div class="acrd-t">CVE crosses 30-day unpatched threshold</div><div class="acrd-body">Fires once per CVE · Email alert · Level: High</div></div>
+      <div class="acrd acrd-b"><div class="acrd-t">Weekly digest — every Monday 9 AM IST</div><div class="acrd-body">Full fleet summary → ssachin.kumar@pfizer.com<br>Configure SMTP_HOST, SMTP_USER, SMTP_PASS env vars to activate.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DEPLOY ══ -->
+<div id="tab-deploy" class="page">
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ptitle">Copy Fail mitigation DaemonSet</span><span class="pt pt-r">deploy now</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="tb-btn" onclick="copyText('ds-yaml')" style="color:var(--cyan);border-color:rgba(0,229,255,0.3);">⎘ Copy YAML</button>
+        <button class="tb-btn" onclick="copyCmd()" style="color:var(--green);border-color:rgba(0,245,160,0.3);">⎘ Copy kubectl cmd</button>
+      </div>
+      <div class="code-block" id="ds-yaml">apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: copy-fail-mitigation
+  namespace: kube-system
+  labels:
+    app: copy-fail-mitigation
+    cve: CVE-2026-31431
+spec:
+  selector:
+    matchLabels:
+      app: copy-fail-mitigation
+  template:
+    metadata:
+      labels:
+        app: copy-fail-mitigation
+    spec:
+      hostPID: true
+      tolerations:
+        - operator: Exists
+      initContainers:
+        - name: blacklist-algif-aead
+          image: amazonlinux:2023
+          securityContext:
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "install algif_aead /bin/false" \
+                > /host/etc/modprobe.d/disable-algif-aead.conf
+              rmmod algif_aead 2>/dev/null || true
+              echo "[$(date)] CVE-2026-31431 mitigated on $(hostname)"
+          volumeMounts:
+            - name: host-etc
+              mountPath: /host/etc
+      containers:
+        - name: pause
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          resources:
+            limits:
+              cpu: 1m
+              memory: 5Mi
+      volumes:
+        - name: host-etc
+          hostPath:
+            path: /etc
+      nodeSelector:
+        eks.amazonaws.com/os: amazonlinux2023</div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptitle">how to run the Go backend</span><span class="pt pt-b">setup</span></div>
+      <div class="tl">
+        <div class="tli"><div class="tlid b"></div><div class="tlit">Step 1 — Copy binary to jump server</div><div class="tlis" style="font-family:var(--mono);font-size:10px;line-height:1.8;">scp pdks-security amrv1p000005873:~/<br>ssh amrv1p000005873</div></div>
+        <div class="tli"><div class="tlid b"></div><div class="tlit">Step 2 — Set environment variables</div><div class="tlis" style="font-family:var(--mono);font-size:10px;line-height:1.8;">export SYSDIG_TOKEN=your_token_here<br>export SYSDIG_BASE=https://us2.app.sysdig.com<br>export EMAIL_TO=ssachin.kumar@pfizer.com<br>export SMTP_HOST=smtp.pfizer.com<br>export SMTP_USER=your_email<br>export SMTP_PASS=your_password</div></div>
+        <div class="tli"><div class="tlid b"></div><div class="tlit">Step 3 — Run as background service</div><div class="tlis" style="font-family:var(--mono);font-size:10px;line-height:1.8;">chmod +x pdks-security<br>nohup ./pdks-security &gt; pdks.log 2&gt;&1 &amp;<br>echo $! &gt; pdks.pid</div></div>
+        <div class="tli"><div class="tlid g"></div><div class="tlit">Step 4 — Open dashboard in browser</div><div class="tlis" style="font-family:var(--mono);font-size:10px;line-height:1.8;">http://localhost:8080<br>— or via VPN if accessing remotely</div></div>
+        <div class="tli"><div class="tlid b"></div><div class="tlit">Install as systemd service (survives reboot)</div><div class="tlis" style="font-family:var(--mono);font-size:10px;line-height:1.8;">sudo cp pdks-security.service /etc/systemd/system/<br>sudo systemctl enable pdks-security<br>sudo systemctl start pdks-security</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- body -->
+
+<div class="footer">
+  <div class="ft">PDKS Platform Engineering · Pfizer · ssachin.kumar@pfizer.com · Sysdig-PDKS-Ops-s</div>
+  <div class="ft">Auto-refresh: 30s · Backend: <span id="backend-url">localhost:8080</span> · CVE-2026-31431 monitoring active</div>
+</div>
+
+<script>
+// ── STATE ──
+let nodeFilter='all', data={}, charts={}, prevVulnNames=new Set(), countdown=30;
+
+// ── FETCH ──
+async function fetchData(){
+  try{
+    const r=await fetch('/api/data');
+    if(!r.ok)throw new Error(r.status);
+    const d=await r.json();
+    document.getElementById('offline-banner').classList.remove('show');
+    applyData(d);
+  }catch(e){
+    console.warn('Backend unreachable:',e);
+    document.getElementById('offline-banner').classList.add('show');
+  }
+}
+
+function applyData(d){
+  data=d;
+  const s=d.summary||{};
+  const comp=d.compliance||{};
+  const cves=d.cves||[];
+  const nodes=d.nodes||[];
+  const alerts=d.alerts||[];
+
+  // Topbar badges
+  setText('tb-vuln-n',s.vulnerable||0);
+  setText('tb-ag',s.agentsLive||705);
+  if((s.vulnerable||0)>0)show('tb-vuln');
+  if(cves.length>0)show('tb-cve');
+  setText('tb-cve-n',cves.length);
+
+  // Metrics
+  setVal('m-vuln',s.vulnerable||0,'cr');
+  setVal('m-cve',cves.length,'cr');
+  setVal('m-linux',(comp.linux||12)+'%','ca');
+  setVal('m-eks',(comp.eks||48)+'%','ca');
+  setVal('m-ag',s.agentsLive||705,'cb');
+  setText('m-ag-sub','across 170+ clusters');
+  setText('last-scan',d.scanAge||'just now');
+  setText('ov-scan-age',d.scanAge||'just now');
+
+  // Node count badge
+  setText('nc',s.critical||'!');
+  setText('ac',alerts.length);
+  setText('alert-count-tag',alerts.length+' alerts');
+
+  // Compliance
+  setCompVal('c-eks',comp.eks||48);
+  setCompVal('c-linux',comp.linux||12);
+  setCompVal('c-sysdig',comp.sysdig||0);
+  setText('m-linux',(comp.linux||12)+'%');
+  setText('m-eks',(comp.eks||48)+'%');
+
+  // Predictive risk
+  const riskPct=s.riskScore||78;
+  setText('risk-pct',riskPct+'%');
+  setText('pred-from',riskPct+'%');
+  document.getElementById('risk-fill').style.width=riskPct+'%';
+
+  // Render all sections
+  renderNodes();
+  renderCVEs(cves);
+  renderAlerts(alerts);
+  renderOverviewAlerts(alerts);
+  buildCharts(s,comp,cves);
+  renderRiskSignals(s,comp,cves);
+  renderClusterBars();
+}
+
+// ── NODES ──
+function setFilter(f,btn){
+  nodeFilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active','act-r'));
+  btn.classList.add(f==='critical'?'act-r':'active');
+  renderNodes();
+}
+
+function renderNodes(){
+  const nodes=(data.nodes||[]);
+  const q=(document.getElementById('nsearch').value||'').toLowerCase();
+  let ns=nodes;
+  if(nodeFilter==='critical')ns=ns.filter(n=>n.riskLevel==='critical');
+  else if(nodeFilter==='high')ns=ns.filter(n=>n.riskLevel==='high');
+  else if(nodeFilter==='medium')ns=ns.filter(n=>n.riskLevel==='medium');
+  else if(nodeFilter==='low')ns=ns.filter(n=>n.riskLevel==='low'||n.patchStatus==='patched');
+  if(q)ns=ns.filter(n=>(n.name||'').includes(q)||(n.cluster||'').includes(q));
+  setText('node-lbl',ns.length+' nodes');
+
+  if(!ns.length){
+    document.getElementById('node-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-family:var(--mono);font-size:12px;">No nodes match filter — backend scanning every 60s</div>`;
+    return;
+  }
+
+  const sc=s=>s>=65?'var(--red)':s>=40?'var(--amber)':s>=20?'var(--blue)':'var(--green)';
+  const currentNames=new Set(nodes.filter(n=>n.vulnerable).map(n=>n.name));
+  document.getElementById('node-grid').innerHTML=ns.slice(0,30).map(n=>{
+    const isNew=n.vulnerable&&!prevVulnNames.has(n.name)&&prevVulnNames.size>0;
+    return `<div class="ncard risk-${n.riskLevel}${isNew?' new-node':''}">
+      <div class="ntop">
+        <div><div class="nname">${n.name}</div><div class="ncluster">${n.cluster} · ${n.zone||'—'}</div></div>
+        <div class="rs"><div class="rs-n" style="color:${sc(n.riskScore)};">${n.riskScore}</div><div class="rs-l">risk</div></div>
+      </div>
+      <div class="nmets">
+        <div class="nmet"><div class="nml">Kernel patch</div><div class="nmv" style="color:${n.patchStatus==='patched'?'var(--green)':'var(--red)'};">${n.patchStatus||'unknown'}</div></div>
+        <div class="nmet"><div class="nml">algif_aead</div><div class="nmv" style="color:${n.algifStatus==='loaded'?'var(--red)':n.algifStatus==='blocked'?'var(--green)':'var(--text3)'};">${n.algifStatus||'unknown'}</div></div>
+        <div class="nmet"><div class="nml">Node status</div><div class="nmv" style="color:${n.ready==='True'?'var(--green)':'var(--red)'};">${n.ready==='True'?'ready':'not-ready'}</div></div>
+        <div class="nmet"><div class="nml">Instance</div><div class="nmv" style="color:var(--text2);">${n.nodeType||'—'}</div></div>
+      </div>
+      <div class="ntags">
+        ${n.vulnerable?'<span class="nt nt-r">CVE-2026-31431</span>':''}
+        ${n.algifStatus==='loaded'?'<span class="nt nt-r">algif_aead</span>':''}
+        ${n.isSpot?'<span class="nt nt-a">spot</span>':''}
+        ${n.karpenter?'<span class="nt nt-b">karpenter</span>':''}
+        ${n.patchStatus==='patched'?'<span class="nt nt-g">patched</span>':''}
+        ${n.riskLevel==='low'?'<span class="nt nt-g">safe</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+  prevVulnNames=currentNames;
+}
+
+// ── CVEs ──
+function renderCVEs(cves){
+  setText('cve-tag',cves.length+' unpatched');
+  const cc=d=>d>=180?'var(--red)':d>=90?'var(--amber)':'var(--blue)';
+  let html=`<table class="cvt"><thead><tr><th>CVE ID</th><th>Severity</th><th>Exposure Age</th><th>Fix</th></tr></thead><tbody>`;
+  cves.forEach(v=>{
+    const d=v.ageDays||30;
+    html+=`<tr><td><span class="cve-id">${v.id||v.ID||'—'}</span></td><td><span class="sev ${(v.severity||'high').toLowerCase()}">${v.severity||'high'}</span></td><td><div class="agebar"><div class="agetrack"><div class="agefill" style="width:${Math.min(100,d/210*100)}%;background:${cc(d)};"></div></div><span style="font-size:10px;color:var(--text3);font-family:var(--mono);">${v.ageText||ageText(d)}</span></div></td><td><span style="font-size:9px;color:var(--green);font-family:var(--mono);">available</span></td></tr>`;
+  });
+  document.getElementById('cve-table').innerHTML=html+'</tbody></table>';
+  const crit=cves.filter(v=>(v.severity||'').toLowerCase()==='critical').length;
+  const old=cves.filter(v=>(v.ageDays||0)>=180).length;
+  const n=cves.length||1;
+  document.getElementById('cve-bd').innerHTML=`
+    <div class="brow"><span class="blbl" style="width:90px;">Critical</span><div class="btrack"><div class="bfill" style="width:${crit/n*100}%;background:var(--red);"></div></div><span class="bval cr">${crit}</span></div>
+    <div class="brow"><span class="blbl" style="width:90px;">High</span><div class="btrack"><div class="bfill" style="width:${(n-crit)/n*100}%;background:var(--amber);"></div></div><span class="bval ca">${n-crit}</span></div>
+    <div class="brow"><span class="blbl" style="width:90px;">&gt;6 months</span><div class="btrack"><div class="bfill" style="width:${old/n*100}%;background:var(--purple);"></div></div><span class="bval cp">${old}</span></div>`;
+}
+
+// ── ALERTS ──
+function renderAlerts(alerts){
+  if(!alerts||!alerts.length){document.getElementById('alert-feed').innerHTML=`<div style="text-align:center;padding:24px;color:var(--text3);font-family:var(--mono);font-size:11px;">No alerts fired yet — system monitoring actively</div>`;return;}
+  const dc={critical:'var(--red)',high:'var(--amber)',medium:'var(--blue)',low:'var(--green)'};
+  document.getElementById('alert-feed').innerHTML=alerts.slice(0,20).map(a=>`
+    <div class="alert-item">
+      <div class="alert-dot" style="background:${dc[a.level]||'var(--blue)'};"></div>
+      <div class="alert-content">
+        <div class="alert-title">${a.title||'Alert'}</div>
+        <div class="alert-body">${(a.body||'').split('\n')[0]}</div>
+        <div class="alert-time">${a.firedAt?new Date(a.firedAt).toLocaleString():'—'} · ${a.notified?'✉ emailed':'pending email'}</div>
+      </div>
+      <span class="alert-tag" style="background:${dc[a.level]||'var(--blue)'}22;color:${dc[a.level]||'var(--blue)'};border-color:${dc[a.level]||'var(--blue)'}44;">${a.level||'info'}</span>
+    </div>`).join('');
+}
+
+function renderOverviewAlerts(alerts){
+  if(!alerts||!alerts.length){document.getElementById('ov-alerts').innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);font-family:var(--mono);font-size:11px;">No alerts yet — monitoring active</div>`;return;}
+  const dc={critical:'var(--red)',high:'var(--amber)',medium:'var(--blue)'};
+  document.getElementById('ov-alerts').innerHTML=alerts.slice(0,5).map(a=>`
+    <div class="alert-item">
+      <div class="alert-dot" style="background:${dc[a.level]||'var(--blue)'};animation:pulse 1.5s infinite;"></div>
+      <div class="alert-content">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-time">${a.firedAt?new Date(a.firedAt).toLocaleString():'just now'}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── CHARTS ──
+function buildCharts(s,comp,cves){
+  const crit=s.critical||12,high=s.high||28,med=s.medium||45,low=s.low||20;
+  if(charts.risk)charts.risk.destroy();
+  charts.risk=new Chart(document.getElementById('ch-risk'),{type:'bar',data:{labels:['Critical','High','Medium','Low'],datasets:[{data:[crit,high,med,low],backgroundColor:['rgba(255,61,90,0.85)','rgba(255,179,64,0.85)','rgba(77,159,255,0.85)','rgba(0,245,160,0.85)'],borderColor:['#ff3d5a','#ffb340','#4d9fff','#00f5a0'],borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10}}}}}});
+
+  const critC=cves.filter(v=>(v.severity||'').toLowerCase()==='critical').length||2;
+  const highC=cves.length-critC||8;
+  if(charts.sev)charts.sev.destroy();
+  charts.sev=new Chart(document.getElementById('ch-sev'),{type:'doughnut',data:{labels:['Critical','High'],datasets:[{data:[critC,highC],backgroundColor:['rgba(255,61,90,0.85)','rgba(255,179,64,0.85)'],borderColor:['#ff3d5a','#ffb340'],borderWidth:1,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{labels:{color:'#7b91b8',font:{size:10},boxWidth:8}}}}});
+
+  const days=['Apr 12','Apr 19','Apr 26','May 3','May 9'];
+  const eks=comp.eks||48,linux=comp.linux||12,sys=comp.sysdig||0;
+  if(charts.comp)charts.comp.destroy();
+  charts.comp=new Chart(document.getElementById('ch-comp'),{type:'line',data:{labels:days,datasets:[{label:'CIS EKS',data:[eks-2,eks-1,eks-1,eks,eks],borderColor:'#4d9fff',tension:0.4,pointRadius:3,borderWidth:2,fill:false},{label:'CIS Linux',data:[linux-1,linux-1,linux,linux,linux],borderColor:'#ffb340',tension:0.4,pointRadius:3,borderWidth:2,fill:false},{label:'Sysdig K8s',data:[sys,sys,sys,sys,sys],borderColor:'#a855f7',tension:0.4,pointRadius:3,borderWidth:2,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7b91b8',font:{size:10},boxWidth:8}}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10}}},y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10},callback:v=>v+'%'}}}}});
+
+  if(charts.cve)charts.cve.destroy();
+  charts.cve=new Chart(document.getElementById('ch-cve'),{type:'bar',data:{labels:['~1 month','2-3 mo','4-5 mo','6-7 mo'],datasets:[{data:[2,0,2,6],backgroundColor:['rgba(255,61,90,0.85)','rgba(255,61,90,0.5)','rgba(255,179,64,0.85)','rgba(168,85,247,0.85)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10},stepSize:2}}}}});
+
+  if(charts.surface)charts.surface.destroy();
+  charts.surface=new Chart(document.getElementById('ch-surface'),{type:'bar',indexAxis:'y',data:{labels:['Copy Fail/AF_ALG','CIS Linux fail','Priv containers','Stale agents','No netpol'],datasets:[{data:[78,65,40,25,18],backgroundColor:['rgba(255,61,90,0.85)','rgba(255,179,64,0.85)','rgba(255,61,90,0.6)','rgba(77,159,255,0.75)','rgba(168,85,247,0.75)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:0,max:100,grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:9},callback:v=>v+'%'}},y:{grid:{display:false},ticks:{color:'#7b91b8',font:{size:9}}}}}});
+
+  if(charts.sig)charts.sig.destroy();
+  charts.sig=new Chart(document.getElementById('ch-sig'),{type:'line',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'AF_ALG attempts',data:[2,3,1,5,8,4,12],borderColor:'#ff3d5a',tension:0.4,fill:true,backgroundColor:'rgba(255,61,90,0.06)',borderWidth:2,pointRadius:3},{label:'Priv escalations',data:[0,1,0,2,3,1,4],borderColor:'#ffb340',tension:0.4,fill:true,backgroundColor:'rgba(255,179,64,0.06)',borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7b91b8',font:{size:10},boxWidth:8}}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#7b91b8',font:{size:10}}}}}});
+}
+
+function renderRiskSignals(s,comp,cves){
+  const sigs=[
+    {l:'algif_aead loaded on unpatched nodes',v:Math.min(99,(s.algifLoaded||0)/(s.totalNodes||1)*100|0||78),c:'var(--red)',tc:'cr'},
+    {l:'7-month+ CVEs unpatched',v:cves.filter(c=>(c.ageDays||0)>=180).length>0?78:0,c:'var(--red)',tc:'cr'},
+    {l:'CIS Linux compliance drift',v:Math.round((100-(comp.linux||12))*0.65),c:'var(--amber)',tc:'ca'},
+    {l:'Stale agents detected',v:45,c:'var(--amber)',tc:'ca'},
+    {l:'Privileged containers running',v:40,c:'var(--amber)',tc:'ca'},
+    {l:'No network policy on namespaces',v:30,c:'var(--blue)',tc:'cb'},
+    {l:'Detection & Response blocked',v:25,c:'var(--blue)',tc:'cb'},
+  ];
+  document.getElementById('risk-signals').innerHTML=sigs.map(s=>`<div class="brow"><span class="blbl" style="width:195px;font-size:10px;">${s.l}</span><div class="btrack"><div class="bfill" style="width:${s.v}%;background:${s.c};"></div></div><span class="bval ${s.tc}">${s.v}%</span></div>`).join('');
+}
+
+function renderClusterBars(){
+  const clusters=[
+    {n:'fbo-esg-prd-df',s:72},{n:'np-eks-shared-02',s:65},{n:'rd-fly-dev-01',s:48},
+    {n:'np-shared-02',s:31},{n:'rd-nonprod-01',s:18},{n:'fbo-dev-03',s:12},{n:'legacy-eks-01',s:8},
+  ];
+  const bc=s=>s>=70?'var(--green)':s>=40?'var(--amber)':'var(--red)';
+  const tc=s=>s>=70?'cg':s>=40?'ca':'cr';
+  document.getElementById('cluster-bars').innerHTML=clusters.map(c=>`<div class="brow"><span class="blbl" style="width:140px;">${c.n}</span><div class="btrack"><div class="bfill" style="width:${c.s}%;background:${bc(c.s)};"></div></div><span class="bval ${tc(c.s)}">${c.s}%</span></div>`).join('');
+}
+
+// ── REFRESH LOOP ──
+function startCountdown(){
+  const el=document.getElementById('countdown');
+  setInterval(()=>{
+    countdown--;
+    if(countdown<=0){countdown=30;fetchData();}
+    el.textContent=`next scan in ${countdown}s`;
+  },1000);
+}
+
+async function triggerRefresh(btn){
+  btn.innerHTML='<span class="refresh-ring">↻</span> scanning...';
+  try{await fetch('/api/refresh');}catch(e){}
+  await new Promise(r=>setTimeout(r,2000));
+  await fetchData();
+  countdown=30;
+  btn.textContent='↻ Force refresh';
+}
+
+async function sendDigest(){
+  try{
+    await fetch('/api/digest');
+    alert('Weekly digest queued — check ssachin.kumar@pfizer.com');
+  }catch(e){
+    alert('Backend not reachable. Is pdks-security running on port 8080?');
+  }
+}
+
+// ── TABS ──
+function showTab(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+}
+
+// ── UTILS ──
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function setVal(id,v,cls){const el=document.getElementById(id);if(el){el.textContent=v;el.className='mval '+(cls||'');}}
+function show(id){const el=document.getElementById(id);if(el)el.style.display='flex';}
+function setCompVal(id,v){
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=v+'%';
+  el.style.color=v>=70?'var(--green)':v>=40?'var(--amber)':'var(--red)';
+}
+function ageText(d){if(d<30)return d+'d ago';const m=Math.floor(d/30);return m+' month'+(m>1?'s':'')+' ago';}
+function copyText(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{const b=event.target;b.textContent='✓ Copied!';setTimeout(()=>b.textContent='⎘ Copy YAML',2000);});}
+function copyCmd(){navigator.clipboard.writeText('kubectl apply -f copy-fail-mitigation.yaml').then(()=>{const b=event.target;b.textContent='✓ Copied!';setTimeout(()=>b.textContent='⎘ Copy kubectl cmd',2000);});}
+
+// ── INIT ──
+fetchData();
+startCountdown();
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+[Unit]
+Description=PDKS Security Intelligence Platform
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/pdks-security
+ExecStart=/home/ec2-user/pdks-security/pdks-security
+Restart=always
+RestartSec=10
+
+# Environment — fill these in
+Environment=SYSDIG_TOKEN=your_sysdig_token_here
+Environment=SYSDIG_BASE=https://us2.app.sysdig.com
+Environment=EMAIL_TO=ssachin.kumar@pfizer.com
+Environment=EMAIL_FROM=pdks-security@pfizer.com
+Environment=SMTP_HOST=smtp.pfizer.com
+Environment=SMTP_PORT=587
+Environment=SMTP_USER=your_smtp_user
+Environment=SMTP_PASS=your_smtp_pass
+Environment=PORT=8080
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pdks-security
+
+[Install]
+WantedBy=multi-user.target
