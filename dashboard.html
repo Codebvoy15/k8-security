@@ -390,6 +390,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .node-card-clickable:hover .ncard-drill-hint{opacity:1;}
 .ncard-drill-hint{font-size:9px;color:#3b82f6;opacity:0;transition:opacity 0.15s;margin-top:4px;text-align:right;}
 
+
+/* ── CLUSTER GRID ── */
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:16px;}
+.cl-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:all 0.15s;cursor:pointer;}
+.cl-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.cl-card-top{display:flex;align-items:stretch;}
+.cl-status-bar{width:4px;flex-shrink:0;}
+.cl-status-bar.ok{background:var(--green);}
+.cl-status-bar.error{background:var(--red);}
+.cl-status-bar.timeout{background:var(--amber);}
+.cl-card-header{flex:1;padding:12px 14px;}
+.cl-name{font-size:13px;font-weight:600;color:var(--text);font-family:var(--mono);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cl-context{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cl-card-metrics{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);}
+.cl-metric{padding:10px 12px;text-align:center;border-right:1px solid var(--border);}
+.cl-metric:last-child{border-right:none;}
+.cl-metric-val{font-size:18px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:3px;}
+.cl-metric-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+.cl-error{padding:8px 14px;background:var(--red-bg);font-size:10px;color:var(--red);font-family:var(--mono);border-top:1px solid var(--border);}
+.cl-summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.cl-sum{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.cl-sum-val{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:4px;letter-spacing:-1px;}
+.cl-sum-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+.cl-filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.cl-search{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;width:220px;transition:border-color 0.15s;}
+.cl-search:focus{border-color:var(--blue);}
+
 </style>
 </head>
 <body>
@@ -397,7 +424,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
   <div class="tb-l">
     <div class="tb-logo"><div class="tb-ic">🛡</div>PDKS · Security Intelligence</div>
     <div class="tb-div"></div>
-    <span class="tb-sub">Pfizer Platform Engineering · Live from kubectl + Sysdig API</span>
+    <span class="tb-sub">Pfizer Platform Engineering · <span id="tb-ctx-status">Multi-cluster · Live</span></span>
   </div>
   <div class="tb-r">
     <div class="badge b-live"><div class="bdot"></div>LIVE</div>
@@ -420,6 +447,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
   <button class="ntab" onclick="showTab('alerts',this)">Alerts<span class="ntag" id="ac">0</span></button>
   <button class="ntab" onclick="showTab('deploy',this)">Deploy Mitigation</button>
   <button class="ntab" onclick="showTab('workloads',this)">Workload Report<span class="ntag" id="wl-badge">!</span></button>
+  <button class="ntab" onclick="showTab('clusters',this)">Clusters<span class="ntag" id="cl-badge" style="background:var(--blue);">—</span></button>
 </div>
 
 <div class="body">
@@ -674,6 +702,38 @@ spec:
 </div>
 
 
+
+<!-- ══ CLUSTERS ══ -->
+<div id="tab-clusters" class="page">
+  <div class="page-header">
+    <div class="page-title">Cluster Fleet</div>
+    <div class="page-sub">All contexts from kubeconfig · Scanned in parallel every 60 seconds · Click any cluster for details</div>
+  </div>
+
+  <div class="cl-summary-row">
+    <div class="cl-sum"><div class="cl-sum-val cb" id="cl-total">—</div><div class="cl-sum-label">Total clusters</div></div>
+    <div class="cl-sum"><div class="cl-sum-val cg" id="cl-ok">—</div><div class="cl-sum-label">Scanned OK</div></div>
+    <div class="cl-sum"><div class="cl-sum-val cr" id="cl-failed">—</div><div class="cl-sum-label">Failed / unreachable</div></div>
+    <div class="cl-sum"><div class="cl-sum-val cr" id="cl-vuln-clusters">—</div><div class="cl-sum-label">Clusters with exposed nodes</div></div>
+  </div>
+
+  <div class="cl-filter-bar">
+    <input class="cl-search" id="cl-search" placeholder="Search cluster name, region, context..." oninput="filterClusters()">
+    <div class="filter-chip active" onclick="setClFilter('all',this)">All</div>
+    <div class="filter-chip" onclick="setClFilter('ok',this)">✓ OK</div>
+    <div class="filter-chip" onclick="setClFilter('error',this)">✗ Failed</div>
+    <div class="filter-chip" onclick="setClFilter('vulnerable',this)">🔴 Has exposed nodes</div>
+    <span style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto;" id="cl-count">—</span>
+  </div>
+
+  <div id="cl-scanning-notice" style="display:none;padding:16px;text-align:center;font-size:12px;color:var(--text3);font-family:var(--mono);">
+    <div class="spin" style="display:inline-block;margin-right:8px;"></div>
+    Scanning all contexts in kubeconfig in parallel...
+  </div>
+
+  <div class="cl-grid" id="cl-grid"></div>
+</div>
+
 <!-- ══ WORKLOAD REPORT ══ -->
 <div id="tab-workloads" class="page">
   <div class="wl-summary-cards">
@@ -793,6 +853,7 @@ function applyData(d){
   buildWorkloads(nodes);
   initVulns(cves);
   renderCVEs(cves);
+  renderClusters(d);
   renderAlerts(alerts);
   renderOverviewAlerts(alerts);
   buildCharts(s,comp,cves);
@@ -815,12 +876,34 @@ function renderNodes(){
   if(nodeFilter==='critical')ns=ns.filter(n=>n.riskLevel==='critical');
   else if(nodeFilter==='high')ns=ns.filter(n=>n.riskLevel==='high');
   else if(nodeFilter==='medium')ns=ns.filter(n=>n.riskLevel==='medium');
-  else if(nodeFilter==='low')ns=ns.filter(n=>n.riskLevel==='low'||n.patchStatus==='patched');
+  else if(nodeFilter==='low')ns=ns.filter(n=>n.riskLevel==='low'||n.patchStatus==='patched'||n.patchStatus==='non-al2023'||!n.vulnerable);
   if(q)ns=ns.filter(n=>(n.name||'').includes(q)||(n.cluster||'').includes(q));
   setText('node-lbl',ns.length+' nodes');
 
   if(!ns.length){
-    document.getElementById('node-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-family:var(--mono);font-size:12px;">No nodes match filter — backend scanning every 60s</div>`;
+    const totalNodes = (data.nodes||[]).length;
+    let msg = '';
+    if(nodeFilter==='low'){
+      msg = `<div style="grid-column:1/-1;text-align:center;padding:48px 24px;">
+        <div style="font-size:36px;margin-bottom:16px;">⚠</div>
+        <div style="font-size:16px;font-weight:700;color:var(--red);margin-bottom:10px;letter-spacing:-0.3px;">No patched nodes found</div>
+        <div style="font-size:12px;color:var(--text3);max-width:420px;margin:0 auto;line-height:1.8;">
+          All <span style="color:var(--text);font-weight:600;">${totalNodes} nodes</span> in your fleet are running
+          <span style="color:var(--red);font-weight:600;">unpatched kernels</span> with algif_aead loaded.<br><br>
+          Every single node is vulnerable to Copy Fail (CVE-2026-31431).<br><br>
+          <span style="color:var(--amber);font-weight:500;">→ Deploy the mitigation DaemonSet</span> to blacklist algif_aead fleet-wide,<br>
+          then refresh to see protected nodes appear here.
+        </div>
+        <div style="margin-top:20px;">
+          <button onclick="showTab('deploy',document.querySelector('[onclick*=deploy]'))" style="background:rgba(245,57,90,0.1);border:1px solid rgba(245,57,90,0.3);border-radius:8px;padding:8px 20px;color:var(--red);font-size:12px;cursor:pointer;">
+            Go to Deploy Mitigation →
+          </button>
+        </div>
+      </div>`;
+    } else {
+      msg = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-family:var(--mono);font-size:12px;">No nodes match this filter</div>`;
+    }
+    document.getElementById('node-grid').innerHTML = msg;
     return;
   }
 
@@ -1003,6 +1086,195 @@ fetchData();
 startCountdown();
 
 
+
+
+// ── CLUSTER FLEET ─────────────────────────────────────────────────────────────
+let clFilter = 'all';
+
+function renderClusters(d) {
+  const clusters = d.clusters || [];
+  const totalCtx = d.totalContexts || 0;
+  const scanned = d.scannedContexts || 0;
+  const failed = d.failedContexts || 0;
+  const vulnClusters = clusters.filter(c => c.vulnerable > 0).length;
+
+  // Update summary
+  setText('cl-total', totalCtx || clusters.length);
+  setText('cl-ok', scanned || clusters.filter(c=>c.status==='ok').length);
+  setText('cl-failed', failed || clusters.filter(c=>c.status!=='ok').length);
+  setText('cl-vuln-clusters', vulnClusters);
+  setText('cl-badge', clusters.length || '—');
+
+  // Update topbar scan info
+  if (totalCtx > 0) {
+    setText('tb-countdown-ctx', `${scanned}/${totalCtx} clusters`);
+  }
+
+  filterClusters();
+}
+
+function setClFilter(f, el) {
+  clFilter = f;
+  document.querySelectorAll('.cl-filter-bar .filter-chip').forEach(c => c.classList.remove('active','act-r'));
+  el.classList.add(f==='error'?'act-r':'active');
+  filterClusters();
+}
+
+function filterClusters() {
+  const clusters = (data.clusters || []);
+  const q = (document.getElementById('cl-search')?.value||'').toLowerCase();
+  let cs = clusters;
+  if (clFilter === 'ok') cs = cs.filter(c => c.status === 'ok');
+  else if (clFilter === 'error') cs = cs.filter(c => c.status !== 'ok');
+  else if (clFilter === 'vulnerable') cs = cs.filter(c => c.vulnerable > 0);
+  if (q) cs = cs.filter(c =>
+    (c.name||'').toLowerCase().includes(q) ||
+    (c.context||'').toLowerCase().includes(q) ||
+    (c.region||'').toLowerCase().includes(q)
+  );
+  setText('cl-count', cs.length + ' clusters');
+  renderClusterGrid(cs);
+}
+
+function renderClusterGrid(clusters) {
+  if (!clusters.length) {
+    document.getElementById('cl-grid').innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text3);">
+        <div style="font-size:32px;margin-bottom:12px;">☁</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px;">No clusters found</div>
+        <div style="font-size:11px;line-height:1.6;">
+          Make sure your kubeconfig has contexts configured.<br>
+          Run: <code style="font-family:var(--mono);color:var(--cyan);">kubectl config get-contexts</code>
+        </div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('cl-grid').innerHTML = clusters.map(c => {
+    const isOk = c.status === 'ok';
+    const hasVuln = (c.vulnerable || 0) > 0;
+    const vulnPct = c.nodeCount > 0 ? Math.round(c.vulnerable/c.nodeCount*100) : 0;
+    const scannedAt = c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString() : '—';
+
+    return `
+      <div class="cl-card" onclick="openClusterDrill('${c.context}')">
+        <div class="cl-card-top">
+          <div class="cl-status-bar ${c.status}"></div>
+          <div class="cl-card-header">
+            <div class="cl-name" title="${c.name}">${c.name}</div>
+            <div class="cl-context" title="${c.context}">${c.context}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+              ${c.region ? `<span class="badge badge-blue" style="font-size:9px;">${c.region}</span>` : ''}
+              ${isOk ? `<span class="badge badge-green" style="font-size:9px;">✓ ok</span>` : `<span class="badge badge-red" style="font-size:9px;">✗ error</span>`}
+              ${hasVuln ? `<span class="badge badge-red" style="font-size:9px;">⚠ ${vulnPct}% exposed</span>` : ''}
+              <span style="font-size:9px;color:var(--text4);margin-left:auto;">${scannedAt}</span>
+            </div>
+          </div>
+        </div>
+        <div class="cl-card-metrics">
+          <div class="cl-metric">
+            <div class="cl-metric-val" style="color:var(--blue);">${isOk ? c.nodeCount : '—'}</div>
+            <div class="cl-metric-label">Nodes</div>
+          </div>
+          <div class="cl-metric">
+            <div class="cl-metric-val" style="color:${hasVuln?'var(--red)':'var(--green)'};">${isOk ? c.vulnerable : '—'}</div>
+            <div class="cl-metric-label">Exposed</div>
+          </div>
+          <div class="cl-metric">
+            <div class="cl-metric-val" style="color:${isOk?'var(--green)':'var(--red)'};">${isOk ? '✓' : '✗'}</div>
+            <div class="cl-metric-label">Reachable</div>
+          </div>
+        </div>
+        ${!isOk && c.error ? `<div class="cl-error">${c.error.substring(0,100)}${c.error.length>100?'...':''}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function openClusterDrill(contextName) {
+  const c = (data.clusters||[]).find(x => x.context === contextName);
+  if (!c) return;
+
+  const clusterNodes = (data.nodes||[]).filter(n =>
+    n.cluster === c.name || n.cluster === extractClusterNameFromCtx(contextName)
+  );
+
+  document.getElementById('dd-icon').textContent = '☸';
+  document.getElementById('dd-icon').style.background = c.vulnerable > 0 ? 'rgba(245,57,90,0.15)' : 'rgba(16,185,129,0.15)';
+  document.getElementById('dd-title').textContent = c.name;
+  document.getElementById('dd-sub').textContent = `${c.context} · ${c.region||'region unknown'} · ${c.nodeCount} nodes · scanned ${c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString() : '—'}`;
+  document.getElementById('dd-modal').style.display = 'flex';
+
+  const vuln = clusterNodes.filter(n => n.vulnerable);
+  const patched = clusterNodes.filter(n => !n.vulnerable);
+
+  document.getElementById('dd-body').innerHTML = `
+    <div class="dd-section">
+      <div class="dd-section-title">Cluster overview</div>
+      <div class="dd-grid4">
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--blue);">${c.nodeCount}</div><div class="dd-stat-label">Total nodes</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${c.vulnerable>0?'var(--red)':'var(--green)'};">${c.vulnerable}</div><div class="dd-stat-label">Exposed nodes</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--green);">${c.nodeCount-c.vulnerable}</div><div class="dd-stat-label">Safe nodes</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${c.status==='ok'?'var(--green)':'var(--red)'};">${c.status}</div><div class="dd-stat-label">Scan status</div></div>
+      </div>
+    </div>
+    ${c.status !== 'ok' ? `
+    <div class="dd-section">
+      <div class="dd-section-title">Error details</div>
+      <div class="dd-callout dd-callout-red">
+        <div class="dd-callout-title">Cluster unreachable</div>
+        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;">${c.error||'Unknown error'}</div>
+      </div>
+      <div class="dd-callout dd-callout-amber">
+        <div class="dd-callout-title">Troubleshooting steps</div>
+        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.8;">
+          kubectl --context=${c.context} cluster-info<br>
+          kubectl --context=${c.context} get nodes<br>
+          aws eks update-kubeconfig --name ${c.name} --region ${c.region||'us-east-1'}
+        </div>
+      </div>
+    </div>` : ''}
+    ${clusterNodes.length > 0 ? `
+    <div class="dd-section">
+      <div class="dd-section-title">Nodes in this cluster</div>
+      <table class="dd-table">
+        <thead><tr><th>Node</th><th>Kernel patch</th><th>algif_aead</th><th>Instance</th><th>Zone</th><th>Risk</th></tr></thead>
+        <tbody>
+          ${clusterNodes.map(n => `<tr>
+            <td style="font-family:'JetBrains Mono',monospace;color:var(--text);font-size:10px;">${n.name.split('.')[0]}</td>
+            <td style="color:${n.patchStatus==='patched'?'var(--green)':'var(--red)'};">${n.patchStatus}</td>
+            <td style="color:${n.algifStatus==='loaded'?'var(--red)':'var(--green)'};">${n.algifStatus}</td>
+            <td style="color:var(--text3);font-size:10px;">${n.nodeType||'—'}</td>
+            <td style="color:var(--text3);font-size:10px;">${n.zone||'—'}</td>
+            <td><span class="dd-tag ${n.riskLevel==='critical'?'dd-tag-red':n.riskLevel==='high'?'dd-tag-amber':'dd-tag-blue'}">${n.riskScore}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : `
+    <div class="dd-section">
+      <div class="dd-section-title">Nodes</div>
+      <div style="font-size:11px;color:var(--text3);padding:12px 0;">Node details will appear here after a full scan. Use "Force refresh" to trigger immediately.</div>
+    </div>`}
+    <div class="dd-section">
+      <div class="dd-section-title">Quick actions</div>
+      <div class="dd-callout dd-callout-blue">
+        <div class="dd-callout-title">Switch to this cluster context</div>
+        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;">kubectl config use-context ${c.context}</div>
+      </div>
+      ${c.vulnerable > 0 ? `
+      <div class="dd-callout dd-callout-red">
+        <div class="dd-callout-title">Deploy Copy Fail mitigation to this cluster</div>
+        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;">kubectl --context=${c.context} apply -f copy-fail-mitigation.yaml</div>
+      </div>` : ''}
+    </div>
+  `;
+}
+
+function extractClusterNameFromCtx(ctx) {
+  if (!ctx) return '';
+  if (ctx.includes('/')) return ctx.split('/').pop();
+  return ctx;
+}
+// ── END CLUSTER FLEET ─────────────────────────────────────────────────────────
 
 // ── DRILLDOWN ENGINE ─────────────────────────────────────────────────────────
 

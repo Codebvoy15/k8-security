@@ -115,38 +115,53 @@ type ComplianceInfo struct {
 }
 
 type FleetSummary struct {
-	TotalNodes  int `json:"totalNodes"`
-	Vulnerable  int `json:"vulnerable"`
-	Critical    int `json:"critical"`
-	High        int `json:"high"`
-	Medium      int `json:"medium"`
-	Low         int `json:"low"`
-	Patched     int `json:"patched"`
-	AlgifLoaded int `json:"algifLoaded"`
-	AgentsLive  int `json:"agentsLive"`
-	RiskScore   int `json:"riskScore"`
+	TotalNodes    int `json:"totalNodes"`
+	Vulnerable    int `json:"vulnerable"`
+	Critical      int `json:"critical"`
+	High          int `json:"high"`
+	Medium        int `json:"medium"`
+	Low           int `json:"low"`
+	Patched       int `json:"patched"`
+	AlgifLoaded   int `json:"algifLoaded"`
+	AgentsLive    int `json:"agentsLive"`
+	RiskScore     int `json:"riskScore"`
 }
 
 type Alert struct {
-	ID       string    `json:"id"`
-	Level    string    `json:"level"`
-	Title    string    `json:"title"`
-	Body     string    `json:"body"`
-	Cluster  string    `json:"cluster"`
-	Node     string    `json:"node"`
-	FiredAt  time.Time `json:"firedAt"`
-	Notified bool      `json:"notified"`
+	ID        string    `json:"id"`
+	Level     string    `json:"level"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	Cluster   string    `json:"cluster"`
+	Node      string    `json:"node"`
+	FiredAt   time.Time `json:"firedAt"`
+	Notified  bool      `json:"notified"`
+}
+
+type ClusterStatus struct {
+	Name       string    `json:"name"`
+	Context    string    `json:"context"`
+	NodeCount  int       `json:"nodeCount"`
+	Vulnerable int       `json:"vulnerable"`
+	Status     string    `json:"status"` // ok, error, timeout
+	Error      string    `json:"error,omitempty"`
+	ScannedAt  time.Time `json:"scannedAt"`
+	Region     string    `json:"region"`
 }
 
 type DashboardData struct {
-	Summary    FleetSummary   `json:"summary"`
-	Nodes      []NodeInfo     `json:"nodes"`
-	CVEs       []CVEInfo      `json:"cves"`
-	Compliance ComplianceInfo `json:"compliance"`
-	Alerts     []Alert        `json:"alerts"`
-	LastScan   time.Time      `json:"lastScan"`
-	ScanAge    string         `json:"scanAge"`
-	Status     string         `json:"status"`
+	Summary        FleetSummary    `json:"summary"`
+	Nodes          []NodeInfo      `json:"nodes"`
+	CVEs           []CVEInfo       `json:"cves"`
+	Compliance     ComplianceInfo  `json:"compliance"`
+	Alerts         []Alert         `json:"alerts"`
+	Clusters       []ClusterStatus `json:"clusters"`
+	LastScan       time.Time       `json:"lastScan"`
+	ScanAge        string          `json:"scanAge"`
+	Status         string          `json:"status"`
+	TotalContexts  int             `json:"totalContexts"`
+	ScannedContexts int            `json:"scannedContexts"`
+	FailedContexts int             `json:"failedContexts"`
 }
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -161,46 +176,94 @@ type State struct {
 
 var state *State
 
-// ── KUBERNETES SCANNER ───────────────────────────────────────────────────────
+// ── KUBERNETES MULTI-CLUSTER SCANNER ─────────────────────────────────────────
 
-func scanKubernetes(cfg Config) ([]NodeInfo, error) {
-	// Try client-go first
-	nodes, err := scanViaClientGo(cfg)
-	if err != nil {
-		log.Printf("client-go failed: %v — falling back to kubectl", err)
-		nodes, err = scanViaKubectl()
+// getAllContexts reads all contexts from kubeconfig
+func getAllContexts(kubeconfigPath string) ([]string, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if kubeconfigPath != "" {
+		loadingRules.ExplicitPath = kubeconfigPath
 	}
-	return nodes, err
+	cfg, err := loadingRules.Load()
+	if err != nil {
+		return nil, fmt.Errorf("load kubeconfig: %w", err)
+	}
+	var contexts []string
+	for name := range cfg.Contexts {
+		contexts = append(contexts, name)
+	}
+	sort.Strings(contexts)
+	log.Printf("[MULTI-CLUSTER] Found %d contexts in kubeconfig", len(contexts))
+	return contexts, nil
 }
 
-func scanViaClientGo(cfg Config) ([]NodeInfo, error) {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	if cfg.KubeconfigPath != "" {
-		loadingRules.ExplicitPath = cfg.KubeconfigPath
+// extractClusterNameFromContext derives a human-readable cluster name from a context name
+// Handles: EKS ARN format, plain names, Rancher format
+func extractClusterNameFromContext(contextName string) string {
+	// EKS ARN: arn:aws:eks:us-east-1:123456789:cluster/my-cluster-name
+	if strings.Contains(contextName, "/") {
+		parts := strings.Split(contextName, "/")
+		if last := parts[len(parts)-1]; last != "" {
+			return last
+		}
 	}
-	configOverrides := &clientcmd.ConfigOverrides{}
+	// Rancher format: cluster-name-something
+	// Just return the context name as-is — it's usually descriptive
+	return contextName
+}
+
+// extractRegionFromContext tries to get AWS region from EKS context ARN
+func extractRegionFromContext(contextName string) string {
+	// arn:aws:eks:us-east-1:123456789:cluster/name
+	parts := strings.Split(contextName, ":")
+	if len(parts) >= 4 && strings.HasPrefix(contextName, "arn:aws:eks:") {
+		return parts[3]
+	}
+	return ""
+}
+
+// scanSingleContext scans one kubectl context and returns nodes
+func scanSingleContext(kubeconfigPath, contextName string) ([]NodeInfo, error) {
+	// Use client-go with specific context override
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if kubeconfigPath != "" {
+		loadingRules.ExplicitPath = kubeconfigPath
+	}
+	configOverrides := &clientcmd.ConfigOverrides{
+		CurrentContext: contextName,
+	}
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	restConfig, err := kubeConfig.ClientConfig()
 	if err != nil {
-		return nil, fmt.Errorf("kubeconfig: %w", err)
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("clientset: %w", err)
-	}
-	nodeList, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("list nodes: %w", err)
+		// Fall back to kubectl --context
+		return scanViaKubectlContext(contextName)
 	}
 
+	// Set aggressive timeouts so slow clusters don't block
+	restConfig.Timeout = 20 * time.Second
+
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return scanViaKubectlContext(contextName)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+
+	nodeList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		// Try kubectl fallback
+		return scanViaKubectlContext(contextName)
+	}
+
+	clusterName := extractClusterNameFromContext(contextName)
 	var results []NodeInfo
+
 	for _, node := range nodeList.Items {
 		labels := node.Labels
 		info := node.Status.NodeInfo
-		name := node.Name
-		kernel := info.KernelVersion
-		osImage := info.OSImage
 
+		// Try to get cluster name from labels first, then context
 		cluster := firstNonEmpty(
 			labels["alpha.eksctl.io/cluster-name"],
 			labels["eks.amazonaws.com/cluster-name"],
@@ -208,8 +271,7 @@ func scanViaClientGo(cfg Config) ([]NodeInfo, error) {
 			labels["cluster.x-k8s.io/cluster-name"],
 			labels["kops.k8s.io/cluster"],
 			labels["rancher.cattle.io/cluster-name"],
-			extractClusterFromNodeName(name),
-			"unknown-cluster",
+			clusterName,
 		)
 
 		ready := "Unknown"
@@ -225,17 +287,19 @@ func scanViaClientGo(cfg Config) ([]NodeInfo, error) {
 		karpenter := labels["karpenter.sh/nodepool"] != "" || labels["karpenter.sh/provisioner-name"] != ""
 		nodepool := firstNonEmpty(labels["karpenter.sh/nodepool"], labels["karpenter.sh/provisioner-name"])
 
-		ni := buildNodeInfo(name, cluster, kernel, osImage, nodeType, zone, ready, isSpot, karpenter, nodepool, labels)
+		ni := buildNodeInfo(node.Name, cluster, info.KernelVersion, info.OSImage, nodeType, zone, ready, isSpot, karpenter, nodepool, labels)
 		results = append(results, ni)
 	}
 	return results, nil
 }
 
-func scanViaKubectl() ([]NodeInfo, error) {
-	cmd := exec.Command("kubectl", "get", "nodes", "-o", "json")
+// scanViaKubectlContext uses kubectl --context flag as fallback
+func scanViaKubectlContext(contextName string) ([]NodeInfo, error) {
+	cmd := exec.Command("kubectl", "--context="+contextName, "get", "nodes", "-o", "json")
+	cmd.Env = os.Environ()
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("kubectl: %w", err)
+		return nil, fmt.Errorf("kubectl --context=%s: %w", contextName, err)
 	}
 
 	var raw struct {
@@ -258,16 +322,14 @@ func scanViaKubectl() ([]NodeInfo, error) {
 	}
 
 	if err := json.Unmarshal(out, &raw); err != nil {
-		return nil, fmt.Errorf("parse: %w", err)
+		return nil, fmt.Errorf("parse nodes from context %s: %w", contextName, err)
 	}
 
+	clusterName := extractClusterNameFromContext(contextName)
 	var results []NodeInfo
+
 	for _, item := range raw.Items {
 		labels := item.Metadata.Labels
-		name := item.Metadata.Name
-		kernel := item.Status.NodeInfo.KernelVersion
-		osImage := item.Status.NodeInfo.OSImage
-
 		cluster := firstNonEmpty(
 			labels["alpha.eksctl.io/cluster-name"],
 			labels["eks.amazonaws.com/cluster-name"],
@@ -275,8 +337,7 @@ func scanViaKubectl() ([]NodeInfo, error) {
 			labels["cluster.x-k8s.io/cluster-name"],
 			labels["kops.k8s.io/cluster"],
 			labels["rancher.cattle.io/cluster-name"],
-			extractClusterFromNodeName(name),
-			"unknown-cluster",
+			clusterName,
 		)
 		ready := "Unknown"
 		for _, c := range item.Status.Conditions {
@@ -284,17 +345,118 @@ func scanViaKubectl() ([]NodeInfo, error) {
 				ready = c.Status
 			}
 		}
-
 		nodeType := labels["node.kubernetes.io/instance-type"]
 		zone := labels["topology.kubernetes.io/zone"]
 		isSpot := labels["eks.amazonaws.com/capacityType"] == "SPOT"
 		karpenter := labels["karpenter.sh/nodepool"] != "" || labels["karpenter.sh/provisioner-name"] != ""
 		nodepool := firstNonEmpty(labels["karpenter.sh/nodepool"], labels["karpenter.sh/provisioner-name"])
 
-		ni := buildNodeInfo(name, cluster, kernel, osImage, nodeType, zone, ready, isSpot, karpenter, nodepool, labels)
+		ni := buildNodeInfo(item.Metadata.Name, cluster, item.Status.NodeInfo.KernelVersion, item.Status.NodeInfo.OSImage, nodeType, zone, ready, isSpot, karpenter, nodepool, labels)
 		results = append(results, ni)
 	}
 	return results, nil
+}
+
+// scanKubernetes scans ALL contexts in kubeconfig in parallel
+func scanKubernetes(cfg Config) ([]NodeInfo, []ClusterStatus, error) {
+	contexts, err := getAllContexts(cfg.KubeconfigPath)
+	if err != nil {
+		log.Printf("[MULTI-CLUSTER] Could not list contexts: %v — scanning current context only", err)
+		// Fall back to current context only
+		nodes, fallbackErr := scanViaKubectlContext("")
+		if fallbackErr != nil {
+			return nil, nil, fallbackErr
+		}
+		return nodes, nil, nil
+	}
+
+	if len(contexts) == 0 {
+		return nil, nil, fmt.Errorf("no contexts found in kubeconfig")
+	}
+
+	type result struct {
+		nodes   []NodeInfo
+		status  ClusterStatus
+	}
+
+	resultCh := make(chan result, len(contexts))
+	sem := make(chan struct{}, 10) // max 10 parallel scans
+
+	for _, ctx := range contexts {
+		go func(contextName string) {
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			clusterName := extractClusterNameFromContext(contextName)
+			region := extractRegionFromContext(contextName)
+			start := time.Now()
+
+			log.Printf("[MULTI-CLUSTER] Scanning context: %s (cluster: %s)", contextName, clusterName)
+			nodes, err := scanSingleContext(cfg.KubeconfigPath, contextName)
+
+			cs := ClusterStatus{
+				Name:      clusterName,
+				Context:   contextName,
+				Region:    region,
+				ScannedAt: time.Now(),
+			}
+
+			if err != nil {
+				cs.Status = "error"
+				cs.Error = err.Error()
+				log.Printf("[MULTI-CLUSTER] ✗ %s: %v (%.1fs)", contextName, err, time.Since(start).Seconds())
+				resultCh <- result{nodes: nil, status: cs}
+				return
+			}
+
+			cs.NodeCount = len(nodes)
+			cs.Vulnerable = 0
+			for _, n := range nodes {
+				if n.Vulnerable {
+					cs.Vulnerable++
+				}
+			}
+			cs.Status = "ok"
+			log.Printf("[MULTI-CLUSTER] ✓ %s: %d nodes (%d vulnerable) (%.1fs)", contextName, len(nodes), cs.Vulnerable, time.Since(start).Seconds())
+			resultCh <- result{nodes: nodes, status: cs}
+		}(ctx)
+	}
+
+	// Collect all results
+	var allNodes []NodeInfo
+	var clusterStatuses []ClusterStatus
+	seen := map[string]bool{} // deduplicate nodes by name+cluster
+
+	for range contexts {
+		r := <-resultCh
+		clusterStatuses = append(clusterStatuses, r.status)
+		for _, n := range r.nodes {
+			key := n.Name + "|" + n.Cluster
+			if !seen[key] {
+				seen[key] = true
+				allNodes = append(allNodes, n)
+			}
+		}
+	}
+
+	// Sort clusters by name
+	sort.Slice(clusterStatuses, func(i, j int) bool {
+		return clusterStatuses[i].Name < clusterStatuses[j].Name
+	})
+
+	ok := 0
+	failed := 0
+	for _, cs := range clusterStatuses {
+		if cs.Status == "ok" {
+			ok++
+		} else {
+			failed++
+		}
+	}
+	log.Printf("[MULTI-CLUSTER] Scan complete: %d/%d contexts OK, %d failed, %d total nodes",
+		ok, len(contexts), failed, len(allNodes))
+
+	return allNodes, clusterStatuses, nil
 }
 
 func buildNodeInfo(name, cluster, kernel, osImage, nodeType, zone, ready string, isSpot, karpenter bool, nodepool string, labels map[string]string) NodeInfo {
@@ -444,13 +606,13 @@ func fetchCVEs(cfg Config) []CVEInfo {
 
 	var raw struct {
 		Data []struct {
-			CVEId          string `json:"cveId"`
-			Name           string `json:"name"`
-			Severity       string `json:"severity"`
-			DisclosureDate string `json:"disclosureDate"`
-			PublishedDate  string `json:"publishedDate"`
-			FixedIn        string `json:"fixedIn"`
-			FixVersion     string `json:"fixVersion"`
+			CVEId           string `json:"cveId"`
+			Name            string `json:"name"`
+			Severity        string `json:"severity"`
+			DisclosureDate  string `json:"disclosureDate"`
+			PublishedDate   string `json:"publishedDate"`
+			FixedIn         string `json:"fixedIn"`
+			FixVersion      string `json:"fixVersion"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &raw); err != nil {
@@ -620,10 +782,10 @@ func checkAlerts(s *State, current DashboardData) {
 				clusterList = append(clusterList, c)
 			}
 			newAlerts = append(newAlerts, Alert{
-				ID:      fmt.Sprintf("algif-bulk-%d", time.Now().Unix()),
-				Level:   "critical",
-				Title:   fmt.Sprintf("%d nodes have algif_aead loaded", algifCount),
-				Body:    fmt.Sprintf("algif_aead module is still loaded on %d nodes.\nClusters affected: %s\nDeploy mitigation DaemonSet immediately.", algifCount, strings.Join(clusterList, ", ")),
+				ID:    fmt.Sprintf("algif-bulk-%d", time.Now().Unix()),
+				Level: "critical",
+				Title: fmt.Sprintf("%d nodes have algif_aead loaded", algifCount),
+				Body:  fmt.Sprintf("algif_aead module is still loaded on %d nodes.\nClusters affected: %s\nDeploy mitigation DaemonSet immediately.", algifCount, strings.Join(clusterList, ", ")),
 				FiredAt: time.Now(),
 			})
 		}
@@ -635,10 +797,10 @@ func checkAlerts(s *State, current DashboardData) {
 		curr := current.Compliance
 		if prev.Linux-curr.Linux >= 3 {
 			newAlerts = append(newAlerts, Alert{
-				ID:      fmt.Sprintf("compliance-drop-%d", time.Now().Unix()),
-				Level:   "high",
-				Title:   "CIS Linux compliance dropped",
-				Body:    fmt.Sprintf("CIS Linux dropped from %.0f%% to %.0f%%\nDelta: -%.0f%% in last scan cycle\nLikely cause: new unpatched nodes added to fleet.", prev.Linux, curr.Linux, prev.Linux-curr.Linux),
+				ID:    fmt.Sprintf("compliance-drop-%d", time.Now().Unix()),
+				Level: "high",
+				Title: "CIS Linux compliance dropped",
+				Body:  fmt.Sprintf("CIS Linux dropped from %.0f%% to %.0f%%\nDelta: -%.0f%% in last scan cycle\nLikely cause: new unpatched nodes added to fleet.", prev.Linux, curr.Linux, prev.Linux-curr.Linux),
 				FiredAt: time.Now(),
 			})
 		}
@@ -656,10 +818,10 @@ func checkAlerts(s *State, current DashboardData) {
 			}
 			if !alreadyFired {
 				newAlerts = append(newAlerts, Alert{
-					ID:      "cve-30d-" + cve.ID,
-					Level:   "high",
-					Title:   cve.ID + " just crossed 30-day unpatched threshold",
-					Body:    fmt.Sprintf("CVE: %s\nSeverity: %s\nUnpatched for: %d days\nFix has been available since day 0.\nEscalate to patch pipeline immediately.", cve.ID, cve.Severity, cve.AgeDays),
+					ID:    "cve-30d-" + cve.ID,
+					Level: "high",
+					Title: cve.ID + " just crossed 30-day unpatched threshold",
+					Body:  fmt.Sprintf("CVE: %s\nSeverity: %s\nUnpatched for: %d days\nFix has been available since day 0.\nEscalate to patch pipeline immediately.", cve.ID, cve.Severity, cve.AgeDays),
 					FiredAt: time.Now(),
 				})
 			}
@@ -881,16 +1043,17 @@ func startScanLoop(s *State) {
 }
 
 func runScan(s *State) {
-	log.Println("[SCAN] Starting fleet scan...")
+	log.Println("[SCAN] Starting multi-cluster fleet scan...")
 	cfg := s.cfg
 
-	// Scan kubernetes nodes
-	nodes, err := scanKubernetes(cfg)
+	// Scan ALL kubernetes contexts in parallel
+	nodes, clusterStatuses, err := scanKubernetes(cfg)
 	if err != nil {
 		log.Printf("[SCAN] Kubernetes scan error: %v", err)
 		// Keep existing nodes if scan fails
 		s.mu.RLock()
 		nodes = s.data.Nodes
+		clusterStatuses = s.data.Clusters
 		s.mu.RUnlock()
 	}
 
@@ -933,14 +1096,29 @@ func runScan(s *State) {
 	summary.RiskScore = calcFleetRisk(summary, compliance, len(cves))
 
 	now := time.Now()
+	totalCtx := len(clusterStatuses)
+	scannedCtx := 0
+	failedCtx := 0
+	for _, cs := range clusterStatuses {
+		if cs.Status == "ok" {
+			scannedCtx++
+		} else {
+			failedCtx++
+		}
+	}
+
 	data := DashboardData{
-		Summary:    summary,
-		Nodes:      nodes,
-		CVEs:       cves,
-		Compliance: compliance,
-		LastScan:   now,
-		ScanAge:    "just now",
-		Status:     "ok",
+		Summary:         summary,
+		Nodes:           nodes,
+		CVEs:            cves,
+		Compliance:      compliance,
+		Clusters:        clusterStatuses,
+		LastScan:        now,
+		ScanAge:         "just now",
+		Status:          "ok",
+		TotalContexts:   totalCtx,
+		ScannedContexts: scannedCtx,
+		FailedContexts:  failedCtx,
 	}
 
 	// Get current alerts
@@ -964,8 +1142,8 @@ func runScan(s *State) {
 	s.data.Alerts = s.alerts
 	s.mu.Unlock()
 
-	log.Printf("[SCAN] Done — %d nodes (%d vulnerable, %d critical) | %d CVEs | EKS: %.0f%% Linux: %.0f%%",
-		summary.TotalNodes, summary.Vulnerable, summary.Critical,
+	log.Printf("[SCAN] Done — %d clusters | %d nodes (%d vulnerable, %d critical) | %d CVEs | EKS: %.0f%% Linux: %.0f%%",
+		scannedCtx, summary.TotalNodes, summary.Vulnerable, summary.Critical,
 		len(cves), compliance.EKS, compliance.Linux)
 }
 
@@ -1036,20 +1214,10 @@ func calcBlastRadius(node NodeInfo) BlastRadius {
 		workloads = append(workloads, "vault-agent", "secrets-store-csi")
 	}
 	impactScore := podCount*2 + len(namespaces)*10
-	if hasPriv {
-		impactScore += 30
-	}
-	if hasSecrets {
-		impactScore += 20
-	}
+	if hasPriv { impactScore += 30 }
+	if hasSecrets { impactScore += 20 }
 	impact := "LOW"
-	if impactScore > 80 {
-		impact = "CRITICAL"
-	} else if impactScore > 50 {
-		impact = "HIGH"
-	} else if impactScore > 30 {
-		impact = "MEDIUM"
-	}
+	if impactScore > 80 { impact = "CRITICAL" } else if impactScore > 50 { impact = "HIGH" } else if impactScore > 30 { impact = "MEDIUM" }
 	return BlastRadius{Node: node.Name, Cluster: node.Cluster, PodCount: podCount, Namespaces: namespaces, Workloads: workloads, HasPrivPods: hasPriv, HasSecrets: hasSecrets, Impact: impact, ImpactScore: impactScore}
 }
 
@@ -1072,16 +1240,14 @@ func buildMTTRRecords(cves []CVEInfo) []MTTRRecord {
 	slaTargets := map[string]int{"critical": 24, "high": 72, "medium": 168}
 	for _, cve := range cves {
 		sla := slaTargets[cve.Severity]
-		if sla == 0 {
-			sla = 168
-		}
+		if sla == 0 { sla = 168 }
 		mttrHours := cve.AgeDays * 24
 		breached := mttrHours > sla
 		records = append(records, MTTRRecord{
 			CVEID: cve.ID, Severity: cve.Severity,
 			DetectedAt: time.Now().AddDate(0, 0, -cve.AgeDays),
-			MTTR:       fmt.Sprintf("%dd %dh", cve.AgeDays, mttrHours%24),
-			MTTRHours:  mttrHours, SLATarget: sla, SLABreached: breached, Status: "open",
+			MTTR: fmt.Sprintf("%dd %dh", cve.AgeDays, mttrHours%24),
+			MTTRHours: mttrHours, SLATarget: sla, SLABreached: breached, Status: "open",
 		})
 	}
 	return records
@@ -1138,9 +1304,7 @@ func recordPostureDiff(current, prev DashboardData) {
 	now := time.Now()
 	prevNames := map[string]bool{}
 	for _, n := range prev.Nodes {
-		if n.Vulnerable {
-			prevNames[n.Name] = true
-		}
+		if n.Vulnerable { prevNames[n.Name] = true }
 	}
 	for _, n := range current.Nodes {
 		if n.Vulnerable && !prevNames[n.Name] {
@@ -1155,9 +1319,7 @@ func recordPostureDiff(current, prev DashboardData) {
 			postureDiffs = append([]PostureDiff{{Timestamp: now, Type: "cve_sla_breach", Description: fmt.Sprintf("%s crossed 30-day SLA", cve.ID), Delta: "SLA BREACHED", Severity: "high"}}, postureDiffs...)
 		}
 	}
-	if len(postureDiffs) > 50 {
-		postureDiffs = postureDiffs[:50]
-	}
+	if len(postureDiffs) > 50 { postureDiffs = postureDiffs[:50] }
 }
 
 // ── ANOMALY DETECTION ─────────────────────────────────────────────────────────
@@ -1270,31 +1432,6 @@ func handleSendTestDigest(w http.ResponseWriter, r *http.Request) {
 
 // ── MAIN ─────────────────────────────────────────────────────────────────────
 
-// extractClusterFromNodeName tries to derive cluster name from node name patterns
-// EKS nodes: ip-10-x-x-x.cluster-name.compute.internal or via kubeconfig context
-func extractClusterFromNodeName(nodeName string) string {
-	// Try to read current kubeconfig context name
-	cmd := exec.Command("kubectl", "config", "current-context")
-	out, err := cmd.Output()
-	if err == nil {
-		ctx := strings.TrimSpace(string(out))
-		// EKS context format: arn:aws:eks:region:account:cluster/cluster-name
-		if strings.Contains(ctx, "/") {
-			parts := strings.Split(ctx, "/")
-			if len(parts) > 0 {
-				name := parts[len(parts)-1]
-				if name != "" && name != "unknown" {
-					return name
-				}
-			}
-		}
-		// Direct context name (Rancher, k3s, etc)
-		if ctx != "" && ctx != "default" && !strings.HasPrefix(ctx, "arn:") {
-			return ctx
-		}
-	}
-	return ""
-}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
