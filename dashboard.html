@@ -391,32 +391,71 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .ncard-drill-hint{font-size:9px;color:#3b82f6;opacity:0;transition:opacity 0.15s;margin-top:4px;text-align:right;}
 
 
-/* ── CLUSTER GRID ── */
-.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:16px;}
-.cl-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:all 0.15s;cursor:pointer;}
-.cl-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
-.cl-card-top{display:flex;align-items:stretch;}
-.cl-status-bar{width:4px;flex-shrink:0;}
-.cl-status-bar.ok{background:var(--green);}
-.cl-status-bar.error{background:var(--red);}
-.cl-status-bar.timeout{background:var(--amber);}
-.cl-card-header{flex:1;padding:12px 14px;}
-.cl-name{font-size:13px;font-weight:600;color:var(--text);font-family:var(--mono);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cl-context{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cl-card-metrics{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);}
-.cl-metric{padding:10px 12px;text-align:center;border-right:1px solid var(--border);}
-.cl-metric:last-child{border-right:none;}
-.cl-metric-val{font-size:18px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:3px;}
-.cl-metric-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
-.cl-error{padding:8px 14px;background:var(--red-bg);font-size:10px;color:var(--red);font-family:var(--mono);border-top:1px solid var(--border);}
+/* ── CLUSTER GRID — REDESIGN ── */
 .cl-summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
-.cl-sum{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.cl-sum{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.cl-sum-acc{position:absolute;top:0;left:0;right:0;height:1px;}
 .cl-sum-val{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:4px;letter-spacing:-1px;}
 .cl-sum-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
-.cl-filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
-.cl-search{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;width:220px;transition:border-color 0.15s;}
+.cl-sum-sub{font-size:10px;color:var(--text4);margin-top:2px;}
+.cl-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.cl-search{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;width:200px;transition:border-color 0.15s;}
 .cl-search:focus{border-color:var(--blue);}
-
+.cl-sep{width:1px;height:18px;background:var(--border2);margin:0 2px;}
+.cl-chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);cursor:pointer;transition:all 0.12s;font-family:var(--mono);}
+.cl-chip:hover{border-color:rgba(255,255,255,0.15);color:var(--text2);}
+.cl-chip.active{background:var(--blue-bg);border-color:rgba(77,159,255,0.4);color:var(--blue);}
+.cl-chip.act-r{background:var(--red-bg);border-color:rgba(255,61,90,0.4);color:var(--red);}
+.cl-count{font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto;}
+.sort-wrap{position:relative;}
+.sort-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-size:11px;font-family:var(--mono);cursor:pointer;transition:all 0.12s;}
+.sort-btn:hover,.sort-btn.open{border-color:rgba(77,159,255,0.4);color:var(--blue);background:var(--blue-bg);}
+.sort-arrow{display:inline-block;transition:transform 0.15s;font-size:10px;}
+.sort-arrow.up{transform:rotate(180deg);}
+.sort-menu{position:absolute;right:0;top:calc(100% + 4px);width:210px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.sort-menu.open{display:block;}
+.sort-section-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;padding:8px 12px 3px;font-family:var(--mono);}
+.sort-item{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:11px;cursor:pointer;color:var(--text2);transition:background 0.1s;font-family:var(--mono);}
+.sort-item:hover{background:var(--bg3);}
+.sort-item.active{color:var(--blue);background:var(--blue-bg);}
+.sort-item .scheck{margin-left:auto;opacity:0;font-size:10px;color:var(--blue);}
+.sort-item.active .scheck{opacity:1;}
+.sort-divider{height:1px;background:var(--border);margin:2px 0;}
+.active-sort-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;margin-bottom:12px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border);font-size:11px;color:var(--text3);}
+.active-sort-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(77,159,255,0.3);font-size:11px;font-weight:500;font-family:var(--mono);}
+.clear-sort{margin-left:auto;font-size:10px;color:var(--text3);cursor:pointer;font-family:var(--mono);}
+.clear-sort:hover{color:var(--text2);}
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;margin-bottom:20px;}
+.cl-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:border-color 0.12s,transform 0.12s;}
+.cl-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.cl-card-accent{height:2px;}
+.cl-card-accent.ok{background:var(--green);}
+.cl-card-accent.error{background:var(--red);opacity:0.5;}
+.cl-card-body{padding:11px 12px;}
+.cl-card-row1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
+.cl-rank-name{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.cl-rank{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:3px;font-size:9px;font-weight:600;font-family:var(--mono);background:var(--bg4);color:var(--text3);flex-shrink:0;}
+.cl-rank.top{background:var(--red-bg);color:var(--red);}
+.cl-card-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);}
+.cl-card-region{font-size:10px;color:var(--text4);margin-bottom:8px;}
+.exp-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;flex-shrink:0;margin-left:5px;font-family:var(--mono);}
+.exp-crit{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,61,90,0.25);}
+.exp-high{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(255,179,64,0.25);}
+.exp-safe{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,245,160,0.25);}
+.cl-card-stats{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.cl-card-stat{background:var(--bg3);border-radius:6px;padding:6px 8px;}
+.cl-card-stat-val{font-size:15px;font-weight:600;font-family:var(--mono);line-height:1;margin-bottom:2px;}
+.cl-card-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;}
+.mini-bar{height:3px;border-radius:2px;overflow:hidden;display:flex;margin-top:3px;background:var(--bg4);}
+.mb-exp{background:var(--red);}
+.mb-safe{background:var(--green);}
+.cl-card-footer{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-top:1px solid var(--border);background:var(--bg3);}
+.cl-card-status{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);}
+.cl-dot{width:5px;height:5px;border-radius:50%;}
+.cl-dot-ok{background:var(--green);}
+.cl-dot-err{background:var(--red);}
+.cl-card-time{font-size:10px;color:var(--text4);font-family:var(--mono);}
+.cl-err-strip{padding:6px 12px;background:var(--red-bg);border-top:1px solid rgba(255,61,90,0.2);font-size:10px;color:var(--red);font-family:var(--mono);line-height:1.4;}
 </style>
 </head>
 <body>
@@ -707,32 +746,57 @@ spec:
 <div id="tab-clusters" class="page">
   <div class="page-header">
     <div class="page-title">Cluster Fleet</div>
-    <div class="page-sub">All contexts from kubeconfig · Scanned in parallel every 60 seconds · Click any cluster for details</div>
+    <div class="page-sub" id="cl-page-sub">All contexts from kubeconfig · Scanned in parallel · Click any cluster for details</div>
   </div>
 
   <div class="cl-summary-row">
-    <div class="cl-sum"><div class="cl-sum-val cb" id="cl-total">—</div><div class="cl-sum-label">Total clusters</div></div>
-    <div class="cl-sum"><div class="cl-sum-val cg" id="cl-ok">—</div><div class="cl-sum-label">Scanned OK</div></div>
-    <div class="cl-sum"><div class="cl-sum-val cr" id="cl-failed">—</div><div class="cl-sum-label">Failed / unreachable</div></div>
-    <div class="cl-sum"><div class="cl-sum-val cr" id="cl-vuln-clusters">—</div><div class="cl-sum-label">Clusters with exposed nodes</div></div>
+    <div class="cl-sum"><div class="cl-sum-acc" style="background:var(--blue)"></div><div class="cl-sum-val cb" id="cl-total">—</div><div class="cl-sum-label">Total clusters</div><div class="cl-sum-sub" id="cl-total-sub">from kubeconfig</div></div>
+    <div class="cl-sum"><div class="cl-sum-acc" style="background:var(--green)"></div><div class="cl-sum-val cg" id="cl-ok">—</div><div class="cl-sum-label">Reachable</div><div class="cl-sum-sub">scanned OK</div></div>
+    <div class="cl-sum"><div class="cl-sum-acc" style="background:var(--red)"></div><div class="cl-sum-val cr" id="cl-failed">—</div><div class="cl-sum-label">Unreachable</div><div class="cl-sum-sub">auth or network</div></div>
+    <div class="cl-sum"><div class="cl-sum-acc" style="background:var(--amber)"></div><div class="cl-sum-val ca" id="cl-vuln-clusters">—</div><div class="cl-sum-label">Exposed</div><div class="cl-sum-sub">have Copy Fail nodes</div></div>
   </div>
 
-  <div class="cl-filter-bar">
-    <input class="cl-search" id="cl-search" placeholder="Search cluster name, region, context..." oninput="filterClusters()">
-    <div class="filter-chip active" onclick="setClFilter('all',this)">All</div>
-    <div class="filter-chip" onclick="setClFilter('ok',this)">✓ OK</div>
-    <div class="filter-chip" onclick="setClFilter('error',this)">✗ Failed</div>
-    <div class="filter-chip" onclick="setClFilter('vulnerable',this)">🔴 Has exposed nodes</div>
-    <span style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto;" id="cl-count">—</span>
+  <div class="cl-toolbar">
+    <input class="cl-search" id="cl-search" placeholder="Search cluster, region, context..." oninput="filterClusters()">
+    <div class="cl-sep"></div>
+    <div class="cl-chip active" onclick="setClFilter('all',this)">All</div>
+    <div class="cl-chip" onclick="setClFilter('ok',this)">Reachable</div>
+    <div class="cl-chip act-r" onclick="setClFilter('error',this)">Unreachable</div>
+    <div class="cl-chip" onclick="setClFilter('vulnerable',this)">Exposed</div>
+    <span class="cl-count" id="cl-count">—</span>
+
+    <div class="sort-wrap">
+      <div class="sort-btn" id="sort-btn" onclick="toggleSortMenu()">
+        ↕ Sort: <span id="sort-label-text">Highest exposed %</span>
+        <span class="sort-arrow" id="sort-arrow">▾</span>
+      </div>
+      <div class="sort-menu" id="sort-menu">
+        <div class="sort-section-label">Severity</div>
+        <div class="sort-item active" onclick="setClSort('exposed-pct',this)">▲ Highest exposed %<span class="scheck">✓</span></div>
+        <div class="sort-item" onclick="setClSort('exposed-count',this)">▲ Most exposed nodes<span class="scheck">✓</span></div>
+        <div class="sort-divider"></div>
+        <div class="sort-section-label">General</div>
+        <div class="sort-item" onclick="setClSort('alpha',this)">A→Z Alphabetical<span class="scheck">✓</span></div>
+        <div class="sort-item" onclick="setClSort('region',this)">◎ Region<span class="scheck">✓</span></div>
+        <div class="sort-item" onclick="setClSort('nodes',this)">⬡ Total nodes<span class="scheck">✓</span></div>
+        <div class="sort-divider"></div>
+        <div class="sort-section-label">Status</div>
+        <div class="sort-item" onclick="setClSort('errors',this)">✗ Errors first<span class="scheck">✓</span></div>
+        <div class="sort-item" onclick="setClSort('scanned',this)">⏱ Last scanned<span class="scheck">✓</span></div>
+      </div>
+    </div>
   </div>
 
-  <div id="cl-scanning-notice" style="display:none;padding:16px;text-align:center;font-size:12px;color:var(--text3);font-family:var(--mono);">
-    <div class="spin" style="display:inline-block;margin-right:8px;"></div>
-    Scanning all contexts in kubeconfig in parallel...
+  <div class="active-sort-bar" id="active-sort-bar">
+    ↕ Sorted by
+    <span class="active-sort-chip" id="active-sort-chip">Highest exposed %</span>
+    — most critical clusters appear first
+    <span class="clear-sort" onclick="clearClSort()">reset</span>
   </div>
 
   <div class="cl-grid" id="cl-grid"></div>
 </div>
+
 
 <!-- ══ WORKLOAD REPORT ══ -->
 <div id="tab-workloads" class="page">
@@ -1090,48 +1154,118 @@ startCountdown();
 
 // ── CLUSTER FLEET ─────────────────────────────────────────────────────────────
 let clFilter = 'all';
+let clSort = 'exposed-pct';
+let sortMenuOpen = false;
 
 function renderClusters(d) {
   const clusters = d.clusters || [];
-  const totalCtx = d.totalContexts || 0;
-  const scanned = d.scannedContexts || 0;
-  const failed = d.failedContexts || 0;
-  const vulnClusters = clusters.filter(c => c.vulnerable > 0).length;
+  const total = d.totalContexts || clusters.length;
+  const scanned = d.scannedContexts || clusters.filter(c=>c.status==='ok').length;
+  const failed = d.failedContexts || clusters.filter(c=>c.status!=='ok').length;
+  const vulnCl = clusters.filter(c=>(c.vulnerable||0)>0).length;
 
-  // Update summary
-  setText('cl-total', totalCtx || clusters.length);
-  setText('cl-ok', scanned || clusters.filter(c=>c.status==='ok').length);
-  setText('cl-failed', failed || clusters.filter(c=>c.status!=='ok').length);
-  setText('cl-vuln-clusters', vulnClusters);
-  setText('cl-badge', clusters.length || '—');
-
-  // Update topbar scan info
-  if (totalCtx > 0) {
-    setText('tb-countdown-ctx', `${scanned}/${totalCtx} clusters`);
-  }
+  setText('cl-total', total);
+  setText('cl-total-sub', `${scanned} scanned, ${failed} failed`);
+  setText('cl-ok', scanned);
+  setText('cl-failed', failed);
+  setText('cl-vuln-clusters', vulnCl);
+  setText('cl-badge', total||'—');
+  setText('cl-page-sub', `${total} clusters from kubeconfig · ${scanned} scanned in parallel · click any cluster for details`);
 
   filterClusters();
 }
 
 function setClFilter(f, el) {
   clFilter = f;
-  document.querySelectorAll('.cl-filter-bar .filter-chip').forEach(c => c.classList.remove('active','act-r'));
+  document.querySelectorAll('.cl-chip').forEach(c => c.classList.remove('active','act-r'));
   el.classList.add(f==='error'?'act-r':'active');
+  filterClusters();
+}
+
+function toggleSortMenu() {
+  sortMenuOpen = !sortMenuOpen;
+  document.getElementById('sort-menu').classList.toggle('open', sortMenuOpen);
+  document.getElementById('sort-arrow').classList.toggle('up', sortMenuOpen);
+  document.getElementById('sort-btn').classList.toggle('open', sortMenuOpen);
+}
+
+function setClSort(key, el) {
+  clSort = key;
+  document.querySelectorAll('.sort-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  const labels = {
+    'exposed-pct': 'Highest exposed %',
+    'exposed-count': 'Most exposed nodes',
+    'alpha': 'A→Z Alphabetical',
+    'region': 'Region',
+    'nodes': 'Total nodes',
+    'errors': 'Errors first',
+    'scanned': 'Last scanned',
+  };
+  setText('sort-label-text', labels[key]||key);
+  setText('active-sort-chip', labels[key]||key);
+  sortMenuOpen = false;
+  document.getElementById('sort-menu').classList.remove('open');
+  document.getElementById('sort-arrow').classList.remove('up');
+  document.getElementById('sort-btn').classList.remove('open');
+  filterClusters();
+}
+
+function clearClSort() {
+  clSort = 'exposed-pct';
+  document.querySelectorAll('.sort-item').forEach(i => i.classList.remove('active'));
+  document.querySelector('.sort-item')?.classList.add('active');
+  setText('sort-label-text', 'Highest exposed %');
+  setText('active-sort-chip', 'Highest exposed %');
   filterClusters();
 }
 
 function filterClusters() {
   const clusters = (data.clusters || []);
   const q = (document.getElementById('cl-search')?.value||'').toLowerCase();
-  let cs = clusters;
+  let cs = [...clusters];
+
+  // Filter
   if (clFilter === 'ok') cs = cs.filter(c => c.status === 'ok');
   else if (clFilter === 'error') cs = cs.filter(c => c.status !== 'ok');
-  else if (clFilter === 'vulnerable') cs = cs.filter(c => c.vulnerable > 0);
+  else if (clFilter === 'vulnerable') cs = cs.filter(c => (c.vulnerable||0) > 0);
   if (q) cs = cs.filter(c =>
     (c.name||'').toLowerCase().includes(q) ||
     (c.context||'').toLowerCase().includes(q) ||
     (c.region||'').toLowerCase().includes(q)
   );
+
+  // Sort
+  cs.sort((a, b) => {
+    const aPct = a.nodeCount > 0 ? a.vulnerable/a.nodeCount : 0;
+    const bPct = b.nodeCount > 0 ? b.vulnerable/b.nodeCount : 0;
+    switch(clSort) {
+      case 'exposed-pct':
+        // Errors to bottom, then by exposed %
+        if (a.status!=='ok' && b.status==='ok') return 1;
+        if (a.status==='ok' && b.status!=='ok') return -1;
+        return bPct - aPct;
+      case 'exposed-count':
+        if (a.status!=='ok' && b.status==='ok') return 1;
+        if (a.status==='ok' && b.status!=='ok') return -1;
+        return (b.vulnerable||0) - (a.vulnerable||0);
+      case 'alpha':
+        return (a.name||'').localeCompare(b.name||'');
+      case 'region':
+        return (a.region||'').localeCompare(b.region||'') || (a.name||'').localeCompare(b.name||'');
+      case 'nodes':
+        return (b.nodeCount||0) - (a.nodeCount||0);
+      case 'errors':
+        if (a.status!=='ok' && b.status==='ok') return -1;
+        if (a.status==='ok' && b.status!=='ok') return 1;
+        return bPct - aPct;
+      case 'scanned':
+        return new Date(b.scannedAt||0) - new Date(a.scannedAt||0);
+      default:
+        return bPct - aPct;
+    }
+  });
+
   setText('cl-count', cs.length + ' clusters');
   renderClusterGrid(cs);
 }
@@ -1141,51 +1275,66 @@ function renderClusterGrid(clusters) {
     document.getElementById('cl-grid').innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text3);">
         <div style="font-size:32px;margin-bottom:12px;">☁</div>
-        <div style="font-size:13px;font-weight:500;margin-bottom:6px;">No clusters found</div>
-        <div style="font-size:11px;line-height:1.6;">
-          Make sure your kubeconfig has contexts configured.<br>
-          Run: <code style="font-family:var(--mono);color:var(--cyan);">kubectl config get-contexts</code>
-        </div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px;color:var(--text2);">No clusters match</div>
+        <div style="font-size:11px;color:var(--text3);">Try a different filter or check your kubeconfig</div>
       </div>`;
     return;
   }
 
+  // Assign rank numbers (only to reachable, sorted clusters)
+  let rankCounter = 0;
   document.getElementById('cl-grid').innerHTML = clusters.map(c => {
     const isOk = c.status === 'ok';
-    const hasVuln = (c.vulnerable || 0) > 0;
-    const vulnPct = c.nodeCount > 0 ? Math.round(c.vulnerable/c.nodeCount*100) : 0;
-    const scannedAt = c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString() : '—';
+    const vuln = c.vulnerable || 0;
+    const total = c.nodeCount || 0;
+    const pct = total > 0 ? Math.round(vuln/total*100) : 0;
+    const expW = pct;
+    const safeW = 100 - pct;
+    const scannedAt = c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
+    const isTop = isOk && vuln > 0;
+
+    const rankStr = isOk ? (++rankCounter) : '—';
+    const rankClass = (typeof rankStr === 'number' && rankStr <= 3 && vuln > 0) ? 'top' : '';
+
+    const expBadgeClass = pct >= 80 ? 'exp-crit' : pct >= 30 ? 'exp-high' : pct === 0 ? 'exp-safe' : 'exp-high';
+    const expBadgeText = !isOk ? '—' : pct === 0 ? 'clean' : pct + '% exposed';
+    const nodeValColor = isOk ? 'var(--blue)' : 'var(--text4)';
+    const vulnValColor = !isOk ? 'var(--text4)' : vuln === 0 ? 'var(--green)' : pct >= 80 ? 'var(--red)' : 'var(--amber)';
 
     return `
       <div class="cl-card" onclick="openClusterDrill('${c.context}')">
-        <div class="cl-card-top">
-          <div class="cl-status-bar ${c.status}"></div>
-          <div class="cl-card-header">
-            <div class="cl-name" title="${c.name}">${c.name}</div>
-            <div class="cl-context" title="${c.context}">${c.context}</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-              ${c.region ? `<span class="badge badge-blue" style="font-size:9px;">${c.region}</span>` : ''}
-              ${isOk ? `<span class="badge badge-green" style="font-size:9px;">✓ ok</span>` : `<span class="badge badge-red" style="font-size:9px;">✗ error</span>`}
-              ${hasVuln ? `<span class="badge badge-red" style="font-size:9px;">⚠ ${vulnPct}% exposed</span>` : ''}
-              <span style="font-size:9px;color:var(--text4);margin-left:auto;">${scannedAt}</span>
+        <div class="cl-card-accent ${isOk?'ok':'error'}"></div>
+        <div class="cl-card-body">
+          <div class="cl-card-row1">
+            <div style="flex:1;min-width:0;">
+              <div class="cl-rank-name">
+                <span class="cl-rank ${rankClass}">${rankStr}</span>
+                <span class="cl-card-name" title="${c.name}">${c.name}</span>
+              </div>
+              <div class="cl-card-region">${c.region||'region unknown'}</div>
+            </div>
+            <span class="exp-badge ${expBadgeClass}">${expBadgeText}</span>
+          </div>
+          <div class="cl-card-stats">
+            <div class="cl-card-stat">
+              <div class="cl-card-stat-val" style="color:${nodeValColor};">${isOk?total:'—'}</div>
+              <div class="cl-card-stat-label">Nodes</div>
+              ${isOk ? `<div class="mini-bar"><div class="mb-exp" style="width:${expW}%"></div><div class="mb-safe" style="width:${safeW}%"></div></div>` : ''}
+            </div>
+            <div class="cl-card-stat">
+              <div class="cl-card-stat-val" style="color:${vulnValColor};">${isOk?vuln:'—'}</div>
+              <div class="cl-card-stat-label">Exposed</div>
             </div>
           </div>
         </div>
-        <div class="cl-card-metrics">
-          <div class="cl-metric">
-            <div class="cl-metric-val" style="color:var(--blue);">${isOk ? c.nodeCount : '—'}</div>
-            <div class="cl-metric-label">Nodes</div>
+        ${!isOk && c.error ? `<div class="cl-err-strip">${(c.error||'').substring(0,80)}${(c.error||'').length>80?'...':''}</div>` : ''}
+        <div class="cl-card-footer">
+          <div class="cl-card-status">
+            <div class="cl-dot ${isOk?'cl-dot-ok':'cl-dot-err'}"></div>
+            <span style="color:${isOk?'var(--text3)':'var(--red)'};">${isOk?'reachable':'unreachable'}</span>
           </div>
-          <div class="cl-metric">
-            <div class="cl-metric-val" style="color:${hasVuln?'var(--red)':'var(--green)'};">${isOk ? c.vulnerable : '—'}</div>
-            <div class="cl-metric-label">Exposed</div>
-          </div>
-          <div class="cl-metric">
-            <div class="cl-metric-val" style="color:${isOk?'var(--green)':'var(--red)'};">${isOk ? '✓' : '✗'}</div>
-            <div class="cl-metric-label">Reachable</div>
-          </div>
+          <span class="cl-card-time">${scannedAt}</span>
         </div>
-        ${!isOk && c.error ? `<div class="cl-error">${c.error.substring(0,100)}${c.error.length>100?'...':''}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -1193,87 +1342,76 @@ function renderClusterGrid(clusters) {
 function openClusterDrill(contextName) {
   const c = (data.clusters||[]).find(x => x.context === contextName);
   if (!c) return;
-
-  const clusterNodes = (data.nodes||[]).filter(n =>
-    n.cluster === c.name || n.cluster === extractClusterNameFromCtx(contextName)
-  );
-
+  const clusterNodes = (data.nodes||[]).filter(n => n.cluster === c.name || n.cluster === c.context.split('/').pop());
   document.getElementById('dd-icon').textContent = '☸';
-  document.getElementById('dd-icon').style.background = c.vulnerable > 0 ? 'rgba(245,57,90,0.15)' : 'rgba(16,185,129,0.15)';
+  document.getElementById('dd-icon').style.background = (c.vulnerable||0)>0 ? 'rgba(245,57,90,0.15)' : 'rgba(16,185,129,0.15)';
   document.getElementById('dd-title').textContent = c.name;
-  document.getElementById('dd-sub').textContent = `${c.context} · ${c.region||'region unknown'} · ${c.nodeCount} nodes · scanned ${c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString() : '—'}`;
+  document.getElementById('dd-sub').textContent = `${c.context} · ${c.region||'region unknown'} · ${c.nodeCount||0} nodes · scanned ${c.scannedAt?new Date(c.scannedAt).toLocaleTimeString():'—'}`;
   document.getElementById('dd-modal').style.display = 'flex';
-
-  const vuln = clusterNodes.filter(n => n.vulnerable);
-  const patched = clusterNodes.filter(n => !n.vulnerable);
-
+  const vuln = clusterNodes.filter(n=>n.vulnerable);
   document.getElementById('dd-body').innerHTML = `
     <div class="dd-section">
       <div class="dd-section-title">Cluster overview</div>
       <div class="dd-grid4">
-        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--blue);">${c.nodeCount}</div><div class="dd-stat-label">Total nodes</div></div>
-        <div class="dd-stat"><div class="dd-stat-val" style="color:${c.vulnerable>0?'var(--red)':'var(--green)'};">${c.vulnerable}</div><div class="dd-stat-label">Exposed nodes</div></div>
-        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--green);">${c.nodeCount-c.vulnerable}</div><div class="dd-stat-label">Safe nodes</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--blue);">${c.nodeCount||0}</div><div class="dd-stat-label">Total nodes</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${(c.vulnerable||0)>0?'var(--red)':'var(--green)'};">${c.vulnerable||0}</div><div class="dd-stat-label">Exposed</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--green);">${(c.nodeCount||0)-(c.vulnerable||0)}</div><div class="dd-stat-label">Safe nodes</div></div>
         <div class="dd-stat"><div class="dd-stat-val" style="color:${c.status==='ok'?'var(--green)':'var(--red)'};">${c.status}</div><div class="dd-stat-label">Scan status</div></div>
       </div>
     </div>
-    ${c.status !== 'ok' ? `
+    ${c.status!=='ok'?`
     <div class="dd-section">
-      <div class="dd-section-title">Error details</div>
+      <div class="dd-section-title">Error</div>
       <div class="dd-callout dd-callout-red">
         <div class="dd-callout-title">Cluster unreachable</div>
-        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;">${c.error||'Unknown error'}</div>
+        <div class="dd-callout-body" style="font-family:var(--mono);font-size:10px;">${c.error||'Unknown error'}</div>
       </div>
       <div class="dd-callout dd-callout-amber">
-        <div class="dd-callout-title">Troubleshooting steps</div>
-        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.8;">
-          kubectl --context=${c.context} cluster-info<br>
-          kubectl --context=${c.context} get nodes<br>
-          aws eks update-kubeconfig --name ${c.name} --region ${c.region||'us-east-1'}
+        <div class="dd-callout-title">Fix it</div>
+        <div class="dd-callout-body" style="font-family:var(--mono);font-size:10px;line-height:1.8;">
+          aws eks update-kubeconfig --name ${c.name} --region ${c.region||'us-east-1'}<br>
+          kubectl --context=${c.context} cluster-info
         </div>
       </div>
     </div>` : ''}
-    ${clusterNodes.length > 0 ? `
+    ${clusterNodes.length>0?`
     <div class="dd-section">
       <div class="dd-section-title">Nodes in this cluster</div>
       <table class="dd-table">
-        <thead><tr><th>Node</th><th>Kernel patch</th><th>algif_aead</th><th>Instance</th><th>Zone</th><th>Risk</th></tr></thead>
+        <thead><tr><th>Node</th><th>Kernel</th><th>algif_aead</th><th>Instance</th><th>Risk</th></tr></thead>
         <tbody>
-          ${clusterNodes.map(n => `<tr>
-            <td style="font-family:'JetBrains Mono',monospace;color:var(--text);font-size:10px;">${n.name.split('.')[0]}</td>
+          ${clusterNodes.map(n=>`<tr>
+            <td style="font-family:var(--mono);color:var(--text);font-size:10px;">${n.name.split('.')[0]}</td>
             <td style="color:${n.patchStatus==='patched'?'var(--green)':'var(--red)'};">${n.patchStatus}</td>
             <td style="color:${n.algifStatus==='loaded'?'var(--red)':'var(--green)'};">${n.algifStatus}</td>
             <td style="color:var(--text3);font-size:10px;">${n.nodeType||'—'}</td>
-            <td style="color:var(--text3);font-size:10px;">${n.zone||'—'}</td>
             <td><span class="dd-tag ${n.riskLevel==='critical'?'dd-tag-red':n.riskLevel==='high'?'dd-tag-amber':'dd-tag-blue'}">${n.riskScore}</span></td>
           </tr>`).join('')}
         </tbody>
       </table>
-    </div>` : `
-    <div class="dd-section">
-      <div class="dd-section-title">Nodes</div>
-      <div style="font-size:11px;color:var(--text3);padding:12px 0;">Node details will appear here after a full scan. Use "Force refresh" to trigger immediately.</div>
-    </div>`}
+    </div>` : `<div class="dd-section"><div class="dd-section-title">Nodes</div><div style="font-size:11px;color:var(--text3);">Node details load after next scan. Hit Force refresh.</div></div>`}
     <div class="dd-section">
       <div class="dd-section-title">Quick actions</div>
       <div class="dd-callout dd-callout-blue">
-        <div class="dd-callout-title">Switch to this cluster context</div>
-        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;">kubectl config use-context ${c.context}</div>
+        <div class="dd-callout-title">Switch to this cluster</div>
+        <div class="dd-callout-body" style="font-family:var(--mono);font-size:10px;">kubectl config use-context ${c.context}</div>
       </div>
-      ${c.vulnerable > 0 ? `
-      <div class="dd-callout dd-callout-red">
-        <div class="dd-callout-title">Deploy Copy Fail mitigation to this cluster</div>
-        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;">kubectl --context=${c.context} apply -f copy-fail-mitigation.yaml</div>
-      </div>` : ''}
-    </div>
-  `;
+      ${(c.vulnerable||0)>0?`<div class="dd-callout dd-callout-red">
+        <div class="dd-callout-title">Deploy Copy Fail mitigation</div>
+        <div class="dd-callout-body" style="font-family:var(--mono);font-size:10px;">kubectl --context=${c.context} apply -f copy-fail-mitigation.yaml</div>
+      </div>`:''}
+    </div>`;
 }
 
-function extractClusterNameFromCtx(ctx) {
-  if (!ctx) return '';
-  if (ctx.includes('/')) return ctx.split('/').pop();
-  return ctx;
-}
+// Close sort menu on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.sort-wrap') && sortMenuOpen) {
+    sortMenuOpen = false;
+    document.getElementById('sort-menu').classList.remove('open');
+    document.getElementById('sort-arrow').classList.remove('up');
+    document.getElementById('sort-btn').classList.remove('open');
+  }
+});
 // ── END CLUSTER FLEET ─────────────────────────────────────────────────────────
 
 // ── DRILLDOWN ENGINE ─────────────────────────────────────────────────────────

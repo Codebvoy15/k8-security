@@ -41,6 +41,8 @@ type Config struct {
 	SMTPPass       string
 	Port           string
 	KubeconfigPath string
+	CachePath      string
+	CacheTTL       time.Duration
 }
 
 func loadConfig() Config {
@@ -57,6 +59,14 @@ func loadConfig() Config {
 	if base == "" {
 		base = "https://us2.app.sysdig.com"
 	}
+	home, _ := os.UserHomeDir()
+	cachePath := getEnvOrDefault("CACHE_PATH", filepath.Join(home, ".pdks-security-cache.json"))
+	cacheTTLStr := getEnvOrDefault("CACHE_TTL_MINUTES", "5")
+	cacheTTLMin := 5
+	if v, err := strconv.Atoi(cacheTTLStr); err == nil && v > 0 {
+		cacheTTLMin = v
+	}
+
 	return Config{
 		SysdigToken:    os.Getenv("SYSDIG_TOKEN"),
 		SysdigBase:     base,
@@ -68,6 +78,8 @@ func loadConfig() Config {
 		SMTPPass:       os.Getenv("SMTP_PASS"),
 		Port:           port,
 		KubeconfigPath: kc,
+		CachePath:      cachePath,
+		CacheTTL:       time.Duration(cacheTTLMin) * time.Minute,
 	}
 }
 
@@ -163,6 +175,82 @@ type DashboardData struct {
 	ScannedContexts int            `json:"scannedContexts"`
 	FailedContexts int             `json:"failedContexts"`
 }
+
+// ── CACHE ────────────────────────────────────────────────────────────────────
+
+type CacheEntry struct {
+	Data      DashboardData `json:"data"`
+	SavedAt   time.Time     `json:"savedAt"`
+	Version   string        `json:"version"`
+}
+
+const cacheVersion = "v1.0.5"
+
+// saveCache writes dashboard data to disk as JSON
+func saveCache(path string, data DashboardData) {
+	entry := CacheEntry{
+		Data:    data,
+		SavedAt: time.Now(),
+		Version: cacheVersion,
+	}
+	b, err := json.Marshal(entry)
+	if err != nil {
+		log.Printf("[CACHE] Marshal error: %v", err)
+		return
+	}
+	// Write atomically via temp file
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, b, 0644); err != nil {
+		log.Printf("[CACHE] Write error: %v", err)
+		return
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		log.Printf("[CACHE] Rename error: %v", err)
+		return
+	}
+	log.Printf("[CACHE] Saved — %d nodes, %d clusters, %d CVEs → %s",
+		len(data.Nodes), len(data.Clusters), len(data.CVEs), path)
+}
+
+// loadCache reads cached data from disk
+// Returns nil if cache is missing, too old, or wrong version
+func loadCache(path string, ttl time.Duration) *DashboardData {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("[CACHE] Read error: %v", err)
+		}
+		return nil
+	}
+	var entry CacheEntry
+	if err := json.Unmarshal(b, &entry); err != nil {
+		log.Printf("[CACHE] Parse error: %v — discarding", err)
+		os.Remove(path)
+		return nil
+	}
+	// Version check
+	if entry.Version != cacheVersion {
+		log.Printf("[CACHE] Version mismatch (%s vs %s) — discarding", entry.Version, cacheVersion)
+		os.Remove(path)
+		return nil
+	}
+	// TTL check — default 5 minutes, configurable
+	age := time.Since(entry.SavedAt)
+	if age > ttl {
+		log.Printf("[CACHE] Stale (age: %s, ttl: %s) — will refresh in background", age.Round(time.Second), ttl)
+		// Return stale data but signal it needs refresh
+		// We still return it so the dashboard loads instantly
+		entry.Data.Status = "stale"
+		entry.Data.ScanAge = fmt.Sprintf("cached %s ago", age.Round(time.Second))
+		d := entry.Data
+		return &d
+	}
+	log.Printf("[CACHE] Hit — %d nodes, %d clusters (age: %s)",
+		len(entry.Data.Nodes), len(entry.Data.Clusters), age.Round(time.Second))
+	return &entry.Data
+}
+
+// ── END CACHE ─────────────────────────────────────────────────────────────────
 
 // ── STATE ────────────────────────────────────────────────────────────────────
 
@@ -1009,10 +1097,27 @@ func oldestCVE(cves []CVEInfo) string {
 // ── SCAN LOOP ────────────────────────────────────────────────────────────────
 
 func startScanLoop(s *State) {
-	// Initial scan
-	runScan(s)
+	cfg := s.cfg
 
-	// Node scan every 60 seconds
+	// ── Step 1: Load cache immediately so dashboard is instant ──
+	if cached := loadCache(cfg.CachePath, cfg.CacheTTL); cached != nil {
+		s.mu.Lock()
+		s.data = *cached
+		s.mu.Unlock()
+		log.Printf("[CACHE] Dashboard loaded instantly from cache")
+
+		if cached.Status == "stale" {
+			// Cache is stale — scan immediately in background
+			log.Printf("[CACHE] Cache is stale — triggering background refresh")
+			go runScan(s)
+		}
+	} else {
+		// No cache — do blocking initial scan (first ever run)
+		log.Printf("[CACHE] No cache found — running initial fleet scan (this will take a moment)...")
+		runScan(s)
+	}
+
+	// ── Step 2: Background refresh every 60 seconds ──
 	go func() {
 		ticker := time.NewTicker(60 * time.Second)
 		defer ticker.Stop()
@@ -1141,6 +1246,9 @@ func runScan(s *State) {
 	s.data = data
 	s.data.Alerts = s.alerts
 	s.mu.Unlock()
+
+	// Persist to disk cache — next restart will load instantly
+	go saveCache(cfg.CachePath, data)
 
 	log.Printf("[SCAN] Done — %d clusters | %d nodes (%d vulnerable, %d critical) | %d CVEs | EKS: %.0f%% Linux: %.0f%%",
 		scannedCtx, summary.TotalNodes, summary.Vulnerable, summary.Critical,
@@ -1448,6 +1556,7 @@ func main() {
 	if cfg.SMTPHost == "" || cfg.SMTPUser == "" {
 		log.Println("[WARN] SMTP not configured — emails will be skipped (logs only)")
 	}
+	log.Printf("[CACHE] Cache path: %s (TTL: %s)", cfg.CachePath, cfg.CacheTTL)
 
 	state = &State{cfg: cfg}
 
