@@ -456,6 +456,31 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .cl-dot-err{background:var(--red);}
 .cl-card-time{font-size:10px;color:var(--text4);font-family:var(--mono);}
 .cl-err-strip{padding:6px 12px;background:var(--red-bg);border-top:1px solid rgba(255,61,90,0.2);font-size:10px;color:var(--red);font-family:var(--mono);line-height:1.4;}
+
+/* ── SCAN PROGRESS ── */
+.scan-progress-bar{
+  position:fixed;top:52px;left:0;right:0;height:2px;
+  background:var(--border);z-index:98;overflow:hidden;
+  transition:opacity 0.3s;
+}
+.scan-progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--blue),var(--purple));
+  transition:width 0.5s ease;
+  border-radius:0 2px 2px 0;
+}
+.scan-status-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:20px;font-size:10px;
+  font-family:var(--mono);border:1px solid;
+  background:var(--blue-bg);border-color:rgba(77,159,255,0.3);color:var(--blue);
+}
+.scan-spinner{
+  width:8px;height:8px;border:1.5px solid rgba(77,159,255,0.3);
+  border-top-color:var(--blue);border-radius:50%;
+  animation:spin 0.7s linear infinite;flex-shrink:0;
+}
+
 </style>
 </head>
 <body>
@@ -474,6 +499,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
     <button class="tb-btn" onclick="triggerRefresh(this)">↻ Force refresh</button>
     <button class="tb-btn" onclick="sendDigest()">📧 Send digest now</button>
   </div>
+</div>
+
+<!-- Scan progress bar -->
+<div class="scan-progress-bar" id="scan-progress-bar" style="opacity:0;">
+  <div class="scan-progress-fill" id="scan-progress-fill" style="width:0%"></div>
 </div>
 
 <div class="nav">
@@ -943,6 +973,15 @@ function applyData(d){
   buildCharts(s,comp,cves);
   renderRiskSignals(s,comp,cves);
   renderClusterBars();
+  // Update scan progress bar
+  const _pb = document.getElementById('scan-progress-bar');
+  const _pf = document.getElementById('scan-progress-fill');
+  if (_pb && _pf) {
+    const _inProg = d.scanInProgress || false;
+    _pb.style.opacity = _inProg ? '1' : '0';
+    _pf.style.width = (d.scanPct||0) + '%';
+  }
+
 }
 
 // ── NODES ──

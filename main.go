@@ -162,18 +162,20 @@ type ClusterStatus struct {
 }
 
 type DashboardData struct {
-	Summary        FleetSummary    `json:"summary"`
-	Nodes          []NodeInfo      `json:"nodes"`
-	CVEs           []CVEInfo       `json:"cves"`
-	Compliance     ComplianceInfo  `json:"compliance"`
-	Alerts         []Alert         `json:"alerts"`
-	Clusters       []ClusterStatus `json:"clusters"`
-	LastScan       time.Time       `json:"lastScan"`
-	ScanAge        string          `json:"scanAge"`
-	Status         string          `json:"status"`
-	TotalContexts  int             `json:"totalContexts"`
-	ScannedContexts int            `json:"scannedContexts"`
-	FailedContexts int             `json:"failedContexts"`
+	Summary         FleetSummary    `json:"summary"`
+	Nodes           []NodeInfo      `json:"nodes"`
+	CVEs            []CVEInfo       `json:"cves"`
+	Compliance      ComplianceInfo  `json:"compliance"`
+	Alerts          []Alert         `json:"alerts"`
+	Clusters        []ClusterStatus `json:"clusters"`
+	LastScan        time.Time       `json:"lastScan"`
+	ScanAge         string          `json:"scanAge"`
+	Status          string          `json:"status"`
+	TotalContexts   int             `json:"totalContexts"`
+	ScannedContexts int             `json:"scannedContexts"`
+	FailedContexts  int             `json:"failedContexts"`
+	ScanInProgress  bool            `json:"scanInProgress"`
+	ScanPct         int             `json:"scanPct"`
 }
 
 // ── CACHE ────────────────────────────────────────────────────────────────────
@@ -383,11 +385,20 @@ func scanSingleContext(kubeconfigPath, contextName string) ([]NodeInfo, error) {
 
 // scanViaKubectlContext uses kubectl --context flag as fallback
 func scanViaKubectlContext(contextName string) ([]NodeInfo, error) {
-	cmd := exec.Command("kubectl", "--context="+contextName, "get", "nodes", "-o", "json")
+	var cmd *exec.Cmd
+	if contextName == "" {
+		cmd = exec.Command("kubectl", "get", "nodes", "-o", "json")
+	} else {
+		cmd = exec.Command("kubectl", "--context="+contextName, "get", "nodes", "-o", "json")
+	}
 	cmd.Env = os.Environ()
+	// Capture stderr separately to suppress SSO noise from logs
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("kubectl --context=%s: %w", contextName, err)
+		// Use classified error, not raw stderr dump
+		return nil, fmt.Errorf("%s", classifyError(err))
 	}
 
 	var raw struct {
@@ -445,12 +456,42 @@ func scanViaKubectlContext(contextName string) ([]NodeInfo, error) {
 	return results, nil
 }
 
+// classifyError makes SSO/auth errors human-readable
+func classifyError(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "Token has expired") || strings.Contains(msg, "token has expired"):
+		return "SSO token expired — run: aws sso login"
+	case strings.Contains(msg, "refresh failed") || strings.Contains(msg, "refresh token"):
+		return "Auth refresh failed — re-authenticate with SSO"
+	case strings.Contains(msg, "Unauthorized") || strings.Contains(msg, "401"):
+		return "Unauthorized — credentials expired"
+	case strings.Contains(msg, "connection refused") || strings.Contains(msg, "refused"):
+		return "Connection refused — cluster unreachable"
+	case strings.Contains(msg, "timeout") || strings.Contains(msg, "deadline exceeded"):
+		return "Connection timed out after 25s"
+	case strings.Contains(msg, "no such host"):
+		return "DNS resolution failed — cluster endpoint unreachable"
+	case strings.Contains(msg, "exit status 1"):
+		return "kubectl exit status 1 — likely SSO token expired"
+	default:
+		// Truncate long errors
+		if len(msg) > 120 {
+			return msg[:120] + "..."
+		}
+		return msg
+	}
+}
+
 // scanKubernetes scans ALL contexts in kubeconfig in parallel
-func scanKubernetes(cfg Config) ([]NodeInfo, []ClusterStatus, error) {
+// Results are streamed into state as each cluster completes — dashboard updates incrementally
+func scanKubernetes(cfg Config, s *State) ([]NodeInfo, []ClusterStatus, error) {
 	contexts, err := getAllContexts(cfg.KubeconfigPath)
 	if err != nil {
 		log.Printf("[MULTI-CLUSTER] Could not list contexts: %v — scanning current context only", err)
-		// Fall back to current context only
 		nodes, fallbackErr := scanViaKubectlContext("")
 		if fallbackErr != nil {
 			return nil, nil, fallbackErr
@@ -462,13 +503,16 @@ func scanKubernetes(cfg Config) ([]NodeInfo, []ClusterStatus, error) {
 		return nil, nil, fmt.Errorf("no contexts found in kubeconfig")
 	}
 
+	total := len(contexts)
+	log.Printf("[MULTI-CLUSTER] Starting incremental scan of %d contexts", total)
+
 	type result struct {
-		nodes   []NodeInfo
-		status  ClusterStatus
+		nodes  []NodeInfo
+		status ClusterStatus
 	}
 
-	resultCh := make(chan result, len(contexts))
-	sem := make(chan struct{}, 10) // max 10 parallel scans
+	resultCh := make(chan result, total)
+	sem := make(chan struct{}, 10) // max 10 parallel
 
 	for _, ctx := range contexts {
 		go func(contextName string) {
@@ -479,7 +523,6 @@ func scanKubernetes(cfg Config) ([]NodeInfo, []ClusterStatus, error) {
 			region := extractRegionFromContext(contextName)
 			start := time.Now()
 
-			log.Printf("[MULTI-CLUSTER] Scanning context: %s (cluster: %s)", contextName, clusterName)
 			nodes, err := scanSingleContext(cfg.KubeconfigPath, contextName)
 
 			cs := ClusterStatus{
@@ -491,33 +534,42 @@ func scanKubernetes(cfg Config) ([]NodeInfo, []ClusterStatus, error) {
 
 			if err != nil {
 				cs.Status = "error"
-				cs.Error = err.Error()
-				log.Printf("[MULTI-CLUSTER] ✗ %s: %v (%.1fs)", contextName, err, time.Since(start).Seconds())
+				cs.Error = classifyError(err)
 				resultCh <- result{nodes: nil, status: cs}
 				return
 			}
 
 			cs.NodeCount = len(nodes)
-			cs.Vulnerable = 0
 			for _, n := range nodes {
 				if n.Vulnerable {
 					cs.Vulnerable++
 				}
 			}
 			cs.Status = "ok"
-			log.Printf("[MULTI-CLUSTER] ✓ %s: %d nodes (%d vulnerable) (%.1fs)", contextName, len(nodes), cs.Vulnerable, time.Since(start).Seconds())
+			log.Printf("[MULTI-CLUSTER] ✓ %s: %d nodes (%d vuln) (%.1fs)", clusterName, len(nodes), cs.Vulnerable, time.Since(start).Seconds())
 			resultCh <- result{nodes: nodes, status: cs}
 		}(ctx)
 	}
 
-	// Collect all results
+	// ── Incremental collection — stream results into state as they arrive ──
 	var allNodes []NodeInfo
 	var clusterStatuses []ClusterStatus
-	seen := map[string]bool{} // deduplicate nodes by name+cluster
+	seen := map[string]bool{}
+	done := 0
+	okCount := 0
+	failCount := 0
 
-	for range contexts {
+	for done < total {
 		r := <-resultCh
+		done++
+
 		clusterStatuses = append(clusterStatuses, r.status)
+		if r.status.Status == "ok" {
+			okCount++
+		} else {
+			failCount++
+		}
+
 		for _, n := range r.nodes {
 			key := n.Name + "|" + n.Cluster
 			if !seen[key] {
@@ -525,24 +577,69 @@ func scanKubernetes(cfg Config) ([]NodeInfo, []ClusterStatus, error) {
 				allNodes = append(allNodes, n)
 			}
 		}
+
+		// ── Push partial results into state immediately ──
+		// Dashboard polls every 30s and will pick this up
+		pct := done * 100 / total
+		if s != nil {
+			s.mu.Lock()
+			// Merge new cluster into existing state
+			existing := s.data
+			existing.Clusters = clusterStatuses
+			existing.TotalContexts = total
+			existing.ScannedContexts = okCount
+			existing.FailedContexts = failCount
+			existing.ScanInProgress = done < total
+			existing.ScanPct = pct
+
+			// Rebuild node list incrementally
+			nodeMap := map[string]NodeInfo{}
+			for _, n := range allNodes {
+				nodeMap[n.Name+"|"+n.Cluster] = n
+			}
+			var mergedNodes []NodeInfo
+			for _, n := range nodeMap {
+				mergedNodes = append(mergedNodes, n)
+			}
+			sort.Slice(mergedNodes, func(i, j int) bool {
+				return mergedNodes[i].RiskScore > mergedNodes[j].RiskScore
+			})
+			existing.Nodes = mergedNodes
+
+			// Update summary counts live
+			var sum FleetSummary
+			sum.AgentsLive = existing.Summary.AgentsLive
+			for _, n := range mergedNodes {
+				sum.TotalNodes++
+				if n.Vulnerable { sum.Vulnerable++ }
+				if n.PatchStatus == "patched" { sum.Patched++ }
+				if n.AlgifStatus == "loaded" { sum.AlgifLoaded++ }
+				switch n.RiskLevel {
+				case "critical": sum.Critical++
+				case "high": sum.High++
+				case "medium": sum.Medium++
+				case "low": sum.Low++
+				}
+			}
+			sum.RiskScore = calcFleetRisk(sum, existing.Compliance, len(existing.CVEs))
+			existing.Summary = sum
+			existing.ScanAge = fmt.Sprintf("scanning %d/%d clusters", done, total)
+			s.data = existing
+			s.mu.Unlock()
+		}
+
+		if done%10 == 0 || done == total {
+			log.Printf("[MULTI-CLUSTER] Progress: %d/%d (OK:%d Fail:%d Nodes:%d)",
+				done, total, okCount, failCount, len(allNodes))
+		}
 	}
 
-	// Sort clusters by name
 	sort.Slice(clusterStatuses, func(i, j int) bool {
 		return clusterStatuses[i].Name < clusterStatuses[j].Name
 	})
 
-	ok := 0
-	failed := 0
-	for _, cs := range clusterStatuses {
-		if cs.Status == "ok" {
-			ok++
-		} else {
-			failed++
-		}
-	}
-	log.Printf("[MULTI-CLUSTER] Scan complete: %d/%d contexts OK, %d failed, %d total nodes",
-		ok, len(contexts), failed, len(allNodes))
+	log.Printf("[MULTI-CLUSTER] Complete: %d/%d OK, %d failed, %d nodes",
+		okCount, total, failCount, len(allNodes))
 
 	return allNodes, clusterStatuses, nil
 }
@@ -1151,8 +1248,14 @@ func runScan(s *State) {
 	log.Println("[SCAN] Starting multi-cluster fleet scan...")
 	cfg := s.cfg
 
-	// Scan ALL kubernetes contexts in parallel
-	nodes, clusterStatuses, err := scanKubernetes(cfg)
+	// Mark scan as in-progress immediately so dashboard shows progress bar
+	s.mu.Lock()
+	s.data.ScanInProgress = true
+	s.data.ScanPct = 0
+	s.mu.Unlock()
+
+	// Scan ALL kubernetes contexts in parallel — streams results into state incrementally
+	nodes, clusterStatuses, err := scanKubernetes(cfg, s)
 	if err != nil {
 		log.Printf("[SCAN] Kubernetes scan error: %v", err)
 		// Keep existing nodes if scan fails
@@ -1245,6 +1348,12 @@ func runScan(s *State) {
 	s.prevData = &prev
 	s.data = data
 	s.data.Alerts = s.alerts
+	s.mu.Unlock()
+
+	// Mark scan complete
+	s.mu.Lock()
+	s.data.ScanInProgress = false
+	s.data.ScanPct = 100
 	s.mu.Unlock()
 
 	// Persist to disk cache — next restart will load instantly
