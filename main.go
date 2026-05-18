@@ -1467,6 +1467,244 @@ type EnhancedData struct {
 	Anomalies   []Anomaly     `json:"anomalies"`
 }
 
+// ── NODE DETAIL — REAL POD DATA ──────────────────────────────────────────────
+
+type PodInfo struct {
+	Name        string   `json:"name"`
+	Namespace   string   `json:"namespace"`
+	Status      string   `json:"status"`
+	Containers  []string `json:"containers"`
+	Privileged  bool     `json:"privileged"`
+	HostNetwork bool     `json:"hostNetwork"`
+	HostPID     bool     `json:"hostPID"`
+	RunAsRoot   bool     `json:"runAsRoot"`
+	HasSecrets  bool     `json:"hasSecrets"`
+	Images      []string `json:"images"`
+	RiskScore   int      `json:"riskScore"`
+	RiskReasons []string `json:"riskReasons"`
+}
+
+type NodeDetail struct {
+	NodeName   string    `json:"nodeName"`
+	Cluster    string    `json:"cluster"`
+	Context    string    `json:"context"`
+	Pods       []PodInfo `json:"pods"`
+	Namespaces []string  `json:"namespaces"`
+	PodCount   int       `json:"podCount"`
+	PrivCount  int       `json:"privCount"`
+	HostNetCount int     `json:"hostNetCount"`
+	SecretCount int      `json:"secretCount"`
+	BlastLevel string    `json:"blastLevel"`
+	ScannedAt  string    `json:"scannedAt"`
+	Error      string    `json:"error,omitempty"`
+}
+
+// fetchNodePods runs kubectl to get real pods on a specific node
+func fetchNodePods(contextName, nodeName string) NodeDetail {
+	detail := NodeDetail{
+		NodeName:  nodeName,
+		Context:   contextName,
+		ScannedAt: time.Now().Format(time.RFC3339),
+	}
+
+	args := []string{
+		"get", "pods",
+		"--all-namespaces",
+		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
+		"-o", "json",
+	}
+	if contextName != "" {
+		args = append([]string{"--context=" + contextName}, args...)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "kubectl", args...)
+	out, err := cmd.Output()
+	if err != nil {
+		detail.Error = fmt.Sprintf("kubectl error: %v", err)
+		log.Printf("[NODEDETAIL] kubectl error for node %s ctx %s: %v", nodeName, contextName, err)
+		return detail
+	}
+
+	var raw struct {
+		Items []struct {
+			Metadata struct {
+				Name      string `json:"name"`
+				Namespace string `json:"namespace"`
+			} `json:"metadata"`
+			Status struct {
+				Phase string `json:"phase"`
+			} `json:"status"`
+			Spec struct {
+				HostNetwork bool `json:"hostNetwork"`
+				HostPID     bool `json:"hostPID"`
+				Volumes     []struct {
+					Secret    *struct{ SecretName string `json:"secretName"` } `json:"secret"`
+					Projected *struct{} `json:"projected"`
+				} `json:"volumes"`
+				Containers []struct {
+					Name  string   `json:"name"`
+					Image string   `json:"image"`
+					SecurityContext *struct {
+						Privileged  *bool `json:"privileged"`
+						RunAsUser   *int64 `json:"runAsUser"`
+						RunAsNonRoot *bool `json:"runAsNonRoot"`
+					} `json:"securityContext"`
+				} `json:"containers"`
+				InitContainers []struct {
+					Name  string `json:"name"`
+					Image string `json:"image"`
+					SecurityContext *struct {
+						Privileged *bool `json:"privileged"`
+					} `json:"securityContext"`
+				} `json:"initContainers"`
+				SecurityContext *struct {
+					RunAsUser    *int64 `json:"runAsUser"`
+					RunAsNonRoot *bool  `json:"runAsNonRoot"`
+				} `json:"securityContext"`
+			} `json:"spec"`
+		} `json:"items"`
+	}
+
+	if err := json.Unmarshal(out, &raw); err != nil {
+		detail.Error = fmt.Sprintf("parse error: %v", err)
+		return detail
+	}
+
+	nsSet := map[string]bool{}
+	var pods []PodInfo
+
+	for _, item := range raw.Items {
+		pod := PodInfo{
+			Name:        item.Metadata.Name,
+			Namespace:   item.Metadata.Namespace,
+			Status:      item.Status.Phase,
+			HostNetwork: item.Spec.HostNetwork,
+			HostPID:     item.Spec.HostPID,
+		}
+
+		nsSet[item.Metadata.Namespace] = true
+
+		// Check for secrets in volumes
+		for _, vol := range item.Spec.Volumes {
+			if vol.Secret != nil && vol.Secret.SecretName != "" {
+				pod.HasSecrets = true
+			}
+		}
+
+		// Check containers
+		for _, c := range item.Spec.Containers {
+			pod.Containers = append(pod.Containers, c.Name)
+			if c.Image != "" {
+				pod.Images = append(pod.Images, c.Image)
+			}
+			if c.SecurityContext != nil && c.SecurityContext.Privileged != nil && *c.SecurityContext.Privileged {
+				pod.Privileged = true
+			}
+			if c.SecurityContext != nil && c.SecurityContext.RunAsUser != nil && *c.SecurityContext.RunAsUser == 0 {
+				pod.RunAsRoot = true
+			}
+		}
+
+		// Pod-level security context
+		if item.Spec.SecurityContext != nil {
+			if item.Spec.SecurityContext.RunAsUser != nil && *item.Spec.SecurityContext.RunAsUser == 0 {
+				pod.RunAsRoot = true
+			}
+		}
+
+		// Risk score for this pod
+		score := 0
+		var reasons []string
+		if pod.Privileged { score += 40; reasons = append(reasons, "privileged: true") }
+		if pod.HostNetwork { score += 25; reasons = append(reasons, "hostNetwork: true") }
+		if pod.HostPID { score += 25; reasons = append(reasons, "hostPID: true") }
+		if pod.RunAsRoot { score += 15; reasons = append(reasons, "runAsRoot / UID 0") }
+		if pod.HasSecrets { score += 10; reasons = append(reasons, "mounts secrets") }
+		pod.RiskScore = min(score, 99)
+		pod.RiskReasons = reasons
+
+		pods = append(pods, pod)
+	}
+
+	// Sort pods by risk score descending
+	sort.Slice(pods, func(i, j int) bool {
+		return pods[i].RiskScore > pods[j].RiskScore
+	})
+
+	// Collect namespaces
+	var nsList []string
+	for ns := range nsSet {
+		nsList = append(nsList, ns)
+	}
+	sort.Strings(nsList)
+
+	// Counts
+	privCount := 0
+	hostNetCount := 0
+	secretCount := 0
+	for _, p := range pods {
+		if p.Privileged { privCount++ }
+		if p.HostNetwork { hostNetCount++ }
+		if p.HasSecrets { secretCount++ }
+	}
+
+	// Blast level
+	blastScore := len(pods)*2 + len(nsList)*5 + privCount*20 + secretCount*10
+	blast := "LOW"
+	if blastScore > 100 { blast = "CRITICAL" } else if blastScore > 60 { blast = "HIGH" } else if blastScore > 30 { blast = "MEDIUM" }
+
+	detail.Pods = pods
+	detail.Namespaces = nsList
+	detail.PodCount = len(pods)
+	detail.PrivCount = privCount
+	detail.HostNetCount = hostNetCount
+	detail.SecretCount = secretCount
+	detail.BlastLevel = blast
+
+	log.Printf("[NODEDETAIL] %s: %d pods, %d namespaces, %d privileged, blast=%s",
+		nodeName, len(pods), len(nsList), privCount, blast)
+
+	return detail
+}
+
+// handleNodeDetail serves real pod data for a specific node
+func handleNodeDetail(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	nodeName := r.URL.Query().Get("node")
+	contextName := r.URL.Query().Get("context")
+
+	if nodeName == "" {
+		http.Error(w, `{"error":"node parameter required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Find the node's context from state if not provided
+	if contextName == "" {
+		state.mu.RLock()
+		for _, n := range state.data.Nodes {
+			if n.Name == nodeName {
+				// Try to find which cluster/context this node belongs to
+				for _, cs := range state.data.Clusters {
+					if cs.Name == n.Cluster {
+						contextName = cs.Context
+						break
+					}
+				}
+				break
+			}
+		}
+		state.mu.RUnlock()
+	}
+
+	detail := fetchNodePods(contextName, nodeName)
+	json.NewEncoder(w).Encode(detail)
+}
+
 // ── HTTP HANDLERS ────────────────────────────────────────────────────────────
 
 func handleData(w http.ResponseWriter, r *http.Request) {
@@ -1570,6 +1808,7 @@ func main() {
 	mux.HandleFunc("/api/refresh", handleRefresh)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/digest", handleSendTestDigest)
+	mux.HandleFunc("/api/nodedetail", handleNodeDetail)
 	mux.HandleFunc("/", handleDashboard)
 
 	addr := "0.0.0.0:" + cfg.Port

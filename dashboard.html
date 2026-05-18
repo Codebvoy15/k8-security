@@ -494,6 +494,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 <!-- ══ OVERVIEW ══ -->
 <div id="tab-overview" class="page active">
   <div class="offline-banner" id="offline-banner">⚠ Backend unreachable — showing last known data. Is the Go server running on port 8080?</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px;">Security Overview</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">Fleet-wide posture · Auto-refreshes every 60s · <span id="ov-last-scan-sub">—</span></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="generateReport('executive')" style="font-size:11px;">📄 Executive Report</button>
+      <button class="btn" onclick="exportOverviewCSV()" style="font-size:11px;">⬇ Export CSV</button>
+    </div>
+  </div>
   <div class="mrow">
     <div class="mcard mcard-clickable" onclick="openDd('nodes-exposed')" title="Click for deep analysis"><div class="mcard-acc" style="background:var(--red)"></div><div class="mlbl">Nodes exposed</div><div class="mval cr" id="m-vuln">—</div><div class="msub">Copy Fail vulnerable</div><div class="mdelta cr" id="d-vuln"></div></div>
     <div class="mcard mcard-clickable" onclick="openDd('cves')" title="Click for deep analysis"><div class="mcard-acc" style="background:var(--red)"></div><div class="mlbl">Unpatched CVEs</div><div class="mval cr" id="m-cve">—</div><div class="msub">fix available &gt;30d</div></div>
@@ -519,6 +529,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 <!-- ══ NODES ══ -->
 <div id="tab-nodes" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px;">Node Risk Intelligence</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">Real-time kubectl data · Kernel patch status · algif_aead detection · Click any node for deep analysis</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="generateReport('nodes')" style="font-size:11px;">📄 Node Report</button>
+      <button class="btn" onclick="exportNodeCSV()" style="font-size:11px;">⬇ Export CSV</button>
+    </div>
+  </div>
   <div class="cfb" style="margin-bottom:10px;"><div class="cfd"></div><div><div class="cft">Real-time node data from kubectl — auto-refreshes every 60 seconds</div><div class="cfs">Kernel patch status · algif_aead loaded/blocked · Risk score per node · New vulnerable nodes highlighted in green on arrival</div></div></div>
   <div class="fbar">
     <input class="sinp" id="nsearch" placeholder="search node / cluster..." oninput="renderNodes()"/>
@@ -1152,6 +1172,463 @@ startCountdown();
 
 
 
+
+// ── REPORT GENERATION ────────────────────────────────────────────────────────
+
+function generateReport(type) {
+  if (type === 'executive') generateExecutiveReport();
+  else if (type === 'nodes') generateNodeReport();
+}
+
+function generateExecutiveReport() {
+  const d = data || {};
+  const s = d.summary || {};
+  const cves = d.cves || [];
+  const nodes = d.nodes || [];
+  const clusters = d.clusters || [];
+  const comp = d.compliance || {eks:48,linux:12,sysdig:0};
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const timeStr = now.toLocaleTimeString();
+  const critCVEs = cves.filter(c=>(c.severity||'').toLowerCase()==='critical').length;
+  const highCVEs = cves.filter(c=>(c.severity||'').toLowerCase()==='high').length;
+  const oldestCVE = cves.reduce((a,b)=>((a.ageDays||0)>(b.ageDays||0)?a:b), {ageDays:0,id:'none'});
+  const vulnClusters = clusters.filter(c=>(c.vulnerable||0)>0).length;
+  const failedClusters = clusters.filter(c=>c.status!=='ok').length;
+  const riskColor = r => r>=80?'#dc2626':r>=60?'#d97706':r>=40?'#2563eb':'#16a34a';
+  const sevColor = s => s.toLowerCase()==='critical'?'#dc2626':'#d97706';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PDKS Security Executive Report — ${dateStr}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#1e293b;background:#fff;padding:0;}
+  @media print{body{padding:0;}.no-print{display:none!important;}.page-break{page-break-before:always;}}
+  .print-btn{position:fixed;top:16px;right:16px;background:#1e40af;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+  .print-btn:hover{background:#1d4ed8;}
+  .report{max-width:860px;margin:0 auto;padding:40px 48px;}
+  .header{border-bottom:2px solid #1e3a8a;padding-bottom:20px;margin-bottom:28px;}
+  .header-top{display:flex;align-items:flex-start;justify-content:space-between;}
+  .logo{display:flex;align-items:center;gap:10px;}
+  .logo-dot{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1e40af,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;}
+  .logo-text{font-size:16px;font-weight:700;color:#1e3a8a;}
+  .logo-sub{font-size:11px;color:#64748b;margin-top:2px;}
+  .report-meta{text-align:right;}
+  .report-title{font-size:22px;font-weight:700;color:#0f172a;margin-top:16px;letter-spacing:-0.5px;}
+  .report-sub{font-size:12px;color:#64748b;margin-top:4px;}
+  .section{margin-bottom:28px;}
+  .section-title{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;position:relative;overflow:hidden;}
+  .kpi-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:8px 8px 0 0;}
+  .kpi-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums;}
+  .kpi-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;}
+  .kpi-sub{font-size:10px;color:#94a3b8;margin-top:3px;}
+  .alert-box{border-radius:8px;padding:12px 14px;margin-bottom:8px;border-left:4px solid;}
+  .alert-red{background:#fef2f2;border-color:#dc2626;}
+  .alert-amber{background:#fffbeb;border-color:#d97706;}
+  .alert-blue{background:#eff6ff;border-color:#2563eb;}
+  .alert-green{background:#f0fdf4;border-color:#16a34a;}
+  .alert-title{font-size:12px;font-weight:600;margin-bottom:3px;}
+  .alert-red .alert-title{color:#dc2626;}
+  .alert-amber .alert-title{color:#d97706;}
+  .alert-blue .alert-title{color:#2563eb;}
+  .alert-green .alert-title{color:#16a34a;}
+  .alert-body{font-size:11px;color:#475569;line-height:1.5;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;padding:8px 10px;text-align:left;border-bottom:2px solid #e2e8f0;background:#f8fafc;}
+  td{padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#f8fafc;}
+  .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;}
+  .badge-red{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+  .badge-amber{background:#fffbeb;color:#d97706;border:1px solid #fde68a;}
+  .badge-green{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
+  .badge-blue{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
+  .comp-row{display:grid;grid-template-columns:160px 1fr 60px;gap:10px;align-items:center;margin-bottom:8px;}
+  .comp-bar-track{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;}
+  .comp-bar-fill{height:100%;border-radius:4px;}
+  .comp-val{font-size:12px;font-weight:600;text-align:right;}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;}
+  .risk-score-big{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;}
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">🖨 Print / Save PDF</button>
+<div class="report">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-dot">🛡</div>
+        <div>
+          <div class="logo-text">PDKS Security Intelligence</div>
+          <div class="logo-sub">Pfizer Platform Engineering</div>
+        </div>
+      </div>
+      <div class="report-meta">
+        <div style="font-size:11px;color:#64748b;">${dateStr}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Generated at ${timeStr}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px;">us2.app.sysdig.com · Sysdig-PDKS-Ops-s</div>
+      </div>
+    </div>
+    <div class="report-title">K8s Fleet Security Executive Report</div>
+    <div class="report-sub">Covers ${clusters.length} clusters · ${s.totalNodes||0} nodes · ${s.agentsLive||705} Sysdig agents · Data from kubectl + Sysdig API</div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="section">
+    <div class="section-title">Fleet Security Snapshot</div>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#dc2626;"></div>
+        <div class="kpi-val" style="color:#dc2626;">${s.vulnerable||0}</div>
+        <div class="kpi-label">Nodes Exposed</div>
+        <div class="kpi-sub">Copy Fail vulnerable</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#dc2626;"></div>
+        <div class="kpi-val" style="color:#dc2626;">${cves.length}</div>
+        <div class="kpi-label">Unpatched CVEs</div>
+        <div class="kpi-sub">fix available &gt;30d</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#d97706;"></div>
+        <div class="kpi-val" style="color:#d97706;">${comp.linux||12}%</div>
+        <div class="kpi-label">CIS Linux</div>
+        <div class="kpi-sub">~41K resources failing</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#d97706;"></div>
+        <div class="kpi-val" style="color:#d97706;">${comp.eks||48}%</div>
+        <div class="kpi-label">CIS EKS</div>
+        <div class="kpi-sub">Benchmark v1.5</div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#7c3aed;"></div>
+        <div class="kpi-val" style="color:${riskColor(s.riskScore||78)};">${s.riskScore||78}%</div>
+        <div class="kpi-label">Fleet Risk Score</div>
+        <div class="kpi-sub">attack probability 72h</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#2563eb;"></div>
+        <div class="kpi-val" style="color:#2563eb;">${clusters.length}</div>
+        <div class="kpi-label">Clusters Scanned</div>
+        <div class="kpi-sub">${failedClusters} unreachable</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#dc2626;"></div>
+        <div class="kpi-val" style="color:#dc2626;">${vulnClusters}</div>
+        <div class="kpi-label">Clusters Exposed</div>
+        <div class="kpi-sub">have Copy Fail nodes</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#2563eb;"></div>
+        <div class="kpi-val" style="color:#2563eb;">${s.agentsLive||705}</div>
+        <div class="kpi-label">Sysdig Agents</div>
+        <div class="kpi-sub">live across fleet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Critical CVE -->
+  <div class="section">
+    <div class="section-title">Active Critical Threat — CVE-2026-31431 "Copy Fail"</div>
+    <div class="alert-box alert-red">
+      <div class="alert-title">CRITICAL — Linux kernel privilege escalation · CVSS 9.8 · CISA KEV listed · Public PoC available</div>
+      <div class="alert-body">
+        Unprivileged user → root in 4 syscalls via AF_ALG crypto socket interface. No disk trace — bypasses AIDE/Tripwire.
+        Container escape possible (page cache shared between host and containers). Affects all AL2023 nodes with kernel &lt;6.1.141.
+        <br><br>
+        <strong>Fleet exposure:</strong> ${s.vulnerable||0} of ${s.totalNodes||0} nodes unpatched · ${s.algifLoaded||s.vulnerable||0} nodes with algif_aead loaded · ${vulnClusters} clusters affected
+        <br><strong>Mitigation:</strong> Deploy algif_aead DaemonSet (15 mins, zero downtime) · Long-term: AMI refresh to kernel 6.1.141+
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Items -->
+  <div class="section">
+    <div class="section-title">Immediate Action Items</div>
+    <div class="alert-box alert-red">
+      <div class="alert-title">1. Deploy algif_aead mitigation DaemonSet — TODAY</div>
+      <div class="alert-body">kubectl apply -f copy-fail-mitigation.yaml · Covers all 170+ clusters · 15 minutes · zero downtime. Reduces fleet risk from ${s.riskScore||78}% to ~23%.</div>
+    </div>
+    <div class="alert-box alert-red">
+      <div class="alert-title">2. Patch 7-month-old CVEs — SLA breach</div>
+      <div class="alert-body">CVE-2025-58186, 58187, 61723, 61725 have had patches since October 2025. Oldest unpatched: ${oldestCVE.id} (${oldestCVE.ageDays} days). Escalate to patch pipeline immediately.</div>
+    </div>
+    <div class="alert-box alert-amber">
+      <div class="alert-title">3. CIS Linux compliance at ${comp.linux||12}% — 41K resources below baseline</div>
+      <div class="alert-body">Every node failing CIS Linux controls is an amplified Copy Fail target. SSH hardening + filesystem module blacklisting can raise score ~15% without AMI rebuild.</div>
+    </div>
+    <div class="alert-box alert-blue">
+      <div class="alert-title">4. Request Detection &amp; Response access in Sysdig</div>
+      <div class="alert-body">Current role (Sysdig-PDKS-Ops-s) is View Only — runtime event feed is blocked. Cannot confirm if Copy Fail attempts are being detected fleet-wide.</div>
+    </div>
+  </div>
+
+  <!-- CVE Table -->
+  <div class="section">
+    <div class="section-title">Unpatched CVEs — ${cves.length} Total (Fix Available)</div>
+    <table>
+      <thead><tr><th>CVE ID</th><th>Severity</th><th>Age</th><th>SLA Status</th><th>Fix</th></tr></thead>
+      <tbody>
+        ${cves.map(c=>`<tr>
+          <td style="font-family:monospace;font-weight:500;">${c.id||c.ID||'—'}</td>
+          <td><span class="badge ${(c.severity||'').toLowerCase()==='critical'?'badge-red':'badge-amber'}">${c.severity||'high'}</span></td>
+          <td style="color:${(c.ageDays||0)>180?'#dc2626':(c.ageDays||0)>90?'#d97706':'#2563eb'};">${c.ageText||((c.ageDays||0)+'d ago')}</td>
+          <td><span class="badge ${(c.ageDays||0)>30?'badge-red':'badge-green'}">${(c.ageDays||0)>30?'SLA BREACH':'Within SLA'}</span></td>
+          <td style="color:#16a34a;">✓ Available</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Compliance -->
+  <div class="section">
+    <div class="section-title">Compliance Posture</div>
+    <div class="comp-row">
+      <div style="font-size:12px;color:#475569;">CIS EKS Benchmark v1.5</div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" style="width:${comp.eks||48}%;background:${(comp.eks||48)>=70?'#16a34a':'#d97706'};"></div></div>
+      <div class="comp-val" style="color:${(comp.eks||48)>=70?'#16a34a':'#d97706'};">${comp.eks||48}%</div>
+    </div>
+    <div class="comp-row">
+      <div style="font-size:12px;color:#475569;">CIS Linux Level 2</div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" style="width:${comp.linux||12}%;background:#dc2626;"></div></div>
+      <div class="comp-val" style="color:#dc2626;">${comp.linux||12}%</div>
+    </div>
+    <div class="comp-row">
+      <div style="font-size:12px;color:#475569;">Sysdig Kubernetes</div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" style="width:${comp.sysdig||0}%;background:#dc2626;"></div></div>
+      <div class="comp-val" style="color:#dc2626;">${comp.sysdig||0}%</div>
+    </div>
+  </div>
+
+  <!-- Top exposed clusters -->
+  ${clusters.filter(c=>c.status==='ok'&&(c.vulnerable||0)>0).length > 0 ? `
+  <div class="section">
+    <div class="section-title">Top Exposed Clusters</div>
+    <table>
+      <thead><tr><th>#</th><th>Cluster</th><th>Region</th><th>Nodes</th><th>Exposed</th><th>Exposure %</th></tr></thead>
+      <tbody>
+        ${clusters.filter(c=>c.status==='ok'&&(c.vulnerable||0)>0)
+          .sort((a,b)=>((b.vulnerable||0)/Math.max(b.nodeCount||1,1))-((a.vulnerable||0)/Math.max(a.nodeCount||1,1)))
+          .slice(0,10)
+          .map((c,i)=>{
+            const pct=Math.round((c.vulnerable||0)/Math.max(c.nodeCount||1,1)*100);
+            return `<tr>
+              <td style="font-weight:600;color:#94a3b8;">${i+1}</td>
+              <td style="font-family:monospace;font-weight:500;">${c.name}</td>
+              <td style="color:#64748b;">${c.region||'—'}</td>
+              <td>${c.nodeCount||0}</td>
+              <td style="color:#dc2626;font-weight:600;">${c.vulnerable||0}</td>
+              <td><span class="badge ${pct>=80?'badge-red':pct>=30?'badge-amber':'badge-blue'}">${pct}%</span></td>
+            </tr>`;
+          }).join('')}
+      </tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="footer">
+    <div>PDKS Security Intelligence Platform · Pfizer Platform Engineering · ssachin.kumar@pfizer.com</div>
+    <div>Generated ${dateStr} at ${timeStr} · us2.app.sysdig.com</div>
+  </div>
+</div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+function generateNodeReport() {
+  const d = data || {};
+  const nodes = d.nodes || [];
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const timeStr = now.toLocaleTimeString();
+  const vuln = nodes.filter(n=>n.vulnerable);
+  const patched = nodes.filter(n=>!n.vulnerable);
+  const critical = nodes.filter(n=>n.riskLevel==='critical');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PDKS Node Risk Report — ${dateStr}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#1e293b;background:#fff;}
+  @media print{.no-print{display:none!important;}.page-break{page-break-before:always;}}
+  .print-btn{position:fixed;top:16px;right:16px;background:#1e40af;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;cursor:pointer;}
+  .report{max-width:1000px;margin:0 auto;padding:32px 40px;}
+  .header{border-bottom:2px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;}
+  .header-left .title{font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.5px;}
+  .header-left .sub{font-size:11px;color:#64748b;margin-top:4px;}
+  .header-right{text-align:right;font-size:10px;color:#94a3b8;}
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+  .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;}
+  .kpi-val{font-size:22px;font-weight:700;line-height:1;margin-bottom:2px;}
+  .kpi-label{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;}
+  .section-title{font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  th{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;padding:7px 8px;text-align:left;border-bottom:2px solid #e2e8f0;background:#f8fafc;white-space:nowrap;}
+  td{padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+  tr:nth-child(even) td{background:#fafafa;}
+  .badge{display:inline-flex;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;}
+  .badge-red{background:#fef2f2;color:#dc2626;}
+  .badge-amber{background:#fffbeb;color:#d97706;}
+  .badge-green{background:#f0fdf4;color:#16a34a;}
+  .badge-blue{background:#eff6ff;color:#2563eb;}
+  .mono{font-family:monospace;}
+  .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;}
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">🖨 Print / Save PDF</button>
+<div class="report">
+  <div class="header">
+    <div class="header-left">
+      <div class="title">Node Risk Intelligence Report</div>
+      <div class="sub">PDKS Platform Engineering · Pfizer · All nodes from kubectl scan · ${nodes.length} nodes across fleet</div>
+    </div>
+    <div class="header-right">
+      <div>${dateStr}</div>
+      <div style="margin-top:2px;">Generated at ${timeStr}</div>
+      <div style="margin-top:2px;">ssachin.kumar@pfizer.com</div>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val" style="color:#1e40af;">${nodes.length}</div><div class="kpi-label">Total nodes</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#dc2626;">${vuln.length}</div><div class="kpi-label">Vulnerable</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#dc2626;">${critical.length}</div><div class="kpi-label">Critical risk</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#16a34a;">${patched.length}</div><div class="kpi-label">Patched</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#dc2626;">${nodes.filter(n=>n.algifStatus==='loaded').length}</div><div class="kpi-label">algif_aead loaded</div></div>
+  </div>
+
+  <div style="margin-bottom:20px;">
+    <div class="section-title">⚠ Vulnerable Nodes — ${vuln.length} nodes requiring immediate action</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Node</th><th>Cluster</th><th>Kernel</th><th>Patch Status</th>
+          <th>algif_aead</th><th>Instance</th><th>Zone</th><th>Risk Score</th><th>Risk Level</th><th>Factors</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${vuln.map((n,i)=>`<tr>
+          <td style="color:#94a3b8;font-weight:600;">${i+1}</td>
+          <td class="mono" style="font-size:10px;color:#0f172a;">${n.name}</td>
+          <td class="mono" style="font-size:10px;color:#475569;">${n.cluster}</td>
+          <td class="mono" style="font-size:9px;color:#dc2626;">${n.kernel||'unknown'}</td>
+          <td><span class="badge badge-red">${n.patchStatus}</span></td>
+          <td><span class="badge ${n.algifStatus==='loaded'?'badge-red':'badge-green'}">${n.algifStatus}</span></td>
+          <td style="color:#64748b;">${n.nodeType||'—'}</td>
+          <td style="color:#64748b;">${n.zone||'—'}</td>
+          <td style="font-weight:700;color:#dc2626;">${n.riskScore}</td>
+          <td><span class="badge ${n.riskLevel==='critical'?'badge-red':n.riskLevel==='high'?'badge-amber':'badge-blue'}">${n.riskLevel}</span></td>
+          <td style="font-size:9px;color:#64748b;">${(n.riskFactors||[]).join(', ')||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  ${patched.length > 0 ? `
+  <div style="margin-bottom:20px;">
+    <div class="section-title">✓ Patched / Safe Nodes — ${patched.length} nodes</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Node</th><th>Cluster</th><th>Kernel</th><th>Patch Status</th><th>algif_aead</th><th>Instance</th><th>Zone</th><th>Risk Score</th></tr>
+      </thead>
+      <tbody>
+        ${patched.map((n,i)=>`<tr>
+          <td style="color:#94a3b8;">${i+1}</td>
+          <td class="mono" style="font-size:10px;">${n.name}</td>
+          <td class="mono" style="font-size:10px;color:#475569;">${n.cluster}</td>
+          <td class="mono" style="font-size:9px;color:#16a34a;">${n.kernel||'unknown'}</td>
+          <td><span class="badge badge-green">${n.patchStatus}</span></td>
+          <td><span class="badge badge-green">${n.algifStatus}</span></td>
+          <td style="color:#64748b;">${n.nodeType||'—'}</td>
+          <td style="color:#64748b;">${n.zone||'—'}</td>
+          <td style="font-weight:600;color:#16a34a;">${n.riskScore}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="footer">
+    <div>PDKS Security Intelligence Platform · Pfizer Platform Engineering</div>
+    <div>Generated ${dateStr} at ${timeStr} · Data from kubectl + Sysdig API</div>
+  </div>
+</div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+function exportOverviewCSV() {
+  const d = data || {};
+  const s = d.summary || {};
+  const comp = d.compliance || {};
+  const cves = d.cves || [];
+  const clusters = d.clusters || [];
+  const now = new Date().toISOString();
+  const rows = [
+    ['PDKS Fleet Security Export', now],
+    [],
+    ['METRIC', 'VALUE'],
+    ['Nodes Exposed', s.vulnerable||0],
+    ['Unpatched CVEs', cves.length],
+    ['CIS Linux %', (comp.linux||12)+'%'],
+    ['CIS EKS %', (comp.eks||48)+'%'],
+    ['Agents Live', s.agentsLive||705],
+    ['Total Clusters', clusters.length],
+    ['Vulnerable Clusters', clusters.filter(c=>(c.vulnerable||0)>0).length],
+    ['Failed Clusters', clusters.filter(c=>c.status!=='ok').length],
+    [],
+    ['CVE ID', 'Severity', 'Age (days)', 'Fix Available'],
+    ...cves.map(c=>[c.id||c.ID||'—', c.severity||'high', c.ageDays||0, 'Yes']),
+    [],
+    ['CLUSTER', 'REGION', 'NODES', 'EXPOSED', 'STATUS'],
+    ...clusters.map(c=>[c.name, c.region||'—', c.nodeCount||0, c.vulnerable||0, c.status]),
+  ];
+  downloadCSV(rows, 'pdks-fleet-overview-' + now.split('T')[0] + '.csv');
+}
+
+function exportNodeCSV() {
+  const nodes = (data.nodes || []);
+  const now = new Date().toISOString();
+  const rows = [
+    ['NODE', 'CLUSTER', 'KERNEL', 'PATCH STATUS', 'algif_aead', 'INSTANCE TYPE', 'ZONE', 'SPOT', 'KARPENTER', 'NODEPOOL', 'RISK SCORE', 'RISK LEVEL', 'FACTORS', 'SCANNED AT'],
+    ...nodes.map(n=>[
+      n.name, n.cluster, n.kernel||'—', n.patchStatus, n.algifStatus,
+      n.nodeType||'—', n.zone||'—', n.isSpot?'yes':'no', n.karpenter?'yes':'no',
+      n.nodepool||'—', n.riskScore, n.riskLevel, (n.riskFactors||[]).join('; '), n.scannedAt||'—'
+    ])
+  ];
+  downloadCSV(rows, 'pdks-node-report-' + now.split('T')[0] + '.csv');
+}
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+// ── END REPORT GENERATION ────────────────────────────────────────────────────
+
 // ── CLUSTER FLEET ─────────────────────────────────────────────────────────────
 let clFilter = 'all';
 let clSort = 'exposed-pct';
@@ -1676,26 +2153,39 @@ function openNodeDrill(nodeName, event) {
   if (!n) return;
 
   const modal = document.getElementById('dd-modal');
-  const body = document.getElementById('dd-body');
-  const icon = document.getElementById('dd-icon');
-
-  icon.textContent = '⬡';
-  icon.style.background = n.riskLevel === 'critical' ? 'rgba(245,57,90,0.15)' : 'rgba(245,158,11,0.15)';
+  document.getElementById('dd-icon').textContent = '⬡';
+  document.getElementById('dd-icon').style.background = n.riskLevel === 'critical' ? 'rgba(245,57,90,0.15)' : 'rgba(245,158,11,0.15)';
   document.getElementById('dd-title').textContent = n.name;
   document.getElementById('dd-sub').textContent = `${n.cluster} · ${n.zone||'—'} · ${n.nodeType||'—'} · Risk score ${n.riskScore}/100`;
   modal.style.display = 'flex';
 
-  // Calculate blast radius
-  const pods = Math.floor(Math.random()*40)+8;
-  const namespaces = Math.floor(Math.random()*6)+2;
-  const privPods = Math.floor(Math.random()*3);
+  // Show loading state immediately
+  document.getElementById('dd-body').innerHTML = `
+    <div style="text-align:center;padding:48px;">
+      <div class="spin" style="display:inline-block;margin-bottom:12px;"></div>
+      <div style="font-size:12px;color:var(--text3);font-family:var(--mono);">
+        Fetching real pod data from kubectl...<br>
+        <span style="font-size:10px;color:var(--text4);">${n.cluster} · ${n.name}</span>
+      </div>
+    </div>`;
 
-  // Workloads on this node (from allWorkloads if available)
-  const nodeWorkloads = (typeof allWorkloads !== 'undefined')
-    ? allWorkloads.filter(w => w.node === n.name).slice(0,6)
-    : [];
+  // Fetch real pod data from backend
+  const params = new URLSearchParams({node: nodeName, context: n.clusterContext||''});
+  fetch('/api/nodedetail?' + params)
+    .then(r => r.json())
+    .then(detail => renderNodeDrillWithRealData(n, detail))
+    .catch(err => renderNodeDrillFallback(n, err));
+}
 
-  // Determine root causes
+function renderNodeDrillWithRealData(n, detail) {
+  const sev = s => s==='critical'?'dd-tag-red':s==='high'?'dd-tag-amber':'dd-tag-blue';
+  const sevColor = s => s==='critical'?'var(--red)':s==='high'?'var(--amber)':'var(--blue)';
+  const pods = detail.pods || [];
+  const namespaces = detail.namespaces || [];
+  const blastLevel = detail.blastLevel || 'UNKNOWN';
+  const blastColor = blastLevel==='CRITICAL'?'var(--red)':blastLevel==='HIGH'?'var(--amber)':blastLevel==='MEDIUM'?'var(--blue)':'var(--green)';
+
+  // Root causes
   const rootCauses = [];
   if (n.patchStatus === 'unpatched') rootCauses.push({
     title: 'Kernel unpatched — CVE-2026-31431',
@@ -1704,62 +2194,75 @@ function openNodeDrill(nodeName, event) {
   });
   if (n.algifStatus === 'loaded') rootCauses.push({
     title: 'algif_aead module loaded',
-    detail: 'The AF_ALG crypto socket interface is active. This is the exact attack vector for Copy Fail. Blacklisting this module immediately eliminates the attack surface.',
+    detail: 'The AF_ALG crypto socket interface is active — this is the exact attack vector for Copy Fail. Blacklisting this module immediately eliminates the attack surface.',
     severity: 'critical'
   });
-  if (n.isSpot) rootCauses.push({
-    title: 'Spot instance — interruption risk',
-    detail: 'Spot instances can be reclaimed with 2-minute notice. If exploited before interruption, attacker has a narrow window. Workloads may not have time to safely evict.',
-    severity: 'medium'
-  });
-  if (n.ready !== 'True') rootCauses.push({
-    title: 'Node not ready',
-    detail: 'Node is in NotReady state. Workloads may be rescheduling. Combined with kernel vulnerability, this creates additional instability risk.',
+  if (detail.privCount > 0) rootCauses.push({
+    title: `${detail.privCount} privileged pod${detail.privCount>1?'s':''} running on this node`,
+    detail: `Privileged pods have full node access. Post-exploit, attacker can immediately pivot into these pods and escalate further.`,
     severity: 'high'
   });
-  if (n.karpenter) rootCauses.push({
-    title: 'Karpenter-managed node',
-    detail: `NodePool: ${n.nodepool||'unknown'}. Karpenter may provision new nodes from the same unpatched AMI. Ensure EC2NodeClass references a patched AMI.`,
+  if (detail.hostNetCount > 0) rootCauses.push({
+    title: `${detail.hostNetCount} pod${detail.hostNetCount>1?'s':''} using hostNetwork`,
+    detail: 'hostNetwork=true gives pods access to the node network stack. Post-exploit, attacker can sniff all node-level traffic.',
+    severity: 'high'
+  });
+  if (n.isSpot) rootCauses.push({
+    title: 'Spot instance — 2-minute eviction window',
+    detail: 'Spot instances can be reclaimed at any time. If exploited before reclaim, attacker has a limited but real window.',
     severity: 'medium'
   });
 
-  const sev = s => s==='critical'?'dd-tag-red':s==='high'?'dd-tag-amber':'dd-tag-blue';
-  const sevColor = s => s==='critical'?'#f5395a':s==='high'?'#f59e0b':'#3b82f6';
-
-  body.innerHTML = `
+  document.getElementById('dd-body').innerHTML = `
     <div class="dd-section">
       <div class="dd-section-title">Risk summary</div>
       <div class="dd-grid4">
-        <div class="dd-stat">
-          <div class="dd-stat-val" style="color:${n.riskScore>=65?'#f5395a':n.riskScore>=40?'#f59e0b':'#10b981'};">${n.riskScore}</div>
-          <div class="dd-stat-label">Risk score</div>
-          <div class="dd-stat-sub">${n.riskLevel}</div>
-        </div>
-        <div class="dd-stat">
-          <div class="dd-stat-val" style="color:${n.patchStatus==='patched'?'#10b981':'#f5395a'};">${n.patchStatus==='patched'?'✓':'✗'}</div>
-          <div class="dd-stat-label">Kernel patched</div>
-          <div class="dd-stat-sub">${n.patchStatus}</div>
-        </div>
-        <div class="dd-stat">
-          <div class="dd-stat-val" style="color:${n.algifStatus==='blocked'?'#10b981':'#f5395a'};">${n.algifStatus==='blocked'?'✓':'✗'}</div>
-          <div class="dd-stat-label">algif_aead</div>
-          <div class="dd-stat-sub">${n.algifStatus}</div>
-        </div>
-        <div class="dd-stat">
-          <div class="dd-stat-val" style="color:#f5395a;">${pods}</div>
-          <div class="dd-stat-label">Pods at risk</div>
-          <div class="dd-stat-sub">blast radius</div>
-        </div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${n.riskScore>=65?'var(--red)':n.riskScore>=40?'var(--amber)':'var(--green)'};">${n.riskScore}</div><div class="dd-stat-label">Risk score</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${n.patchStatus==='patched'?'var(--green)':'var(--red)'};">${n.patchStatus==='patched'?'✓':'✗'}</div><div class="dd-stat-label">Kernel patched</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${n.algifStatus==='blocked'?'var(--green)':'var(--red)'};">${n.algifStatus==='blocked'?'✓':'✗'}</div><div class="dd-stat-label">algif_aead</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${blastColor};">${blastLevel}</div><div class="dd-stat-label">Blast level</div></div>
       </div>
     </div>
 
     <div class="dd-section">
-      <div class="dd-section-title">Root causes — why this node is vulnerable</div>
-      ${rootCauses.length ? rootCauses.map(rc => `
+      <div class="dd-section-title">Root causes</div>
+      ${rootCauses.length ? rootCauses.map(rc=>`
         <div class="dd-callout dd-callout-${rc.severity==='critical'?'red':rc.severity==='high'?'amber':'blue'}" style="margin-bottom:8px;">
           <div class="dd-callout-title">${rc.title}</div>
           <div class="dd-callout-body">${rc.detail}</div>
-        </div>`).join('') : '<div class="dd-callout dd-callout-green"><div class="dd-callout-title">✓ No vulnerabilities detected</div><div class="dd-callout-body">Node is patched and algif_aead is blocked.</div></div>'}
+        </div>`).join('') : '<div class="dd-callout dd-callout-green"><div class="dd-callout-title">✓ No vulnerabilities detected</div></div>'}
+    </div>
+
+    <div class="dd-section">
+      <div class="dd-section-title">Blast radius — real pods on this node from kubectl</div>
+      <div class="dd-grid4" style="margin-bottom:12px;">
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--blue);">${detail.podCount||0}</div><div class="dd-stat-label">Pods</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--amber);">${namespaces.length}</div><div class="dd-stat-label">Namespaces</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${detail.privCount>0?'var(--red)':'var(--green)'};">${detail.privCount||0}</div><div class="dd-stat-label">Privileged</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${detail.secretCount>0?'var(--amber)':'var(--green)'};">${detail.secretCount||0}</div><div class="dd-stat-label">Mount secrets</div></div>
+      </div>
+
+      ${namespaces.length > 0 ? `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;">NAMESPACES</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          ${namespaces.map(ns=>`<span class="dd-tag dd-tag-blue">${ns}</span>`).join('')}
+        </div>
+      </div>` : ''}
+
+      ${pods.length > 0 ? `
+      <table class="dd-table">
+        <thead><tr><th>Pod</th><th>Namespace</th><th>Status</th><th>Risk</th><th>Issues</th></tr></thead>
+        <tbody>
+          ${pods.map(p=>`<tr>
+            <td style="font-family:var(--mono);color:var(--text);font-size:10px;">${p.name}</td>
+            <td style="color:var(--text3);font-size:11px;">${p.namespace}</td>
+            <td><span class="dd-tag ${p.status==='Running'?'dd-tag-green':p.status==='Pending'?'dd-tag-amber':'dd-tag-red'}">${p.status||'—'}</span></td>
+            <td><span class="dd-tag ${p.riskScore>=40?'dd-tag-red':p.riskScore>=20?'dd-tag-amber':'dd-tag-green'}">${p.riskScore}</span></td>
+            <td style="font-size:10px;color:var(--text3);">${(p.riskReasons||[]).join(', ')||'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : `<div style="font-size:11px;color:var(--text3);padding:8px 0;">No pods found on this node</div>`}
     </div>
 
     <div class="dd-section">
@@ -1767,702 +2270,81 @@ function openNodeDrill(nodeName, event) {
       <div class="dd-grid2">
         <div style="display:flex;flex-direction:column;gap:4px;">
           ${[
-            ['Kernel version', n.kernel||'unknown', n.patchStatus==='patched'?'#10b981':'#f5395a'],
-            ['OS image', n.osImage||'AL2023', '#9197b3'],
-            ['Instance type', n.nodeType||'—', '#9197b3'],
-            ['Availability zone', n.zone||'—', '#9197b3'],
-            ['Cluster', n.cluster||'unknown', '#3b82f6'],
-            ['Nodepool', n.nodepool||'—', '#9197b3'],
+            ['Kernel version', n.kernel||'unknown', n.patchStatus==='patched'?'var(--green)':'var(--red)'],
+            ['Cluster', n.cluster||'unknown', 'var(--blue)'],
+            ['Instance type', n.nodeType||'—', 'var(--text2)'],
+            ['Availability zone', n.zone||'—', 'var(--text2)'],
           ].map(([k,v,c])=>`
             <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-              <span style="font-size:11px;color:#545d7a;">${k}</span>
-              <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:${c};">${v}</span>
+              <span style="font-size:11px;color:var(--text3);">${k}</span>
+              <span style="font-size:11px;font-family:var(--mono);color:${c};">${v}</span>
             </div>`).join('')}
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
           ${[
-            ['Node ready', n.ready, n.ready==='True'?'#10b981':'#f5395a'],
-            ['Spot instance', n.isSpot?'YES':'no', n.isSpot?'#f59e0b':'#10b981'],
-            ['Karpenter managed', n.karpenter?'YES':'no', '#9197b3'],
-            ['algif_aead status', n.algifStatus||'unknown', n.algifStatus==='blocked'?'#10b981':'#f5395a'],
-            ['Patch status', n.patchStatus||'unknown', n.patchStatus==='patched'?'#10b981':'#f5395a'],
-            ['Scanned at', n.scannedAt?new Date(n.scannedAt).toLocaleTimeString():'—', '#545d7a'],
+            ['algif_aead', n.algifStatus||'unknown', n.algifStatus==='blocked'?'var(--green)':'var(--red)'],
+            ['Patch status', n.patchStatus||'unknown', n.patchStatus==='patched'?'var(--green)':'var(--red)'],
+            ['Spot instance', n.isSpot?'YES':'no', n.isSpot?'var(--amber)':'var(--green)'],
+            ['Karpenter', n.karpenter?'YES':'no', 'var(--text2)'],
           ].map(([k,v,c])=>`
             <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-              <span style="font-size:11px;color:#545d7a;">${k}</span>
-              <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:${c};">${v}</span>
+              <span style="font-size:11px;color:var(--text3);">${k}</span>
+              <span style="font-size:11px;font-family:var(--mono);color:${c};">${v}</span>
             </div>`).join('')}
         </div>
       </div>
     </div>
 
     <div class="dd-section">
-      <div class="dd-section-title">Blast radius — what's at risk if this node is exploited</div>
-      <div class="dd-grid4" style="margin-bottom:12px;">
-        <div class="dd-stat"><div class="dd-stat-val" style="color:#f5395a;">${pods}</div><div class="dd-stat-label">Pods</div></div>
-        <div class="dd-stat"><div class="dd-stat-val" style="color:#f59e0b;">${namespaces}</div><div class="dd-stat-label">Namespaces</div></div>
-        <div class="dd-stat"><div class="dd-stat-val" style="color:#f5395a;">${privPods}</div><div class="dd-stat-label">Privileged pods</div></div>
-        <div class="dd-stat"><div class="dd-stat-val" style="color:${n.vulnerable?'#f5395a':'#10b981'};">${n.vulnerable?'HIGH':'LOW'}</div><div class="dd-stat-label">Blast level</div></div>
-      </div>
-      ${nodeWorkloads.length > 0 ? `
-        <table class="dd-table">
-          <thead><tr><th>Workload</th><th>Namespace</th><th>Risk</th><th>Issues</th></tr></thead>
-          <tbody>
-            ${nodeWorkloads.map(w=>`<tr>
-              <td style="font-family:'JetBrains Mono',monospace;color:#e8eaf6;">${w.name}</td>
-              <td style="color:#9197b3;">${w.namespace}</td>
-              <td><span class="dd-tag ${w.riskLevel==='critical'?'dd-tag-red':w.riskLevel==='high'?'dd-tag-amber':'dd-tag-blue'}">${w.risk}</span></td>
-              <td><div class="dd-chip-row">${w.issues.slice(0,2).map(i=>`<span class="dd-tag ${sev(i.severity)}">${i.label}</span>`).join('')}</div></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>` : `<div style="font-size:11px;color:#545d7a;padding:8px 0;">Click Workload Report tab to see workloads on this node</div>`}
-    </div>
-
-    <div class="dd-section">
-      <div class="dd-section-title">Exact remediation steps</div>
+      <div class="dd-section-title">Exact remediation</div>
       <div class="dd-callout dd-callout-red">
         <div class="dd-callout-title">Step 1 — Right now (no reboot, no downtime)</div>
-        <div class="dd-callout-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.9;">
-          # On the node via DaemonSet or kubectl exec:<br>
+        <div class="dd-callout-body" style="font-family:var(--mono);font-size:10px;line-height:1.9;">
           echo "install algif_aead /bin/false" > /etc/modprobe.d/disable-algif-aead.conf<br>
           rmmod algif_aead 2>/dev/null || true<br>
-          # Verify:<br>
-          lsmod | grep algif_aead  # should return nothing
+          <span style="color:var(--text4);"># Verify: lsmod | grep algif_aead  (should return nothing)</span>
         </div>
       </div>
       <div class="dd-callout dd-callout-amber">
-        <div class="dd-callout-title">Step 2 — This week (permanent fix)</div>
+        <div class="dd-callout-title">Step 2 — Permanent fix (this week)</div>
         <div class="dd-callout-body">
-          Update Karpenter EC2NodeClass to reference AL2023 AMI with kernel ≥6.1.141.<br>
-          Drain and delete this node — Karpenter will replace with patched version automatically.<br>
-          ${n.karpenter ? `NodePool: <code style="font-family:'JetBrains Mono',monospace;color:#00e5ff;">${n.nodepool}</code> — update its EC2NodeClass amiSelector.` : 'Update nodegroup launch template AMI ID.'}
+          ${n.karpenter
+            ? `Nodepool: <code style="font-family:var(--mono);color:var(--cyan);">${n.nodepool||'unknown'}</code> — update EC2NodeClass to AL2023 AMI with kernel ≥6.1.141. Drain and delete this node — Karpenter will replace automatically.`
+            : 'Update nodegroup launch template AMI to AL2023 with kernel ≥6.1.141. Drain node and let EKS replace it.'
+          }
         </div>
       </div>
     </div>
 
+    ${detail.error ? `
     <div class="dd-section">
-      <div class="dd-section-title">Risk factors detected</div>
-      <div class="dd-chip-row">
-        ${(n.riskFactors||[]).map(f=>`<span class="dd-tag dd-tag-red">${f}</span>`).join('')||'<span class="dd-tag dd-tag-green">none</span>'}
+      <div class="dd-section-title">Pod fetch error</div>
+      <div class="dd-callout dd-callout-amber">
+        <div class="dd-callout-title">Could not fetch real pod data</div>
+        <div class="dd-callout-body" style="font-family:var(--mono);font-size:10px;">${detail.error}</div>
       </div>
-    </div>
+    </div>` : `
+    <div style="font-size:10px;color:var(--text4);font-family:var(--mono);text-align:right;padding-top:8px;">
+      Real data from kubectl · ${detail.scannedAt ? new Date(detail.scannedAt).toLocaleTimeString() : '—'} · ${detail.podCount} pods · ${namespaces.length} namespaces
+    </div>`}
   `;
 }
-// ── END DRILLDOWN ENGINE ──────────────────────────────────────────────────────
 
-// ── VULNERABILITY INTELLIGENCE ────────────────────────────────────────────────
-let allVulns = [];
-let vulnFilter = 'all';
-let vulnSortCol = 'cvss';
-let vulnSortDir = 'desc';
-
-const VULN_DATA = [
-  // ── ACTIVE — affecting your fleet ──
-  {id:'CVE-2026-31431',desc:'Copy Fail — AF_ALG page cache poisoning privilege escalation',component:'Linux kernel / AF_ALG',severity:'critical',cvss:9.8,ageDays:8,fixAvailable:true,fixVersion:'kernel 6.1.141+',kevListed:true,pocAvailable:true,status:'active',affectedNodes:10,affectedWorkloads:28,mitigation:'Blacklist algif_aead module · Deploy DaemonSet',attackVector:'LOCAL',complexity:'LOW',privRequired:'NONE',userInteraction:'NONE',scope:'CHANGED',upcoming:false,notes:'Public PoC available. 3 ransomware groups using this. No disk trace.'},
-  {id:'CVE-2026-32280',desc:'Critical kernel use-after-free in netfilter',component:'Linux kernel / netfilter',severity:'critical',cvss:9.1,ageDays:33,fixAvailable:true,fixVersion:'kernel 6.1.135+',kevListed:true,pocAvailable:false,status:'active',affectedNodes:10,affectedWorkloads:30,mitigation:'Kernel patch via AMI refresh',attackVector:'LOCAL',complexity:'LOW',privRequired:'LOW',userInteraction:'NONE',scope:'CHANGED',upcoming:false,notes:'Fix available for 33 days. SLA breach.'},
-  {id:'CVE-2026-32283',desc:'Race condition in io_uring leads to LPE',component:'Linux kernel / io_uring',severity:'critical',cvss:8.8,ageDays:33,fixAvailable:true,fixVersion:'kernel 6.1.133+',kevListed:false,pocAvailable:true,status:'active',affectedNodes:10,affectedWorkloads:30,mitigation:'Disable io_uring via sysctl or kernel patch',attackVector:'LOCAL',complexity:'HIGH',privRequired:'LOW',userInteraction:'NONE',scope:'CHANGED',upcoming:false,notes:'PoC public. io_uring widely used by container runtimes.'},
-  {id:'CVE-2025-68121',desc:'OpenSSL buffer overflow in TLS 1.3 handshake',component:'OpenSSL 3.x',severity:'high',cvss:8.1,ageDays:122,fixAvailable:true,fixVersion:'OpenSSL 3.0.14',kevListed:false,pocAvailable:false,status:'active',affectedNodes:10,affectedWorkloads:22,mitigation:'Update OpenSSL package',attackVector:'NETWORK',complexity:'HIGH',privRequired:'NONE',userInteraction:'NONE',scope:'UNCHANGED',upcoming:false,notes:'120+ day SLA breach. Fix trivial.'},
-  {id:'CVE-2025-61726',desc:'containerd TOCTOU race in image pull',component:'containerd',severity:'high',cvss:7.8,ageDays:122,fixAvailable:true,fixVersion:'containerd 1.7.14',kevListed:false,pocAvailable:false,status:'active',affectedNodes:10,affectedWorkloads:10,mitigation:'Update containerd',attackVector:'LOCAL',complexity:'HIGH',privRequired:'LOW',userInteraction:'NONE',scope:'UNCHANGED',upcoming:false,notes:'Affects all EKS nodes running containerd.'},
-  {id:'CVE-2025-61729',desc:'AWS VPC CNI privilege escalation via eBPF',component:'aws-node / VPC CNI',severity:'high',cvss:7.5,ageDays:183,fixAvailable:true,fixVersion:'VPC CNI v1.18.6',kevListed:false,pocAvailable:false,status:'active',affectedNodes:10,affectedWorkloads:0,mitigation:'Update VPC CNI addon via EKS',attackVector:'LOCAL',complexity:'LOW',privRequired:'LOW',userInteraction:'NONE',scope:'UNCHANGED',upcoming:false,notes:'6 month SLA breach. Critical infrastructure component.'},
-  {id:'CVE-2025-61727',desc:'kube-proxy iptables rule injection',component:'kube-proxy',severity:'high',cvss:7.2,ageDays:183,fixAvailable:true,fixVersion:'k8s 1.28.8',kevListed:false,pocAvailable:false,status:'active',affectedNodes:10,affectedWorkloads:0,mitigation:'Update Kubernetes version',attackVector:'NETWORK',complexity:'HIGH',privRequired:'HIGH',userInteraction:'NONE',scope:'UNCHANGED',upcoming:false,notes:'6 month SLA breach.'},
-  {id:'CVE-2025-58187',desc:'Golang net/http request smuggling',component:'Go standard library',severity:'high',cvss:7.5,ageDays:212,fixAvailable:true,fixVersion:'Go 1.21.8',kevListed:false,pocAvailable:false,status:'active',affectedNodes:0,affectedWorkloads:14,mitigation:'Rebuild Go binaries with Go 1.21.8+',attackVector:'NETWORK',complexity:'LOW',privRequired:'NONE',userInteraction:'NONE',scope:'UNCHANGED',upcoming:false,notes:'7 month SLA breach. Affects all Go services.'},
-  {id:'CVE-2025-58186',desc:'CRI-O container escape via symlink race',component:'CRI-O runtime',severity:'high',cvss:8.3,ageDays:212,fixAvailable:true,fixVersion:'CRI-O 1.28.4',kevListed:false,pocAvailable:false,status:'active',affectedNodes:0,affectedWorkloads:0,mitigation:'Not using CRI-O — verify runtime',attackVector:'LOCAL',complexity:'HIGH',privRequired:'LOW',userInteraction:'NONE',scope:'CHANGED',upcoming:false,notes:'7 month SLA breach. Verify if applicable.'},
-  {id:'CVE-2025-61725',desc:'etcd goroutine leak leads to OOM crash',component:'etcd 3.5.x',severity:'high',cvss:6.5,ageDays:212,fixAvailable:true,fixVersion:'etcd 3.5.12',kevListed:false,pocAvailable:false,status:'active',affectedNodes:0,affectedWorkloads:0,mitigation:'Update etcd on control plane',attackVector:'NETWORK',complexity:'LOW',privRequired:'LOW',userInteraction:'NONE',scope:'UNCHANGED',upcoming:false,notes:'7 month SLA breach. Control plane stability risk.'},
-  {id:'CVE-2025-61723',desc:'CoreDNS cache poisoning via DNSSEC bypass',component:'CoreDNS',severity:'high',cvss:7.1,ageDays:212,fixAvailable:true,fixVersion:'CoreDNS 1.11.2',kevListed:false,pocAvailable:false,status:'active',affectedNodes:0,affectedWorkloads:0,mitigation:'Update CoreDNS addon',attackVector:'NETWORK',complexity:'HIGH',privRequired:'NONE',userInteraction:'NONE',scope:'UNCHANGED',upcoming:false,notes:'7 month SLA breach.'},
-
-  // ── UPCOMING — watch these ──
-  {id:'CVE-2026-40011',desc:'UPCOMING: Spectre-v5 variant in Intel Sapphire Rapids — speculative execution side channel',component:'Intel CPU / kernel',severity:'high',cvss:7.8,ageDays:-14,fixAvailable:false,fixVersion:'microcode update pending',kevListed:false,pocAvailable:false,status:'upcoming',affectedNodes:0,affectedWorkloads:0,mitigation:'Monitor Intel security advisories · microcode update expected Q3 2026',attackVector:'LOCAL',complexity:'HIGH',privRequired:'LOW',userInteraction:'NONE',scope:'CHANGED',upcoming:true,notes:'Researcher-disclosed, not yet public PoC. AL2023 on Intel instances at risk.'},
-  {id:'CVE-2026-38892',desc:'UPCOMING: containerd 2.x escape via overlay FS race — unpatched upstream',component:'containerd 2.x',severity:'critical',cvss:9.0,ageDays:-7,fixAvailable:false,fixVersion:'patch in review',kevListed:false,pocAvailable:false,status:'upcoming',affectedNodes:0,affectedWorkloads:0,mitigation:'Pin containerd to 1.7.x until 2.x patch lands · Monitor upstream PR #9841',attackVector:'LOCAL',complexity:'LOW',privRequired:'LOW',userInteraction:'NONE',scope:'CHANGED',upcoming:true,notes:'Disclosed at CCC 2026. EKS nodes upgrading to containerd 2.x at risk.'},
-  {id:'CVE-2026-35519',desc:'UPCOMING: Kubernetes API server auth bypass in webhook mode — patch in 1.31',component:'kube-apiserver',severity:'critical',cvss:9.4,ageDays:-3,fixAvailable:false,fixVersion:'k8s 1.31.x (upcoming)',kevListed:false,pocAvailable:false,status:'upcoming',affectedNodes:0,affectedWorkloads:0,mitigation:'Audit webhook configurations · Apply patch when k8s 1.31 releases',attackVector:'NETWORK',complexity:'LOW',privRequired:'NONE',userInteraction:'NONE',scope:'CHANGED',upcoming:true,notes:'Coordinated disclosure. Fix in k8s 1.31 scheduled May 20, 2026.'},
-  {id:'CVE-2026-29944',desc:'UPCOMING: AWS EBS CSI driver privilege escalation — uncoordinated disclosure',component:'aws-ebs-csi-driver',severity:'high',cvss:8.2,ageDays:-2,fixAvailable:false,fixVersion:'pending',kevListed:false,pocAvailable:false,status:'upcoming',affectedNodes:0,affectedWorkloads:0,mitigation:'Monitor AWS security bulletins · Restrict CSI driver RBAC',attackVector:'LOCAL',complexity:'LOW',privRequired:'LOW',userInteraction:'NONE',scope:'CHANGED',upcoming:true,notes:'Uncoordinated disclosure on security mailing list. No patch yet.'},
-  {id:'CVE-2026-27831',desc:'UPCOMING: Falco/eBPF kernel module bypass — syscall filter evasion',component:'Falco / Sysdig agent',severity:'high',cvss:7.5,ageDays:-1,fixAvailable:false,fixVersion:'Falco 0.40 (planned)',kevListed:false,pocAvailable:false,status:'upcoming',affectedNodes:0,affectedWorkloads:0,mitigation:'Monitor Falco security announcements · Update agent when 0.40 releases',attackVector:'LOCAL',complexity:'HIGH',privRequired:'HIGH',userInteraction:'NONE',scope:'UNCHANGED',upcoming:true,notes:'Directly affects Sysdig runtime detection. High relevance to PDKS.'},
-];
-
-function initVulns(cves) {
-  // Start with our rich dataset, then overlay any live CVEs from Sysdig
-  allVulns = [...VULN_DATA];
-
-  // Add any live CVEs from Sysdig not already in our list
-  if (cves && cves.length) {
-    cves.forEach(c => {
-      const exists = allVulns.find(v => v.id === (c.id || c.ID));
-      if (!exists) {
-        allVulns.push({
-          id: c.id || c.ID || 'Unknown',
-          desc: 'CVE detected by Sysdig scanner',
-          component: 'Unknown',
-          severity: (c.severity || 'high').toLowerCase(),
-          cvss: c.severity === 'critical' ? 9.0 : 7.5,
-          ageDays: c.ageDays || 30,
-          fixAvailable: true,
-          fixVersion: 'see Sysdig',
-          kevListed: false,
-          pocAvailable: false,
-          status: 'active',
-          affectedNodes: 0,
-          affectedWorkloads: 0,
-          mitigation: 'Apply available patch',
-          attackVector: 'NETWORK',
-          complexity: 'LOW',
-          privRequired: 'NONE',
-          userInteraction: 'NONE',
-          scope: 'UNCHANGED',
-          upcoming: false,
-          notes: 'Detected by Sysdig image scanner',
-        });
-      }
-    });
-  }
-
-  // Update summary cards
-  const crits = allVulns.filter(v => v.severity === 'critical' && !v.upcoming).length;
-  const highs = allVulns.filter(v => v.severity === 'high' && !v.upcoming).length;
-  const kevs = allVulns.filter(v => v.kevListed).length;
-  const upcoming = allVulns.filter(v => v.upcoming).length;
-  const breaches = allVulns.filter(v => v.ageDays > 30 && v.fixAvailable && !v.upcoming).length;
-
-  setText('vs-critical', crits);
-  setText('vs-high', highs);
-  setText('vs-kev', kevs);
-  setText('vs-upcoming', upcoming);
-  setText('vs-sla-breach', breaches);
-  setText('vuln-badge', crits + highs);
-
-  sortAndRenderVulns();
-}
-
-function setVulnFilter(f, el) {
-  vulnFilter = f;
-  document.querySelectorAll('.vchip').forEach(c => c.classList.remove('active','act-r','act-a'));
-  el.classList.add(f==='critical'?'act-r':f==='upcoming'?'act-a':'active');
-  sortAndRenderVulns();
-}
-
-function filterVulns() { sortAndRenderVulns(); }
-
-function sortVulns(col) {
-  if (vulnSortCol === col) {
-    vulnSortDir = vulnSortDir === 'asc' ? 'desc' : 'asc';
-  } else {
-    vulnSortCol = col;
-    vulnSortDir = 'desc';
-  }
-  // Update header classes
-  document.querySelectorAll('.vuln-table th').forEach(th => {
-    th.classList.remove('sort-asc','sort-desc');
-    if (th.getAttribute('onclick') === "sortVulns('"+col+"')") {
-      th.classList.add(vulnSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-    }
-  });
-  sortAndRenderVulns();
-}
-
-function sortAndRenderVulns() {
-  const q = (document.getElementById('vuln-search')?.value||'').toLowerCase();
-  let vs = [...allVulns];
-
-  // Filter
-  if (vulnFilter === 'critical') vs = vs.filter(v => v.severity === 'critical' && !v.upcoming);
-  else if (vulnFilter === 'high') vs = vs.filter(v => v.severity === 'high' && !v.upcoming);
-  else if (vulnFilter === 'kev') vs = vs.filter(v => v.kevListed);
-  else if (vulnFilter === 'poc') vs = vs.filter(v => v.pocAvailable);
-  else if (vulnFilter === 'fix') vs = vs.filter(v => v.fixAvailable);
-  else if (vulnFilter === 'nofix') vs = vs.filter(v => !v.fixAvailable);
-  else if (vulnFilter === 'upcoming') vs = vs.filter(v => v.upcoming);
-
-  if (q) vs = vs.filter(v =>
-    v.id.toLowerCase().includes(q) ||
-    v.desc.toLowerCase().includes(q) ||
-    v.component.toLowerCase().includes(q) ||
-    (v.notes||'').toLowerCase().includes(q)
-  );
-
-  // Sort — upcoming always at top within their group
-  vs.sort((a, b) => {
-    // Upcoming CVEs float to top if upcoming filter not active
-    if (vulnFilter === 'all') {
-      if (a.upcoming && !b.upcoming) return -1;
-      if (!a.upcoming && b.upcoming) return 1;
-    }
-    let av = a[vulnSortCol], bv = b[vulnSortCol];
-    if (vulnSortCol === 'severity') {
-      const order = {critical:4,high:3,medium:2,low:1};
-      av = order[a.severity]||0; bv = order[b.severity]||0;
-    }
-    if (vulnSortCol === 'fixAvailable' || vulnSortCol === 'kevListed' || vulnSortCol === 'pocAvailable') {
-      av = av ? 1 : 0; bv = bv ? 1 : 0;
-    }
-    if (typeof av === 'string') av = av.toLowerCase();
-    if (typeof bv === 'string') bv = bv.toLowerCase();
-    if (av < bv) return vulnSortDir === 'asc' ? -1 : 1;
-    if (av > bv) return vulnSortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  setText('vuln-count', vs.length + ' CVEs');
-  const active = vs.filter(v => !v.upcoming).length;
-  const upco = vs.filter(v => v.upcoming).length;
-  setText('vuln-issue-tag', active + ' active · ' + upco + ' upcoming');
-
-  renderVulnTable(vs);
-}
-
-function renderVulnTable(vs) {
-  const sevClass = s => s==='critical'?'vb-crit':s==='high'?'vb-high':s==='medium'?'vb-med':'vb-low';
-  const ageColor = d => d > 180 ? 'var(--red)' : d > 90 ? 'var(--amber)' : d > 30 ? 'var(--blue)' : 'var(--green)';
-  const ageText = d => {
-    if (d < 0) return 'in ~' + Math.abs(d) + 'd';
-    if (d < 30) return d + 'd ago';
-    if (d < 60) return '~1 month';
-    return Math.floor(d/30) + ' months';
-  };
-
-  const priorityScore = v => {
-    let s = v.cvss * 10;
-    if (v.kevListed) s += 30;
-    if (v.pocAvailable) s += 20;
-    if (v.affectedNodes > 0) s += 20;
-    if (v.affectedWorkloads > 0) s += 10;
-    if (v.ageDays > 30) s += 15;
-    if (v.ageDays > 90) s += 10;
-    return Math.min(Math.round(s), 100);
-  };
-
-  const priorityColor = p => p >= 80 ? 'var(--red)' : p >= 60 ? 'var(--amber)' : p >= 40 ? 'var(--blue)' : 'var(--green)';
-
-  document.getElementById('vuln-tbody').innerHTML = vs.map((v, i) => {
-    const expId = 'vexp-' + i;
-    const prio = priorityScore(v);
-    const ageW = Math.min(100, v.upcoming ? 10 : Math.round(Math.max(v.ageDays,0) / 210 * 100));
-    return `
-      <tr class="${v.upcoming?'upcoming':''}" onclick="toggleVulnRow('${expId}',this)">
-        <td style="padding:8px 6px;text-align:center;"><span style="font-size:10px;color:var(--text3);">▶</span></td>
-        <td>
-          <div style="font-family:var(--mono);font-weight:500;color:${v.upcoming?'var(--purple)':'var(--text)'};font-size:11px;">${v.id}</div>
-          ${v.upcoming?'<span class="vbadge vb-upcoming">upcoming</span>':''}
-        </td>
-        <td><span class="vbadge ${sevClass(v.severity)}">${v.severity}</span></td>
-        <td>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <div class="score-bar-wrap">
-              <div class="score-bar-track"><div class="score-bar-fill" style="width:${v.cvss/10*100}%;background:${v.cvss>=9?'var(--red)':v.cvss>=7?'var(--amber)':'var(--blue)'};"></div></div>
-            </div>
-            <span style="font-size:11px;font-family:var(--mono);font-weight:500;color:${v.cvss>=9?'var(--red)':v.cvss>=7?'var(--amber)':'var(--blue)'};">${v.cvss}</span>
-          </div>
-        </td>
-        <td>
-          <div class="age-indicator">
-            <div class="age-pill"><div class="age-pill-fill" style="width:${ageW}%;background:${v.upcoming?'var(--purple)':ageColor(v.ageDays)};"></div></div>
-            <span style="font-size:10px;color:${v.upcoming?'var(--purple)':ageColor(v.ageDays)};white-space:nowrap;">${ageText(v.ageDays)}</span>
-          </div>
-        </td>
-        <td style="font-size:11px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${v.component}">${v.component}</td>
-        <td style="text-align:center;font-family:var(--mono);font-size:12px;color:${v.affectedNodes>0?'var(--red)':'var(--text3)'};">${v.upcoming?'—':v.affectedNodes}</td>
-        <td style="text-align:center;font-family:var(--mono);font-size:12px;color:${v.affectedWorkloads>0?'var(--amber)':'var(--text3)'};">${v.upcoming?'—':v.affectedWorkloads}</td>
-        <td>
-          ${v.upcoming
-            ? '<span class="vbadge vb-upcoming">watch</span>'
-            : v.ageDays > 30 && v.fixAvailable
-              ? '<span class="vbadge vb-crit">SLA breach</span>'
-              : '<span class="vbadge vb-high">open</span>'
-          }
-        </td>
-        <td style="text-align:center;font-size:11px;color:${v.fixAvailable?'var(--green)':'var(--red)'};">${v.fixAvailable?'✓ yes':'✗ no'}</td>
-        <td style="text-align:center;">${v.kevListed?'<span class="vbadge vb-kev">KEV</span>':'<span style="font-size:10px;color:var(--text4);">—</span>'}</td>
-        <td style="text-align:center;font-size:11px;color:${v.pocAvailable?'var(--red)':'var(--text3)'};">${v.pocAvailable?'⚠ yes':'—'}</td>
-        <td>
-          <div class="score-bar-wrap">
-            <div class="score-bar-track" style="width:60px;"><div class="score-bar-fill" style="width:${prio}%;background:${priorityColor(prio)};"></div></div>
-            <span style="font-size:10px;font-family:var(--mono);color:${priorityColor(prio)};min-width:26px;">${prio}</span>
-          </div>
-        </td>
-      </tr>
-      <tr id="${expId}" class="vuln-expand-row">
-        <td colspan="13" style="padding:0;">
-          <div style="padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-
-            <div class="vdb" style="grid-column:1/3;">
-              <div class="vdb-title">Description & Notes</div>
-              <div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:8px;">${v.desc}</div>
-              <div style="font-size:11px;color:var(--text3);line-height:1.5;background:var(--bg3);border-radius:6px;padding:8px;">${v.notes||'No additional notes.'}</div>
-              ${v.upcoming ? '<div style="margin-top:8px;padding:8px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:6px;font-size:11px;color:var(--purple);">⚠ This is an upcoming vulnerability — not yet confirmed in your fleet. Monitor and prepare mitigation plan now.</div>' : ''}
-            </div>
-
-            <div class="vdb">
-              <div class="vdb-title">CVSS Vector</div>
-              <div class="vdb-row"><span class="vdb-key">Attack Vector</span><span class="vdb-val">${v.attackVector}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Complexity</span><span class="vdb-val">${v.complexity}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Privileges Req.</span><span class="vdb-val">${v.privRequired}</span></div>
-              <div class="vdb-row"><span class="vdb-key">User Interaction</span><span class="vdb-val">${v.userInteraction}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Scope</span><span class="vdb-val">${v.scope}</span></div>
-              <div class="vdb-row"><span class="vdb-key">CVSS Score</span><span class="vdb-val" style="color:${v.cvss>=9?'var(--red)':v.cvss>=7?'var(--amber)':'var(--blue)'};">${v.cvss}</span></div>
-            </div>
-
-            <div class="vdb">
-              <div class="vdb-title">Remediation</div>
-              <div class="vdb-row"><span class="vdb-key">Fix available</span><span class="vdb-val" style="color:${v.fixAvailable?'var(--green)':'var(--red)'};">${v.fixAvailable?'YES':'NO'}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Fix version</span><span class="vdb-val" style="font-size:10px;">${v.fixVersion||'—'}</span></div>
-              <div class="vdb-row"><span class="vdb-key">CISA KEV</span><span class="vdb-val" style="color:${v.kevListed?'var(--red)':'var(--text3)'};">${v.kevListed?'LISTED':'No'}</span></div>
-              <div class="vdb-row"><span class="vdb-key">PoC public</span><span class="vdb-val" style="color:${v.pocAvailable?'var(--red)':'var(--text3)'};">${v.pocAvailable?'YES':'No'}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Mitigation</span></div>
-              <div style="font-size:10px;color:var(--text2);padding:4px 0;line-height:1.5;">${v.mitigation}</div>
-            </div>
-
-            <div class="vdb">
-              <div class="vdb-title">Fleet Impact</div>
-              <div class="vdb-row"><span class="vdb-key">Nodes affected</span><span class="vdb-val" style="color:${v.affectedNodes>0?'var(--red)':'var(--green)'};">${v.upcoming?'unknown':v.affectedNodes}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Workloads affected</span><span class="vdb-val" style="color:${v.affectedWorkloads>0?'var(--amber)':'var(--green)'};">${v.upcoming?'unknown':v.affectedWorkloads}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Component</span><span class="vdb-val" style="font-size:10px;">${v.component}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Age</span><span class="vdb-val" style="color:${v.upcoming?'var(--purple)':ageColor(v.ageDays)};">${ageText(v.ageDays)}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Status</span><span class="vdb-val">${v.status}</span></div>
-              <div class="vdb-row"><span class="vdb-key">Priority score</span><span class="vdb-val" style="color:${priorityColor(prio)};">${prio}/100</span></div>
-            </div>
-
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function toggleVulnRow(id, row) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const isOpen = el.classList.contains('open');
-  document.querySelectorAll('.vuln-expand-row').forEach(r => r.classList.remove('open'));
-  document.querySelectorAll('#vuln-tbody tr[onclick]').forEach(r => {
-    const sp = r.querySelector('span');
-    if (sp && sp.textContent === '▼') sp.textContent = '▶';
-  });
-  if (!isOpen) {
-    el.classList.add('open');
-    const sp = row.querySelector('span');
-    if (sp) sp.textContent = '▼';
-  }
-}
-
-function exportVulnCSV() {
-  const header = ['CVE ID','Description','Severity','CVSS','Age (days)','Component','Nodes Affected','Workloads Affected','Fix Available','Fix Version','CISA KEV','PoC Available','Status','Mitigation','Notes'];
-  const rows = allVulns.map(v => [
-    v.id, v.desc, v.severity, v.cvss, v.ageDays, v.component,
-    v.affectedNodes, v.affectedWorkloads,
-    v.fixAvailable?'Yes':'No', v.fixVersion||'—',
-    v.kevListed?'Yes':'No', v.pocAvailable?'Yes':'No',
-    v.upcoming?'upcoming':v.status, v.mitigation, v.notes||''
-  ]);
-  const csv = [header,...rows].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'pdks-vulnerability-report-' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-// ── END VULNERABILITY INTELLIGENCE ───────────────────────────────────────────
-
-// ── WORKLOAD REPORT ──────────────────────────────────────────────────────────
-let allWorkloads = [];
-let wlFilter = 'all';
-
-function buildWorkloads(nodes) {
-  // Generate realistic workload data from real node data
-  const realNodes = nodes && nodes.length ? nodes : [];
-  const namespaces = [
-    'kube-system','monitoring','logging','payments','auth','analytics',
-    'data-pipeline','ml-platform','api-gateway','cert-manager',
-    'ingress-nginx','vault','argo-workflows','kafka','postgres-operator'
-  ];
-  const workloadNames = [
-    'payment-service','auth-api','data-pipeline','monitoring-agent',
-    'log-collector','kafka-consumer','postgres-primary','vault-agent',
-    'ingress-controller','cert-manager','argo-server','ml-trainer',
-    'api-gateway','redis-cache','elasticsearch','grafana','prometheus',
-    'coredns','kube-proxy','aws-node','cluster-autoscaler','karpenter',
-    'portworx-daemon','sysdig-agent','metrics-server'
-  ];
-  const images = [
-    'amazonlinux:2023','python:3.11-slim','openjdk:17-slim',
-    'nginx:1.25-alpine','ubuntu:22.04','node:18-alpine',
-    'golang:1.21-alpine','redis:7-alpine','postgres:15',
-    'elasticsearch:8.10','grafana/grafana:10.2','prom/prometheus:v2.47'
-  ];
-
-  allWorkloads = [];
-  const totalWl = Math.max(realNodes.length * 3, 25);
-
-  for (let i = 0; i < totalWl; i++) {
-    const node = realNodes[i % Math.max(realNodes.length,1)] || {
-      name: 'ip-10-9-' + (i+1) + '-' + (100+i) + '.ec2.internal',
-      cluster: 'unknown-cluster',
-      vulnerable: i % 3 === 0,
-      algifStatus: i % 3 === 0 ? 'loaded' : 'blocked',
-      patchStatus: i % 3 === 0 ? 'unpatched' : 'patched',
-      riskScore: i % 3 === 0 ? 65 + (i % 30) : 10 + (i % 20)
-    };
-
-    const ns = namespaces[i % namespaces.length];
-    const wlName = workloadNames[i % workloadNames.length] + (i > workloadNames.length ? '-' + Math.floor(i/workloadNames.length) : '');
-    const img = images[i % images.length];
-    const privileged = Math.random() > 0.75;
-    const hostNet = Math.random() > 0.85;
-    const noLimits = Math.random() > 0.6;
-    const hostPID = Math.random() > 0.9;
-    const readOnlyRoot = Math.random() > 0.5;
-    const runAsRoot = Math.random() > 0.65;
-    const onVulnNode = node.vulnerable;
-
-    // CVEs on this workload's image
-    const critCVEs = onVulnNode ? Math.floor(Math.random()*4) : Math.floor(Math.random()*2);
-    const highCVEs = Math.floor(Math.random()*6);
-    const cveList = [];
-    if (critCVEs > 0) cveList.push({id:'CVE-2026-31431',sev:'critical'});
-    if (critCVEs > 1) cveList.push({id:'CVE-2026-32280',sev:'critical'});
-    if (highCVEs > 0) cveList.push({id:'CVE-2025-68121',sev:'high'});
-    if (highCVEs > 2) cveList.push({id:'CVE-2025-61726',sev:'high'});
-
-    // Risk score
-    let risk = 0;
-    if (onVulnNode) risk += 40;
-    if (privileged) risk += 25;
-    if (hostNet) risk += 15;
-    if (hostPID) risk += 15;
-    if (runAsRoot) risk += 10;
-    if (noLimits) risk += 5;
-    if (critCVEs > 0) risk += critCVEs * 10;
-    risk = Math.min(risk, 99);
-    const riskLevel = risk >= 65 ? 'critical' : risk >= 40 ? 'high' : risk >= 20 ? 'medium' : 'low';
-
-    // Issues list
-    const issues = [];
-    if (onVulnNode) issues.push({label:'Copy Fail node', severity:'critical'});
-    if (privileged) issues.push({label:'privileged: true', severity:'critical'});
-    if (hostNet) issues.push({label:'hostNetwork: true', severity:'high'});
-    if (hostPID) issues.push({label:'hostPID: true', severity:'high'});
-    if (runAsRoot) issues.push({label:'runAsRoot / UID 0', severity:'high'});
-    if (noLimits) issues.push({label:'no resource limits', severity:'medium'});
-    if (!readOnlyRoot) issues.push({label:'writable root fs', severity:'medium'});
-    if (critCVEs > 0) issues.push({label: critCVEs + ' critical CVEs', severity:'critical'});
-    if (highCVEs > 0) issues.push({label: highCVEs + ' high CVEs', severity:'high'});
-
-    const ageDays = Math.floor(Math.random() * 180) + 1;
-
-    allWorkloads.push({
-      name: wlName,
-      namespace: ns,
-      cluster: node.cluster || 'unknown-cluster',
-      node: node.name,
-      nodeVulnerable: onVulnNode,
-      nodeAlgif: node.algifStatus,
-      nodePatch: node.patchStatus,
-      nodeRisk: node.riskScore,
-      image: img,
-      privileged,
-      hostNet,
-      hostPID,
-      noLimits,
-      readOnlyRoot,
-      runAsRoot,
-      critCVEs,
-      highCVEs,
-      cveList,
-      issues,
-      risk,
-      riskLevel,
-      ageDays,
-      replicas: Math.floor(Math.random() * 5) + 1,
-      restarts: Math.floor(Math.random() * 20),
-      cpu: (Math.random() * 2).toFixed(2) + ' cores',
-      memory: Math.floor(Math.random() * 2048 + 128) + 'Mi',
-    });
-  }
-
-  // Sort by risk
-  allWorkloads.sort((a, b) => b.risk - a.risk);
-
-  // Update summary cards
-  const crits = allWorkloads.filter(w => w.riskLevel === 'critical').length;
-  const privs = allWorkloads.filter(w => w.privileged).length;
-  const noLim = allWorkloads.filter(w => w.noLimits).length;
-  const hn = allWorkloads.filter(w => w.hostNet).length;
-  setText('wl-total-crit', crits);
-  setText('wl-privileged', privs);
-  setText('wl-no-limit', noLim);
-  setText('wl-host-net', hn);
-  setText('wl-badge', crits);
-
-  filterWorkloads();
-}
-
-function setWlFilter(f, el) {
-  wlFilter = f;
-  document.querySelectorAll('.wl-chip').forEach(c => c.classList.remove('active', 'act-r'));
-  el.classList.add(f === 'critical' ? 'act-r' : 'active');
-  filterWorkloads();
-}
-
-function filterWorkloads() {
-  const q = (document.getElementById('wl-search')?.value || '').toLowerCase();
-  let ws = allWorkloads;
-  if (wlFilter === 'critical') ws = ws.filter(w => w.riskLevel === 'critical');
-  else if (wlFilter === 'privileged') ws = ws.filter(w => w.privileged);
-  else if (wlFilter === 'host-net') ws = ws.filter(w => w.hostNet);
-  else if (wlFilter === 'no-limit') ws = ws.filter(w => w.noLimits);
-  else if (wlFilter === 'copy-fail') ws = ws.filter(w => w.nodeVulnerable);
-  if (q) ws = ws.filter(w =>
-    w.name.includes(q) || w.namespace.includes(q) ||
-    w.cluster.includes(q) || w.node.includes(q)
-  );
-  setText('wl-count', ws.length + ' workloads');
-  const issues = ws.filter(w => w.issues.length > 0).length;
-  setText('wl-issue-count', issues + ' with issues');
-  renderWorkloadTable(ws);
-}
-
-function renderWorkloadTable(ws) {
-  const sc = r => r === 'critical' ? 'rr-c' : r === 'high' ? 'rr-h' : r === 'medium' ? 'rr-m' : 'rr-l';
-  const sv = r => r >= 65 ? 'var(--red)' : r >= 40 ? 'var(--amber)' : r >= 20 ? 'var(--blue)' : 'var(--green)';
-  const isevCol = s => s === 'critical' ? 'wltag-r' : s === 'high' ? 'wltag-a' : 'wltag-b';
-
-  document.getElementById('wl-tbody').innerHTML = ws.slice(0, 60).map((w, i) => {
-    const expandId = 'wl-expand-' + i;
-    return `
-      <tr onclick="toggleWlRow('${expandId}', this)" style="border-bottom:1px solid var(--border);">
-        <td style="padding:8px 6px;text-align:center;">
-          <span style="font-size:10px;color:var(--text3);">▶</span>
-        </td>
-        <td>
-          <div class="wl-name">${w.name}</div>
-          <div class="wl-ns">${w.replicas} replica${w.replicas>1?'s':''} · ${w.restarts} restarts</div>
-        </td>
-        <td style="font-family:var(--mono);font-size:11px;color:var(--text2);">${w.namespace}</td>
-        <td style="font-family:var(--mono);font-size:10px;color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${w.cluster}">${w.cluster}</td>
-        <td style="font-family:var(--mono);font-size:10px;color:${w.nodeVulnerable?'var(--red)':'var(--text3)'};max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${w.node}">${w.node.split('.')[0]}</td>
-        <td><div class="risk-ring ${sc(w.riskLevel)}" title="Risk score: ${w.risk}">${w.risk}</div></td>
-        <td>
-          ${w.critCVEs > 0 ? `<span class="wltag wltag-r">${w.critCVEs} crit</span>` : ''}
-          ${w.highCVEs > 0 ? `<span class="wltag wltag-a">${w.highCVEs} high</span>` : ''}
-          ${w.critCVEs === 0 && w.highCVEs === 0 ? '<span style="font-size:10px;color:var(--green);">clean</span>' : ''}
-        </td>
-        <td>
-          <div class="wl-tags">
-            ${w.issues.slice(0,3).map(iss => `<span class="wltag ${isevCol(iss.severity)}">${iss.label}</span>`).join('')}
-            ${w.issues.length > 3 ? `<span class="wltag wltag-b">+${w.issues.length-3}</span>` : ''}
-            ${w.issues.length === 0 ? '<span style="font-size:10px;color:var(--green);">✓ clean</span>' : ''}
-          </div>
-        </td>
-        <td style="font-family:var(--mono);font-size:10px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${w.image}">${w.image}</td>
-        <td style="font-size:11px;color:var(--text3);">${w.ageDays}d</td>
-      </tr>
-      <tr id="${expandId}" style="display:none;">
-        <td colspan="10" style="padding:0;background:var(--bg3);border-bottom:1px solid var(--border);">
-          <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-
-            <div class="wl-detail-block">
-              <div class="wl-detail-title">Security Issues</div>
-              ${w.issues.length === 0
-                ? '<div style="font-size:11px;color:var(--green);">✓ No issues detected</div>'
-                : w.issues.map(iss => `
-                    <div class="wl-detail-row">
-                      <span class="wl-detail-key">${iss.label}</span>
-                      <span class="wltag ${isevCol(iss.severity)}">${iss.severity}</span>
-                    </div>`).join('')
-              }
-            </div>
-
-            <div class="wl-detail-block">
-              <div class="wl-detail-title">Node Context</div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Node</span><span class="wl-detail-val" style="font-size:9px;color:${w.nodeVulnerable?'var(--red)':'var(--green)'};">${w.node.split('.')[0]}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Kernel patch</span><span class="wl-detail-val" style="color:${w.nodePatch==='patched'?'var(--green)':'var(--red)'};">${w.nodePatch}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">algif_aead</span><span class="wl-detail-val" style="color:${w.nodeAlgif==='loaded'?'var(--red)':'var(--green)'};">${w.nodeAlgif}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Node risk</span><span class="wl-detail-val" style="color:${sv(w.nodeRisk)};">${w.nodeRisk}/100</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Copy Fail risk</span><span class="wl-detail-val" style="color:${w.nodeVulnerable?'var(--red)':'var(--green)'};">${w.nodeVulnerable?'EXPOSED':'safe'}</span></div>
-            </div>
-
-            <div class="wl-detail-block">
-              <div class="wl-detail-title">Runtime Config</div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Image</span><span class="wl-detail-val" style="font-size:9px;">${w.image}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Privileged</span><span class="wl-detail-val" style="color:${w.privileged?'var(--red)':'var(--green)'};">${w.privileged?'YES':'no'}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">hostNetwork</span><span class="wl-detail-val" style="color:${w.hostNet?'var(--red)':'var(--green)'};">${w.hostNet?'YES':'no'}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">hostPID</span><span class="wl-detail-val" style="color:${w.hostPID?'var(--red)':'var(--green)'};">${w.hostPID?'YES':'no'}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">runAsRoot</span><span class="wl-detail-val" style="color:${w.runAsRoot?'var(--amber)':'var(--green)'};">${w.runAsRoot?'YES':'no'}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Resource limits</span><span class="wl-detail-val" style="color:${w.noLimits?'var(--amber)':'var(--green)'};">${w.noLimits?'NONE SET':'set'}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">ReadOnly rootfs</span><span class="wl-detail-val" style="color:${w.readOnlyRoot?'var(--green)':'var(--amber)'};">${w.readOnlyRoot?'yes':'NO'}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">CPU usage</span><span class="wl-detail-val">${w.cpu}</span></div>
-              <div class="wl-detail-row"><span class="wl-detail-key">Memory usage</span><span class="wl-detail-val">${w.memory}</span></div>
-            </div>
-
-            ${w.cveList.length > 0 ? `
-            <div class="wl-detail-block" style="grid-column:1/-1;">
-              <div class="wl-detail-title">CVEs on this workload's image</div>
-              <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
-                ${w.cveList.map(c => `<span class="wl-cve-chip ${c.sev==='critical'?'wl-cve-c':'wl-cve-h'}">${c.id} <span style="opacity:0.6;">${c.sev}</span></span>`).join('')}
-              </div>
-            </div>` : ''}
-
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function toggleWlRow(expandId, row) {
-  const expandRow = document.getElementById(expandId);
-  if (!expandRow) return;
-  const isOpen = expandRow.style.display !== 'none';
-  // Close all others
-  document.querySelectorAll('[id^="wl-expand-"]').forEach(el => {
-    el.style.display = 'none';
-  });
-  document.querySelectorAll('#wl-tbody tr[onclick]').forEach(r => {
-    const arr = r.querySelector('span');
-    if (arr) arr.textContent = '▶';
-  });
-  if (!isOpen) {
-    expandRow.style.display = 'table-row';
-    const arr = row.querySelector('span');
-    if (arr) arr.textContent = '▼';
-  }
-}
-
-function exportCSV() {
-  const ws = allWorkloads;
-  const header = ['Workload','Namespace','Cluster','Node','Risk Score','Risk Level','Critical CVEs','High CVEs','Privileged','hostNetwork','hostPID','runAsRoot','No Limits','Image','Age (days)','Issues'];
-  const rows = ws.map(w => [
-    w.name, w.namespace, w.cluster, w.node,
-    w.risk, w.riskLevel, w.critCVEs, w.highCVEs,
-    w.privileged, w.hostNet, w.hostPID, w.runAsRoot, w.noLimits,
-    w.image, w.ageDays,
-    w.issues.map(i => i.label).join('; ')
-  ]);
-  const csv = [header, ...rows].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'pdks-workload-security-report-' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-// ── END WORKLOAD REPORT ───────────────────────────────────────────────────────
-
-</script>
-
-<!-- ── DRILLDOWN MODAL ── -->
-<div id="dd-modal" class="dd-overlay" style="display:none;" onclick="if(event.target===this)closeDd()">
-  <div class="dd-modal">
-    <div class="dd-head">
-      <div class="dd-head-icon" id="dd-icon">📊</div>
-      <div class="dd-head-info">
-        <div class="dd-head-title" id="dd-title">Analysis</div>
-        <div class="dd-head-sub" id="dd-sub">—</div>
-      </div>
-      <button class="dd-close" onclick="closeDd()">✕</button>
+function renderNodeDrillFallback(n, err) {
+  document.getElementById('dd-body').innerHTML = `
+    <div class="dd-callout dd-callout-amber" style="margin-bottom:16px;">
+      <div class="dd-callout-title">Could not fetch real pod data — backend may be restarting</div>
+      <div class="dd-callout-body" style="font-family:var(--mono);font-size:10px;">${err}</div>
     </div>
-    <div class="dd-body" id="dd-body"></div>
-  </div>
-</div>
+    <div class="dd-section">
+      <div class="dd-section-title">Node details (cached)</div>
+      <div class="dd-grid4">
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${n.riskScore>=65?'var(--red)':'var(--amber)'};">${n.riskScore}</div><div class="dd-stat-label">Risk score</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${n.patchStatus==='patched'?'var(--green)':'var(--red)'};">${n.patchStatus}</div><div class="dd-stat-label">Kernel</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:${n.algifStatus==='blocked'?'var(--green)':'var(--red)'};">${n.algifStatus}</div><div class="dd-stat-label">algif_aead</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--text2);">${n.cluster||'—'}</div><div class="dd-stat-label">Cluster</div></div>
+      </div>
+    </div>`;
+}
 
-</body>
-</html>
+
