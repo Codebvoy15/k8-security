@@ -2387,3 +2387,21 @@ function renderNodeDrillFallback(n, err) {
 }
 
 
+<!-- ── DRILLDOWN MODAL ── -->
+<div id="dd-modal" class="dd-overlay" style="display:none;" onclick="if(event.target===this)closeDd()">
+  <div class="dd-modal">
+    <div class="dd-head">
+      <div class="dd-head-icon" id="dd-icon">📊</div>
+      <div class="dd-head-info">
+        <div class="dd-head-title" id="dd-title">Analysis</div>
+        <div class="dd-head-sub" id="dd-sub">—</div>
+      </div>
+      <button class="dd-close" onclick="closeDd()">✕</button>
+    </div>
+    <div class="dd-body" id="dd-body"></div>
+  </div>
+</div>
+
+</script>
+</body>
+</html>
