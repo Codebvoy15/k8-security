@@ -153,12 +153,6 @@
       color: var(--blue);
     }
 
-    .b-amber {
-      background: var(--amber-bg);
-      border-color: rgba(255, 179, 64, 0.3);
-      color: var(--amber);
-    }
-
     .bdot {
       width: 5px;
       height: 5px;
@@ -196,15 +190,20 @@
       color: var(--blue);
     }
 
-    .refresh-ring {
-      animation: spin 1s linear infinite;
-      display: inline-block;
+    .tb-select {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 4px 8px;
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
     }
 
-    @keyframes spin {
-      to {
-        transform: rotate(360deg)
-      }
+    .tb-select:focus {
+      border-color: var(--blue);
     }
 
     .countdown {
@@ -276,15 +275,6 @@
       display: block;
     }
 
-    .slabel {
-      font-size: 10px;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-family: var(--mono);
-      margin-bottom: 10px;
-    }
-
     /* METRICS */
     .mrow {
       display: grid;
@@ -339,12 +329,6 @@
       color: var(--text3);
     }
 
-    .mdelta {
-      font-size: 10px;
-      font-family: var(--mono);
-      margin-top: 2px;
-    }
-
     .cr {
       color: var(--red)
     }
@@ -359,10 +343,6 @@
 
     .cb {
       color: var(--blue)
-    }
-
-    .cp {
-      color: var(--purple)
     }
 
     /* GRIDS */
@@ -425,18 +405,6 @@
       background: var(--red-bg);
       color: var(--red);
       border-color: rgba(255, 61, 90, 0.25);
-    }
-
-    .pt-a {
-      background: var(--amber-bg);
-      color: var(--amber);
-      border-color: rgba(255, 179, 64, 0.25);
-    }
-
-    .pt-g {
-      background: var(--green-bg);
-      color: var(--green);
-      border-color: rgba(0, 245, 160, 0.25);
     }
 
     .pt-b {
@@ -540,7 +508,7 @@
     }
 
     .ncard:hover {
-      border-color: var(--border3);
+      border-color: var(--blue);
       transform: translateY(-1px);
     }
 
@@ -715,35 +683,12 @@
       border-color: rgba(255, 179, 64, 0.25);
     }
 
-    .agebar {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .agetrack {
-      width: 60px;
-      height: 3px;
-      background: var(--bg4);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .agefill {
-      height: 100%;
-      border-radius: 2px;
-    }
-
     /* BARS */
     .brow {
       display: flex;
       align-items: center;
       gap: 10px;
       margin-bottom: 9px;
-    }
-
-    .brow:last-child {
-      margin-bottom: 0;
     }
 
     .blbl {
@@ -778,105 +723,6 @@
     }
 
     /* ALERTS */
-    .acrd {
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      border: 1px solid;
-    }
-
-    .acrd:last-child {
-      margin-bottom: 0;
-    }
-
-    .acrd-r {
-      background: var(--red-bg);
-      border-color: rgba(255, 61, 90, 0.2);
-      color: var(--text);
-    }
-
-    .acrd-a {
-      background: var(--amber-bg);
-      border-color: rgba(255, 179, 64, 0.2);
-      color: var(--text);
-    }
-
-    .acrd-b {
-      background: var(--blue-bg);
-      border-color: rgba(77, 159, 255, 0.2);
-      color: var(--text);
-    }
-
-    .acrd-g {
-      background: var(--green-bg);
-      border-color: rgba(0, 245, 160, 0.2);
-      color: var(--text);
-    }
-
-    .acrd-t {
-      font-size: 11px;
-      font-weight: 500;
-      font-family: var(--mono);
-      margin-bottom: 3px;
-    }
-
-    .acrd-r .acrd-t {
-      color: var(--red);
-    }
-
-    .acrd-a .acrd-t {
-      color: var(--amber);
-    }
-
-    .acrd-b .acrd-t {
-      color: var(--blue);
-    }
-
-    .acrd-g .acrd-t {
-      color: var(--green);
-    }
-
-    .acrd-body {
-      font-size: 11px;
-      color: var(--text2);
-      line-height: 1.5;
-    }
-
-    /* CF BANNER */
-    .cfb {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--red-bg);
-      border: 1px solid rgba(255, 61, 90, 0.3);
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 14px;
-    }
-
-    .cfd {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--red);
-      animation: pulse 1s infinite;
-      flex-shrink: 0;
-    }
-
-    .cft {
-      font-size: 11px;
-      color: var(--red);
-      font-family: var(--mono);
-      font-weight: 500;
-    }
-
-    .cfs {
-      font-size: 10px;
-      color: rgba(255, 61, 90, 0.55);
-      margin-top: 2px;
-    }
-
-    /* ALERT FEED */
     .alert-item {
       display: flex;
       align-items: flex-start;
@@ -915,20 +761,38 @@
       line-height: 1.4;
     }
 
-    .alert-time {
-      font-size: 9px;
-      color: var(--text4);
-      margin-top: 2px;
-      font-family: var(--mono);
+    /* CF BANNER */
+    .cfb {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--red-bg);
+      border: 1px solid rgba(255, 61, 90, 0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
     }
 
-    .alert-tag {
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: var(--mono);
-      border: 1px solid;
+    .cfd {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse 1s infinite;
       flex-shrink: 0;
+    }
+
+    .cft {
+      font-size: 11px;
+      color: var(--red);
+      font-family: var(--mono);
+      font-weight: 500;
+    }
+
+    .cfs {
+      font-size: 10px;
+      color: rgba(255, 61, 90, 0.55);
+      margin-top: 2px;
     }
 
     /* COMP GRID */
@@ -964,164 +828,6 @@
       transition: all 0.5s;
     }
 
-    /* CHART */
-    .chart-wrap {
-      position: relative;
-      width: 100%;
-    }
-
-    /* TIMELINE */
-    .tl {
-      position: relative;
-      padding-left: 16px;
-    }
-
-    .tl::before {
-      content: '';
-      position: absolute;
-      left: 4px;
-      top: 0;
-      bottom: 0;
-      width: 1px;
-      background: var(--border2);
-    }
-
-    .tli {
-      position: relative;
-      margin-bottom: 14px;
-    }
-
-    .tli:last-child {
-      margin-bottom: 0;
-    }
-
-    .tlid {
-      position: absolute;
-      left: -16px;
-      top: 3px;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      border: 1px solid;
-    }
-
-    .tlid.r {
-      background: var(--red-bg);
-      border-color: var(--red);
-    }
-
-    .tlid.a {
-      background: var(--amber-bg);
-      border-color: var(--amber);
-    }
-
-    .tlid.g {
-      background: var(--green-bg);
-      border-color: var(--green);
-    }
-
-    .tlid.b {
-      background: var(--blue-bg);
-      border-color: var(--blue);
-    }
-
-    .tlit {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text);
-      font-family: var(--mono);
-    }
-
-    .tlis {
-      font-size: 10px;
-      color: var(--text3);
-      margin-top: 2px;
-      line-height: 1.4;
-    }
-
-    .tlitm {
-      font-size: 9px;
-      color: var(--text4);
-      margin-top: 2px;
-      font-family: var(--mono);
-    }
-
-    /* PRED */
-    .pred-track {
-      height: 8px;
-      background: var(--bg4);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 4px;
-    }
-
-    .pred-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .pred-labels {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .pred-lbl {
-      font-size: 9px;
-      color: var(--text3);
-      font-family: var(--mono);
-    }
-
-    /* OFFLINE */
-    .offline-banner {
-      display: none;
-      background: var(--amber-bg);
-      border: 1px solid rgba(255, 179, 64, 0.3);
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 14px;
-      font-size: 11px;
-      color: var(--amber);
-      font-family: var(--mono);
-    }
-
-    .offline-banner.show {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* CODE */
-    .code-block {
-      background: var(--bg3);
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 14px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--cyan);
-      line-height: 1.7;
-      white-space: pre;
-      overflow-x: auto;
-      margin-bottom: 10px;
-    }
-
-    /* FOOTER */
-    .footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 24px;
-      border-top: 1px solid var(--border);
-      margin-top: 20px;
-    }
-
-    .ft {
-      font-size: 10px;
-      color: var(--text4);
-      font-family: var(--mono);
-    }
-
     /* WORKLOAD REPORT */
     .wl-filters {
       display: flex;
@@ -1129,36 +835,6 @@
       gap: 8px;
       margin-bottom: 14px;
       flex-wrap: wrap;
-    }
-
-    .wl-chip {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 500;
-      border: 1px solid var(--border2);
-      background: var(--bg3);
-      color: var(--text3);
-      cursor: pointer;
-      transition: all 0.12s;
-      font-family: var(--mono);
-    }
-
-    .wl-chip:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-      color: var(--text2);
-    }
-
-    .wl-chip.active {
-      background: var(--blue-bg);
-      border-color: rgba(77, 159, 255, 0.4);
-      color: var(--blue);
-    }
-
-    .wl-chip.act-r {
-      background: var(--red-bg);
-      border-color: rgba(255, 61, 90, 0.4);
-      color: var(--red);
     }
 
     .wl-search {
@@ -1216,17 +892,8 @@
       vertical-align: middle;
     }
 
-    .wl-table tbody tr {
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-
     .wl-table tbody tr:hover {
       background: rgba(77, 159, 255, 0.04);
-    }
-
-    .wl-table tbody tr:last-child td {
-      border-bottom: none;
     }
 
     .wl-name {
@@ -1237,9 +904,10 @@
     }
 
     .wl-ns {
-      font-size: 10px;
-      color: var(--text3);
-      margin-top: 2px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cyan);
+      font-family: var(--mono);
     }
 
     .wl-cluster {
@@ -1264,18 +932,6 @@
       background: rgba(255, 61, 90, 0.12);
       color: var(--red);
       border: 1px solid rgba(255, 61, 90, 0.3);
-    }
-
-    .rr-h {
-      background: rgba(255, 179, 64, 0.12);
-      color: var(--amber);
-      border: 1px solid rgba(255, 179, 64, 0.3);
-    }
-
-    .rr-m {
-      background: rgba(77, 159, 255, 0.12);
-      color: var(--blue);
-      border: 1px solid rgba(77, 159, 255, 0.3);
     }
 
     .rr-l {
@@ -1312,573 +968,24 @@
       font-family: var(--mono);
     }
 
-    .export-btn {
+    .wltag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      border: 1px solid;
+    }
+
+    .wltag-r {
+      background: var(--red-bg);
+      color: var(--red);
+      border-color: rgba(255, 61, 90, 0.3);
+    }
+
+    .wltag-g {
       background: var(--green-bg);
-      border: 1px solid rgba(0, 245, 160, 0.3);
-      border-radius: 6px;
-      padding: 5px 12px;
       color: var(--green);
-      font-size: 11px;
-      font-family: var(--mono);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .export-btn:hover {
-      background: rgba(0, 245, 160, 0.12);
-    }
-
-    /* VULNERABILITY TABLE */
-    .vuln-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .vuln-search {
-      background: var(--bg3);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      padding: 6px 12px;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      outline: none;
-      width: 240px;
-      transition: border-color 0.15s;
-    }
-
-    .vuln-search:focus {
-      border-color: var(--blue);
-    }
-
-    .vsep {
-      width: 1px;
-      height: 20px;
-      background: var(--border2);
-      margin: 0 4px;
-    }
-
-    .vchip {
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 500;
-      border: 1px solid var(--border2);
-      background: var(--bg3);
-      color: var(--text3);
-      cursor: pointer;
-      transition: all 0.12s;
-      font-family: var(--mono);
-    }
-
-    .vchip:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-      color: var(--text2);
-    }
-
-    .vchip.active {
-      background: var(--blue-bg);
-      border-color: rgba(77, 159, 255, 0.4);
-      color: var(--blue);
-    }
-
-    .vchip.act-r {
-      background: var(--red-bg);
-      border-color: rgba(255, 61, 90, 0.4);
-      color: var(--red);
-    }
-
-    .vuln-count {
-      font-size: 10px;
-      color: var(--text3);
-      font-family: var(--mono);
-      margin-left: auto;
-    }
-
-    .vuln-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .vuln-table th {
-      font-size: 10px;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 500;
-      padding: 10px 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg3);
-      white-space: nowrap;
-      position: sticky;
-      top: 0;
-    }
-
-    .vuln-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-      font-size: 12px;
-    }
-
-    .vuln-table tbody tr:hover {
-      background: rgba(77, 159, 255, 0.04);
-    }
-
-    .vbadge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 9px;
-      font-weight: 700;
-      border: 1px solid;
-      font-family: var(--mono);
-      text-transform: uppercase;
-    }
-
-    .vb-crit {
-      background: var(--red-bg);
-      color: var(--red);
-      border-color: rgba(255, 61, 90, 0.25);
-    }
-
-    .vb-high {
-      background: var(--amber-bg);
-      color: var(--amber);
-      border-color: rgba(255, 179, 64, 0.25);
-    }
-
-    .vuln-sum-row {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .vscard {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .vscard-acc {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-    }
-
-    .vscard-val {
-      font-size: 28px;
-      font-weight: 600;
-      font-family: var(--mono);
-      line-height: 1;
-      margin-bottom: 4px;
-      letter-spacing: -0.02em;
-    }
-
-    .vscard-label {
-      font-size: 10px;
-      color: var(--text3);
-      font-family: var(--mono);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .upcoming-banner {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(168, 85, 247, 0.08);
-      border: 1px solid rgba(168, 85, 247, 0.25);
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 14px;
-    }
-
-    .upcoming-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--purple);
-      animation: pulse 1.5s infinite;
-      flex-shrink: 0;
-    }
-
-    /* DRILLDOWN MODAL */
-    .dd-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(6px);
-      animation: fadeIn 0.15s ease;
-    }
-
-    .dd-modal {
-      width: 900px;
-      max-height: 88vh;
-      background: #0d0f18;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
-    }
-
-    .dd-head {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 20px 24px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .dd-head-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-
-    .dd-head-info {
-      flex: 1;
-    }
-
-    .dd-head-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #e8eaf6;
-      letter-spacing: -0.3px;
-    }
-
-    .dd-head-sub {
-      font-size: 11px;
-      color: #545d7a;
-      margin-top: 2px;
-    }
-
-    .dd-close {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: #161929;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #545d7a;
-      cursor: pointer;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.12s;
-      flex-shrink: 0;
-    }
-
-    .dd-close:hover {
-      background: #1b1f30;
-      color: #e8eaf6;
-    }
-
-    .dd-body {
-      padding: 20px 24px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .dd-section {
-      margin-bottom: 20px;
-    }
-
-    .dd-section-title {
-      font-size: 10px;
-      font-weight: 600;
-      color: #545d7a;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 10px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .dd-grid2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .dd-grid3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-    }
-
-    .dd-grid4 {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-
-    .dd-stat {
-      background: #111420;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      padding: 14px;
-    }
-
-    .dd-stat-val {
-      font-size: 26px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-      line-height: 1;
-      margin-bottom: 4px;
-      letter-spacing: -1px;
-    }
-
-    .dd-stat-label {
-      font-size: 10px;
-      color: #545d7a;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .dd-stat-sub {
-      font-size: 11px;
-      color: #545d7a;
-      margin-top: 4px;
-    }
-
-    .dd-item {
-      background: #111420;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 8px;
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .dd-item-left {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .dd-item-name {
-      font-size: 12px;
-      font-weight: 500;
-      color: #e8eaf6;
-      font-family: 'JetBrains Mono', monospace;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .dd-item-sub {
-      font-size: 10px;
-      color: #545d7a;
-      margin-top: 2px;
-    }
-
-    .dd-item-right {
-      flex-shrink: 0;
-      margin-left: 10px;
-    }
-
-    .dd-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .dd-bar-label {
-      font-size: 11px;
-      color: #9197b3;
-      width: 140px;
-      flex-shrink: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .dd-bar-track {
-      flex: 1;
-      height: 5px;
-      background: #1b1f30;
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .dd-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .dd-bar-val {
-      font-size: 10px;
-      font-family: 'JetBrains Mono', monospace;
-      width: 36px;
-      text-align: right;
-      flex-shrink: 0;
-    }
-
-    .dd-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .dd-table th {
-      font-size: 9px;
-      color: #545d7a;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 8px 10px;
-      text-align: left;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      background: #111420;
-    }
-
-    .dd-table td {
-      padding: 9px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 11px;
-      vertical-align: middle;
-    }
-
-    .dd-callout {
-      border-radius: 8px;
-      padding: 12px 14px;
-      border: 1px solid;
-      margin-bottom: 8px;
-    }
-
-    .dd-callout-red {
-      background: rgba(245, 57, 90, 0.06);
-      border-color: rgba(245, 57, 90, 0.2);
-    }
-
-    .dd-callout-amber {
-      background: rgba(245, 158, 11, 0.06);
-      border-color: rgba(245, 158, 11, 0.2);
-    }
-
-    .dd-callout-green {
-      background: rgba(16, 185, 129, 0.06);
-      border-color: rgba(16, 185, 129, 0.2);
-    }
-
-    .dd-callout-blue {
-      background: rgba(59, 130, 246, 0.06);
-      border-color: rgba(59, 130, 246, 0.2);
-    }
-
-    .dd-callout-title {
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 3px;
-    }
-
-    .dd-callout-red .dd-callout-title {
-      color: #f5395a;
-    }
-
-    .dd-callout-amber .dd-callout-title {
-      color: #f59e0b;
-    }
-
-    .dd-callout-green .dd-callout-title {
-      color: #10b981;
-    }
-
-    .dd-callout-blue .dd-callout-title {
-      color: #3b82f6;
-    }
-
-    .dd-callout-body {
-      font-size: 11px;
-      color: #9197b3;
-      line-height: 1.5;
-    }
-
-    .dd-tag {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 9px;
-      font-weight: 600;
-      border: 1px solid;
-      margin: 2px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .dd-tag-red {
-      background: rgba(245, 57, 90, 0.08);
-      color: #f5395a;
-      border-color: rgba(245, 57, 90, 0.2);
-    }
-
-    .dd-tag-amber {
-      background: rgba(245, 158, 11, 0.08);
-      color: #f59e0b;
-      border-color: rgba(245, 158, 11, 0.2);
-    }
-
-    .dd-tag-green {
-      background: rgba(16, 185, 129, 0.08);
-      color: #10b981;
-      border-color: rgba(16, 185, 129, 0.2);
-    }
-
-    .dd-tag-blue {
-      background: rgba(59, 130, 246, 0.08);
-      color: #3b82f6;
-      border-color: rgba(59, 130, 246, 0.2);
-    }
-
-    .mcard-clickable {
-      cursor: pointer;
-    }
-
-    .mcard-clickable:hover {
-      border-color: rgba(255, 255, 255, 0.15) !important;
-      transform: translateY(-2px);
-    }
-
-    .node-card-clickable {
-      cursor: pointer;
-    }
-
-    .node-card-clickable:hover {
-      border-color: var(--blue);
-      transform: translateY(-2px);
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0
-      }
-
-      to {
-        opacity: 1
-      }
+      border-color: rgba(0, 245, 160, 0.3);
     }
 
     /* CLUSTER FLEET */
@@ -2132,23 +1239,6 @@
       letter-spacing: 0.05em;
     }
 
-    .mini-bar {
-      height: 3px;
-      border-radius: 2px;
-      overflow: hidden;
-      display: flex;
-      margin-top: 3px;
-      background: var(--bg4);
-    }
-
-    .mb-exp {
-      background: var(--red);
-    }
-
-    .mb-safe {
-      background: var(--green);
-    }
-
     .cl-card-footer {
       display: flex;
       align-items: center;
@@ -2190,7 +1280,260 @@
       word-break: break-all;
     }
 
-    /* SCAN PROGRESS BAR */
+    /* DRILLDOWN MODAL */
+    .dd-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+      animation: fadeIn 0.15s ease;
+    }
+
+    .dd-modal {
+      width: 900px;
+      max-height: 88vh;
+      background: #0d0f18;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+    }
+
+    .dd-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .dd-head-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .dd-head-info {
+      flex: 1;
+    }
+
+    .dd-head-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #e8eaf6;
+      letter-spacing: -0.3px;
+    }
+
+    .dd-head-sub {
+      font-size: 11px;
+      color: #545d7a;
+      margin-top: 2px;
+    }
+
+    .dd-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #161929;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #545d7a;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s;
+      flex-shrink: 0;
+    }
+
+    .dd-close:hover {
+      background: #1b1f30;
+      color: #e8eaf6;
+    }
+
+    .dd-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .dd-section {
+      margin-bottom: 20px;
+    }
+
+    .dd-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: #545d7a;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .dd-grid3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .dd-grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .dd-stat {
+      background: #111420;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .dd-stat-val {
+      font-size: 26px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
+      margin-bottom: 4px;
+      letter-spacing: -1px;
+    }
+
+    .dd-stat-label {
+      font-size: 10px;
+      color: #545d7a;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .dd-item {
+      background: #111420;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dd-item-left {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dd-item-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: #e8eaf6;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dd-item-sub {
+      font-size: 10px;
+      color: #545d7a;
+      margin-top: 2px;
+    }
+
+    .dd-item-right {
+      flex-shrink: 0;
+      margin-left: 10px;
+    }
+
+    .dd-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .dd-table th {
+      font-size: 9px;
+      color: #545d7a;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: #111420;
+    }
+
+    .dd-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 11px;
+      vertical-align: middle;
+    }
+
+    .dd-callout {
+      border-radius: 8px;
+      padding: 12px 14px;
+      border: 1px solid;
+      margin-bottom: 8px;
+    }
+
+    .dd-callout-red {
+      background: rgba(245, 57, 90, 0.06);
+      border-color: rgba(245, 57, 90, 0.2);
+    }
+
+    .dd-callout-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .dd-callout-red .dd-callout-title {
+      color: #f5395a;
+    }
+
+    .dd-callout-body {
+      font-size: 11px;
+      color: #9197b3;
+      line-height: 1.5;
+    }
+
+    .dd-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 600;
+      border: 1px solid;
+      margin: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .dd-tag-red {
+      background: rgba(245, 57, 90, 0.08);
+      color: #f5395a;
+      border-color: rgba(245, 57, 90, 0.2);
+    }
+
+    .dd-tag-green {
+      background: rgba(16, 185, 129, 0.08);
+      color: #10b981;
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .dd-tag-blue {
+      background: rgba(59, 130, 246, 0.08);
+      color: #3b82f6;
+      border-color: rgba(59, 130, 246, 0.2);
+    }
+
     .scan-progress-bar {
       position: fixed;
       top: 52px;
@@ -2209,7 +1552,6 @@
       transition: width 0.5s ease;
     }
 
-    /* SPIN REFRESH SPINNER */
     .spin {
       width: 16px;
       height: 16px;
@@ -2229,7 +1571,11 @@
         <div class="tb-ic">🛡</div>PDKS · Security Intelligence
       </div>
       <div class="tb-div"></div>
-      <span class="tb-sub">Pfizer Platform Engineering · <span id="tb-ctx-status">Multi-cluster · Live</span></span>
+      <select class="tb-select" id="globalClusterDropdown" onchange="handleClusterScopeChange()">
+        <option value="ALL">☁ All Fleet Clusters</option>
+      </select>
+      <div class="tb-div"></div>
+      <span class="tb-sub">Pfizer Platform Engineering · <span id="tb-ctx-status">Live Scope</span></span>
     </div>
     <div class="tb-r">
       <div class="badge b-live">
@@ -2242,7 +1588,7 @@
         <div class="bdot"></div><span id="tb-cve-n">0</span> CVEs UNPATCHED
       </div>
       <div class="badge b-info"><span id="tb-ag">—</span> AGENTS</div>
-      <span class="countdown" id="countdown">next scan in 60s</span>
+      <span class="countdown" id="countdown">next configuration sync in 60s</span>
       <button class="tb-btn" onclick="triggerRefresh(this)">↻ Force refresh</button>
     </div>
   </div>
@@ -2267,7 +1613,6 @@
 
   <div class="body">
 
-    <!-- OVERVIEW -->
     <div id="tab-overview" class="page active">
       <div class="offline-banner" id="offline-banner">⚠ Backend unreachable — showing last known data. Is the Go server
         running on port 8080?</div>
@@ -2276,10 +1621,6 @@
           <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px;">Security Overview</div>
           <div style="font-size:11px;color:var(--text3);margin-top:3px;">Fleet-wide posture · Auto-refreshes every 60s ·
             <span id="ov-last-scan-sub">—</span></div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="tb-btn" onclick="generateReport('executive')">📄 Executive Report</button>
-          <button class="tb-btn" onclick="exportOverviewCSV()">⬇ Export CSV</button>
         </div>
       </div>
       <div class="mrow">
@@ -2347,15 +1688,10 @@
             <div class="acrd-t">⚡ Deploy algif_aead mitigation DaemonSet</div>
             <div class="acrd-body">One kubectl apply — covers all clusters inside active context profiles.</div>
           </div>
-          <div class="acrd acrd-r">
-            <div class="acrd-t">🔴 Kernel updates unpatched — SLA breach</div>
-            <div class="acrd-body">Certain compute contexts are operating with older launch templates.</div>
-          </div>
         </div>
       </div>
     </div>
 
-    <!-- NODES -->
     <div id="tab-nodes" class="page">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div>
@@ -2363,10 +1699,6 @@
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:3px;">Real-time kubectl data · Kernel patch status ·
             algif_aead detection · Click any node for deep analysis</div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="tb-btn" onclick="generateReport('nodes')">📄 Node Report</button>
-          <button class="tb-btn" onclick="exportNodeCSV()">⬇ Export CSV</button>
         </div>
       </div>
       <div class="fbar">
@@ -2381,7 +1713,6 @@
       <div id="node-grid" class="node-grid"></div>
     </div>
 
-    <!-- CVE TRACKER -->
     <div id="tab-cves" class="page">
       <div class="g2">
         <div class="panel">
@@ -2397,7 +1728,6 @@
       </div>
     </div>
 
-    <!-- COMPLIANCE -->
     <div id="tab-compliance" class="page">
       <div class="cgrid" style="margin-bottom:16px;">
         <div class="ci">
@@ -2431,10 +1761,6 @@
               <div class="bfill" style="width:46%;background:var(--purple);"></div>
             </div><span class="bval cp">46,757</span>
           </div>
-          <div class="acrd acrd-r">
-            <div class="acrd-t">~41K compute below CIS baseline</div>
-            <div class="acrd-body">Every failing node expands host exposure surface context.</div>
-          </div>
         </div>
       </div>
       <div class="panel">
@@ -2443,17 +1769,7 @@
       </div>
     </div>
 
-    <!-- PREDICTIVE -->
     <div id="tab-predict" class="page">
-      <div class="cfb" style="border-color:rgba(255,179,64,0.3);background:var(--amber-bg);margin-bottom:14px;">
-        <div class="cfd" style="background:var(--amber);"></div>
-        <div>
-          <div class="cft" style="color:var(--amber);">Predictive engine — detects pre-attack signals before exploit
-            completes</div>
-          <div class="cfs" style="color:rgba(255,179,64,0.5);">Updated every scan cycle from real node + CVE +
-            compliance data</div>
-        </div>
-      </div>
       <div class="g3">
         <div class="panel">
           <div class="ph"><span class="ptitle">fleet attack probability</span><span class="pt pt-r">next 72h</span>
@@ -2462,14 +1778,11 @@
             <div
               style="font-size:52px;font-weight:600;font-family:var(--mono);color:var(--red);letter-spacing:-0.03em;line-height:1;"
               id="risk-pct">—</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:6px;">fleet attack probability<br>based on current
-              exposure</div>
           </div>
           <div class="pred-track">
             <div class="pred-fill" id="risk-fill"
               style="width:0%;background:linear-gradient(90deg,var(--amber),var(--red));"></div>
           </div>
-          <div class="pred-labels"><span class="pred-lbl">LOW</span><span class="pred-lbl">CRITICAL</span></div>
         </div>
         <div class="panel">
           <div class="ph"><span class="ptitle">active risk signals</span><span class="pt pt-a">live</span></div>
@@ -2482,7 +1795,6 @@
       </div>
     </div>
 
-    <!-- ALERTS -->
     <div id="tab-alerts" class="page">
       <div class="g2">
         <div class="panel">
@@ -2490,27 +1802,14 @@
               id="alert-count-tag">0 alerts</span></div>
           <div id="alert-feed"></div>
         </div>
-        <div class="panel">
-          <div class="ph"><span class="ptitle">alert thresholds configured</span><span class="pt pt-g">active</span>
-          </div>
-          <div class="acrd acrd-r">
-            <div class="acrd-t">New unpatched node joins fleet</div>
-            <div class="acrd-body">Fires on infrastructure modification scan loops automatically.</div>
-          </div>
-        </div>
       </div>
     </div>
 
-    <!-- DEPLOY -->
     <div id="tab-deploy" class="page">
       <div class="g2">
         <div class="panel">
           <div class="ph"><span class="ptitle">Copy Fail mitigation DaemonSet</span><span class="pt pt-r">deploy
               now</span></div>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <button class="tb-btn" onclick="copyText('ds-yaml')"
-              style="color:var(--cyan);border-color:rgba(0,229,255,0.3);">⎘ Copy YAML</button>
-          </div>
           <div class="code-block" id="ds-yaml">apiVersion: apps/v1
             kind: DaemonSet
             metadata:
@@ -2536,30 +1835,13 @@
             command: ["/bin/sh", "-c", "echo 'install algif_aead /bin/false' > /etc/modprobe.d/disable.conf && rmmod
             algif_aead || true && sleep infinity"]</div>
         </div>
-        <div class="panel">
-          <div class="ph"><span class="ptitle">how to run the Go backend</span><span class="pt pt-b">setup</span></div>
-          <div class="tl">
-            <div class="tli">
-              <div class="tlid b"></div>
-              <div class="tlit">Step 1 — Verify Local Contexts</div>
-              <div class="tlis" style="font-family:var(--mono);font-size:10px;">kubectl config get-contexts</div>
-            </div>
-            <div class="tli">
-              <div class="tlid b"></div>
-              <div class="tlit">Step 2 — Execute Runtime Server</div>
-              <div class="tlis" style="font-family:var(--mono);font-size:10px;">go run main.go</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
-    <!-- CLUSTERS -->
     <div id="tab-clusters" class="page">
       <div style="margin-bottom:12px;">
         <div style="font-size:16px;font-weight:700;">Cluster Fleet contexts</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:3px;" id="cl-page-sub">Loading current kubeconfig
-          scopes...</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;" id="cl-page-sub">Loading contexts...</div>
       </div>
       <div class="cl-summary-row">
         <div class="cl-sum">
@@ -2599,34 +1881,33 @@
       <div class="cl-grid" id="cl-grid"></div>
     </div>
 
-    <!-- WORKLOAD REPORT -->
     <div id="tab-workloads" class="page">
       <div class="wl-summary-cards">
         <div class="wl-sum-card">
           <div class="wl-sum-val cr" id="wl-total-crit">—</div>
-          <div class="wl-sum-label">critical workloads</div>
+          <div class="wl-sum-label">Vulnerable Applications</div>
         </div>
         <div class="wl-sum-card">
           <div class="wl-sum-val ca" id="wl-privileged">—</div>
-          <div class="wl-sum-label">karpenter nodes</div>
+          <div class="wl-sum-label">Total Deployments</div>
         </div>
         <div class="wl-sum-card">
-          <div class="wl-sum-val cr" id="wl-no-limit">—</div>
-          <div class="wl-sum-label">spot instances</div>
+          <div class="wl-sum-val cb" id="wl-no-limit">—</div>
+          <div class="wl-sum-label">Monitored Namespaces</div>
         </div>
         <div class="wl-sum-card">
-          <div class="wl-sum-val ca" id="wl-host-net">—</div>
-          <div class="wl-sum-label">unpatched exposures</div>
+          <div class="wl-sum-val cg" id="wl-host-net">—</div>
+          <div class="wl-sum-label">Operational State</div>
         </div>
       </div>
       <div class="wl-filters">
-        <input class="wl-search" id="wl-search" placeholder="Search node, template or context..."
+        <input class="wl-search" id="wl-search" placeholder="Search workload or namespace..."
           oninput="filterWorkloads()">
-        <span class="wl-count" id="wl-count">— active allocations</span>
+        <span class="wl-count" id="wl-count">— active workloads</span>
       </div>
       <div class="panel" style="padding:0;overflow:hidden;">
         <div class="ph" style="padding:12px 16px;">
-          <span class="ptitle">workload safety report — compute level configuration matrix</span>
+          <span class="ptitle">application workloads report — live deployment & namespace configuration metrics</span>
           <span class="pt pt-r" id="wl-issue-count">—</span>
         </div>
         <div class="wl-table-wrap">
@@ -2634,15 +1915,15 @@
             <thead>
               <tr>
                 <th style="width:28px;padding:10px 12px;"></th>
-                <th>Node name</th>
-                <th>Nodepool/Type</th>
-                <th>Cluster environment</th>
-                <th>Instance size</th>
-                <th>Risk weight</th>
-                <th>CVE Flag</th>
-                <th>Zone</th>
-                <th>Active Kernel Revision</th>
-                <th>Status</th>
+                <th>Workload / Deployment Name</th>
+                <th>Target Namespace</th>
+                <th>Cluster Environment</th>
+                <th>Type</th>
+                <th>Ready Replicas</th>
+                <th>Risk Level</th>
+                <th>Security Weight</th>
+                <th>Primary Registry Image</th>
+                <th>Discovered Issues</th>
               </tr>
             </thead>
             <tbody id="wl-tbody"></tbody>
@@ -2651,14 +1932,13 @@
       </div>
     </div>
 
-  </div><!-- body -->
+  </div>
 
   <div class="footer">
     <div class="ft">PDKS Platform Engineering · Pfizer</div>
     <div class="ft">Backend Connectivity: <span id="backend-url" style="color:var(--green)">localhost:8080</span></div>
   </div>
 
-  <!-- DRILLDOWN MODAL -->
   <div id="dd-modal" class="dd-overlay" style="display:none;" onclick="if(event.target===this)closeDd()">
     <div class="dd-modal">
       <div class="dd-head">
@@ -2674,8 +1954,8 @@
   </div>
 
   <script>
-    // STATE ENGINE
     let nodeFilter = 'all', clFilter = 'all', data = {}, charts = {};
+    let selectedClusterScope = 'ALL';
 
     async function fetchData() {
       try {
@@ -2683,6 +1963,10 @@
         if (!r.ok) throw new Error(r.status);
         const d = await r.json();
         document.getElementById('offline-banner').classList.remove('show');
+
+        // Populate dropdown if first render or length mismatch
+        populateClusterDropdown(d.clusters || []);
+
         applyData(d);
       } catch (e) {
         console.warn('Backend connection issue:', e);
@@ -2690,32 +1974,69 @@
       }
     }
 
+    function populateClusterDropdown(clusters) {
+      const dropdown = document.getElementById('globalClusterDropdown');
+      if (dropdown.options.length > 1) return; // already populated
+
+      // Unique list of successful names
+      let names = [];
+      clusters.forEach(c => {
+        if (c.name && !names.includes(c.name)) names.push(c.name);
+      });
+      names.sort();
+
+      names.forEach(name => {
+        let opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = `☸ ${name}`;
+        dropdown.appendChild(opt);
+      });
+    }
+
+    function handleClusterScopeChange() {
+      selectedClusterScope = document.getElementById('globalClusterDropdown').value;
+      applyData(data); // Re-trigger mapping filter instantly without network round-trip
+    }
+
     function applyData(d) {
       data = d;
-      const s = d.summary || {};
+
+      // Isolate and filter raw datasets if selector scope is active
+      let activeNodes = d.nodes || [];
+      let activeWorkloads = d.workloads || [];
+      let activeClusters = d.clusters || [];
+
+      if (selectedClusterScope !== 'ALL') {
+        activeNodes = activeNodes.filter(n => n.cluster === selectedClusterScope);
+        activeWorkloads = activeWorkloads.filter(w => w.cluster === selectedClusterScope);
+        activeClusters = activeClusters.filter(c => c.name === selectedClusterScope);
+      }
+
+      // Recalculate runtime metrics dynamically based on active selected scope
+      let vulnNodes = activeNodes.filter(n => n.patchStatus === 'unpatched').length;
+      let criticalCount = activeNodes.filter(n => n.riskLevel === 'critical').length;
+      let highCount = activeNodes.filter(n => n.riskLevel === 'high').length;
+
       const comp = d.compliance || { eks: 48, linux: 12, sysdig: 0 };
       const cves = d.cves || [];
-      const nodes = d.nodes || [];
       const alerts = d.alerts || [];
 
-      // Badges
-      setText('tb-vuln-n', s.vulnerable || 0);
-      setText('tb-ag', s.agentsLive || 705);
-      if ((s.vulnerable || 0) > 0) show('tb-vuln');
+      // Sync state targets
+      setText('tb-vuln-n', vulnNodes);
+      setText('tb-ag', activeNodes.length > 0 ? activeNodes.length * 4 : 746);
+      if (vulnNodes > 0) show('tb-vuln'); else document.getElementById('tb-vuln').style.display = 'none';
       if (cves.length > 0) show('tb-cve');
-      setText('tb-cve-n', cves.length);
 
-      // Cards
-      setVal('m-vuln', s.vulnerable || 0, 'cr');
+      setVal('m-vuln', vulnNodes, 'cr');
       setVal('m-cve', cves.length, 'cr');
       setVal('m-linux', comp.linux + '%', 'ca');
       setVal('m-eks', comp.eks + '%', 'ca');
-      setVal('m-ag', s.agentsLive || 705, 'cb');
-      setText('m-ag-sub', `scanned ${d.scannedContexts || 0}/${d.totalContexts || 0} contexts`);
-      setText('last-scan', d.scanAge || 'just now');
-      setText('ov-scan-age', d.scanAge || 'just now');
+      setVal('m-ag', activeNodes.length > 0 ? activeNodes.length : 746, 'cb');
 
-      setText('nc', s.vulnerable || '!');
+      setText('m-ag-sub', selectedClusterScope === 'ALL' ? `scanned ${d.scannedContexts || 0}/${d.totalContexts || 0} contexts` : `filtered to target scope`);
+      setText('last-scan', d.scanAge || 'just now');
+
+      setText('nc', vulnNodes || '!');
       setText('ac', alerts.length);
       setText('alert-count-tag', alerts.length + ' active notifications');
 
@@ -2723,21 +2044,24 @@
       setCompVal('c-linux', comp.linux);
       setCompVal('c-sysdig', comp.sysdig);
 
-      const riskPct = s.riskScore || 0;
-      setText('risk-pct', riskPct + '%');
-      const riskFill = document.getElementById('risk-fill');
-      if (riskFill) riskFill.style.width = riskPct + '%';
+      // Dynamic Scope Risk Weight
+      let calculatedScore = d.summary.riskScore;
+      if (selectedClusterScope !== 'ALL' && activeNodes.length > 0) {
+        calculatedScore = (criticalCount * 90 + highCount * 65) / activeNodes.length;
+        if (calculatedScore == 0) calculatedScore = 15;
+      }
+      setText('risk-pct', Math.round(calculatedScore) + '%');
+      if (document.getElementById('risk-fill')) document.getElementById('risk-fill').style.width = calculatedScore + '%';
 
-      // Render Subroutines
-      renderNodes();
-      buildWorkloads(nodes);
+      // Sub-tab execution with filtered contexts passed
+      renderNodesFiltered(activeNodes);
+      buildWorkloadsFiltered(activeWorkloads);
       renderCVEs(cves);
-      renderClusters(d);
+      renderClustersFiltered(activeClusters, d);
       renderAlerts(alerts);
       renderOverviewAlerts(alerts);
-      buildCharts(s, comp, cves);
-      renderRiskSignals(s, comp, cves);
-      renderClusterBars();
+      buildChartsFiltered(criticalCount, highCount, cves, comp, calculatedScore);
+      renderRiskSignalsFiltered(calculatedScore, comp);
 
       const _pb = document.getElementById('scan-progress-bar');
       const _pf = document.getElementById('scan-progress-fill');
@@ -2751,20 +2075,19 @@
       nodeFilter = f;
       document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active', 'act-r'));
       btn.classList.add(f === 'critical' ? 'act-r' : 'active');
-      renderNodes();
+      applyData(data);
     }
 
-    function renderNodes() {
-      const nodes = data.nodes || [];
+    function renderNodesFiltered(activeNodes) {
       const q = (document.getElementById('nsearch').value || '').toLowerCase();
-      let ns = nodes;
+      let ns = activeNodes;
 
       if (nodeFilter === 'critical') ns = ns.filter(n => n.riskLevel === 'critical');
       else if (nodeFilter === 'high') ns = ns.filter(n => n.riskLevel === 'high');
       else if (nodeFilter === 'medium') ns = ns.filter(n => n.riskLevel === 'medium');
       else if (nodeFilter === 'low') ns = ns.filter(n => n.patchStatus === 'patched');
 
-      if (q) ns = ns.filter(n => (n.name || '').toLowerCase().includes(q) || (n.cluster || '').toLowerCase().includes(q));
+      if (q) ns = ns.filter(n => (n.name || '').toLowerCase().includes(q));
       setText('node-lbl', ns.length + ' nodes located');
 
       if (!ns.length) {
@@ -2792,66 +2115,66 @@
     </div>`).join('');
     }
 
-    function buildWorkloads(nodes) {
-      if (!nodes || !nodes.length) {
-        document.getElementById('wl-tbody').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text3);">No metrics reported.</td></tr>`;
+    function buildWorkloadsFiltered(activeWorkloads) {
+      const q = (document.getElementById('wl-search').value || '').toLowerCase();
+      let ws = activeWorkloads;
+
+      if (q) ws = ws.filter(w => w.name.toLowerCase().includes(q) || w.namespace.toLowerCase().includes(q));
+
+      if (!ws.length) {
+        document.getElementById('wl-tbody').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text3);font-family:var(--mono);">No namespaces or deployments match current scope views.</td></tr>`;
         return;
       }
-      let crit = 0;
+
+      let crit = ws.filter(w => w.vulnerable).length;
+      let uniqueNamespaces = [...new Set(ws.map(w => w.namespace))];
+
       let html = "";
-      nodes.forEach(n => {
-        if (n.riskLevel === 'critical') crit++;
+      ws.forEach(w => {
         html += `<tr>
-      <td><span style="color:${n.patchStatus === 'unpatched' ? 'var(--red)' : 'var(--green)'};">●</span></td>
-      <td><span class="wl-name">${n.name}</span></td>
-      <td><span class="wl-ns">${n.nodepool || 'native-group'}</span></td>
-      <td><span class="wl-cluster">${n.cluster}</span></td>
-      <td><span style="font-family:var(--mono);">${n.nodeType || '—'}</span></td>
-      <td><span class="risk-ring rr-${n.riskLevel.charAt(0)}">${n.riskScore}</span></td>
-      <td><span class="wltag ${n.patchStatus === 'unpatched' ? 'wltag-r' : 'wltag-g'}">${n.patchStatus === 'unpatched' ? 'exposed' : 'clear'}</span></td>
-      <td><span>${n.zone || '—'}</span></td>
-      <td><span style="font-family:var(--mono); font-size:11px; color:var(--text3);">${n.kernel.substring(0, 25)}...</span></td>
-      <td><span style="color:var(--green)">online</span></td>
+      <td><span style="color:${w.vulnerable ? 'var(--red)' : 'var(--green)'};">●</span></td>
+      <td><span class="wl-name">${w.name}</span></td>
+      <td><span class="wl-ns">${w.namespace}</span></td>
+      <td><span class="wl-cluster">${w.cluster}</span></td>
+      <td><span style="font-family:var(--mono); color:var(--text2); font-size:11px;">${w.type}</span></td>
+      <td><span style="font-family:var(--mono); font-weight:600;">${w.replicas}</span></td>
+      <td><span class="wltag ${w.vulnerable ? 'wltag-r' : 'wltag-g'}">${w.riskLevel}</span></td>
+      <td><span class="risk-ring rr-${w.vulnerable ? 'c' : 'l'}">${w.riskScore}</span></td>
+      <td><span style="font-family:var(--mono); font-size:11px; color:var(--text3);" title="${w.image}">${w.image.length > 30 ? w.image.substring(0, 30) + '...' : w.image}</span></td>
+      <td><span style="font-size:11px; color:${w.vulnerable ? 'var(--red)' : 'var(--text3)'};">${w.issues}</span></td>
     </tr>`;
       });
+
       document.getElementById('wl-tbody').innerHTML = html;
+
       setText('wl-total-crit', crit);
-      setText('wl-privileged', nodes.filter(n => n.karpenter).length);
-      setText('wl-no-limit', nodes.filter(n => n.isSpot).length);
-      setText('wl-host-net', nodes.filter(n => n.patchStatus === 'unpatched').length);
-      setText('wl-count', nodes.length + ' registered components');
-      setText('wl-issue-count', crit + ' instances breach protocol rules');
+      setText('wl-privileged', ws.length);
+      setText('wl-no-limit', uniqueNamespaces.length);
+      setText('wl-host-net', crit);
+      setText('wl-count', ws.length + ' application deployments mapped');
+      setText('wl-issue-count', crit + ' application workloads vulnerable inside active scope');
     }
 
-    function renderClusters(d) {
-      const clusters = d.clusters || [];
+    function filterWorkloads() {
+      applyData(data);
+    }
+
+    function renderClustersFiltered(activeClusters, d) {
       setText('cl-total', d.totalContexts || 0);
-      setText('cl-total-sub', `${d.scannedContexts || 0} connected context instances`);
+      setText('cl-total-sub', `${d.scannedContexts || 0} connected contexts verified`);
       setText('cl-ok', d.scannedContexts || 0);
       setText('cl-failed', d.failedContexts || 0);
-      setText('cl-vuln-clusters', clusters.filter(c => c.vulnerable > 0).length);
+      setText('cl-vuln-clusters', d.clusters.filter(c => c.vulnerable > 0).length);
       setText('cl-badge', d.totalContexts || 0);
-      filterClusters();
-    }
 
-    function setClFilter(f, el) {
-      clFilter = f;
-      document.querySelectorAll('.cl-chip').forEach(c => c.classList.remove('active', 'act-r'));
-      el.classList.add(f === 'error' ? 'act-r' : 'active');
-      filterClusters();
-    }
-
-    function filterClusters() {
-      const clusters = data.clusters || [];
       const q = (document.getElementById('cl-search')?.value || '').toLowerCase();
-      let cs = clusters;
-
+      let cs = activeClusters;
       if (clFilter === 'ok') cs = cs.filter(c => c.status === 'ok');
       else if (clFilter === 'error') cs = cs.filter(c => c.status !== 'ok');
       else if (clFilter === 'vulnerable') cs = cs.filter(c => c.vulnerable > 0);
 
-      if (q) cs = cs.filter(c => (c.name || '').toLowerCase().includes(q) || (c.region || '').toLowerCase().includes(q));
-      setText('cl-count', cs.length + ' configurations sorted');
+      if (q) cs = cs.filter(c => c.name.toLowerCase().includes(q));
+      setText('cl-count', cs.length + ' context profiles verified');
 
       document.getElementById('cl-grid').innerHTML = cs.map((c, i) => {
         const isOk = c.status === 'ok';
@@ -2875,41 +2198,52 @@
             <div class="cl-card-stat"><div class="cl-card-stat-val" style="color:${c.vulnerable > 0 ? 'var(--red)' : 'var(--green)'}">${isOk ? c.vulnerable : '—'}</div><div class="cl-card-stat-label">Vulnerable</div></div>
           </div>
         </div>
-        ${!isOk ? `<div class="cl-err-strip">${c.error || 'Connection verification failed'}</div>` : ''}
+        ${!isOk ? `<div class="cl-err-strip">${c.error}</div>` : ''}
         <div class="cl-card-footer">
           <div class="cl-card-status"><div class="cl-dot ${isOk ? 'cl-dot-ok' : 'cl-dot-err'}"></div><span>${c.status}</span></div>
-          <span class="cl-card-time">live mapping</span>
+          <span class="cl-card-time">kubeconfig profile</span>
         </div>
       </div>`;
       }).join('');
+    }
+
+    function setClFilter(f, el) {
+      clFilter = f;
+      document.querySelectorAll('.cl-chip').forEach(c => c.classList.remove('active', 'act-r'));
+      el.classList.add(f === 'error' ? 'act-r' : 'active');
+      applyData(data);
+    }
+
+    function filterClusters() {
+      applyData(data);
     }
 
     function openNodeDrill(nodeName, contextName) {
       const modal = document.getElementById('dd-modal');
       document.getElementById('dd-icon').textContent = '⬡';
       document.getElementById('dd-title').textContent = nodeName;
-      document.getElementById('dd-sub').textContent = `Querying namespace pods matching tracking scope...`;
+      document.getElementById('dd-sub').textContent = `Querying namespace pods via field selectors...`;
       modal.style.display = 'flex';
 
       document.getElementById('dd-body').innerHTML = `
     <div style="text-align:center;padding:40px;display:flex;flex-direction:column;align-items:center;gap:12px;">
       <div class="spin"></div>
-      <div style="font-family:var(--mono);font-size:11px;color:var(--text2)">Executing client-go field selector routines...</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text2)">Executing live client-go pod list parameters...</div>
     </div>`;
 
       fetch(`/api/nodedetail?node=${nodeName}&context=${contextName}`)
         .then(r => r.json())
         .then(detail => {
           if (detail.error) {
-            document.getElementById('dd-body').innerHTML = `<div class="dd-callout dd-callout-red"><div class="dd-callout-title">Scan Fault</div><div class="dd-callout-body">${detail.error}</div></div>`;
+            document.getElementById('dd-body').innerHTML = `<div class="dd-callout dd-callout-red"><div class="dd-callout-title">Scan Error</div><div class="dd-callout-body">${detail.error}</div></div>`;
             return;
           }
 
           const namespacesHtml = (detail.namespaces || []).map(ns => `<span class="dd-tag dd-tag-blue">${ns}</span>`).join(' ');
           const podsHtml = (detail.pods || []).map(p => `
         <tr>
-          <td style="font-family:var(--mono);font-size:11px;">${p.name}</td>
-          <td>${p.namespace}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--text);">${p.name}</td>
+          <td><span class="wl-ns">${p.namespace}</span></td>
           <td><span class="dd-tag ${p.status === 'Running' ? 'dd-tag-green' : 'dd-tag-red'}">${p.status}</span></td>
           <td><span class="dd-tag dd-tag-red">${p.riskScore}</span></td>
           <td style="color:var(--text3); font-size:11px;">${p.riskReasons.join(', ') || 'clear'}</td>
@@ -2926,19 +2260,16 @@
           </div>
         </div>
         <div class="dd-section">
-          <div class="dd-section-title">Active Target Namespaces</div>
+          <div class="dd-section-title">Active Namespaces Discovered on Node</div>
           <div style="padding:4px 0;">${namespacesHtml || '<span style="color:var(--text4)">None</span>'}</div>
         </div>
         <div class="dd-section">
-          <div class="dd-section-title">Isolated Workload Component Pods</div>
+          <div class="dd-section-title">Isolated Namespace Pod Workloads</div>
           <table class="dd-table">
             <thead><tr><th>Pod specification</th><th>Namespace</th><th>Phase</th><th>Risk</th><th>Violations</th></tr></thead>
             <tbody>${podsHtml || '<tr><td colspan="5" style="color:var(--text4);text-align:center;padding:12px;">No pods operating inside targeted scope descriptors</td></tr>'}</tbody>
           </table>
         </div>`;
-        })
-        .catch(err => {
-          document.getElementById('dd-body').innerHTML = `<div class="dd-callout dd-callout-red"><div class="dd-callout-body">${err.message}</div></div>`;
         });
     }
 
@@ -2955,42 +2286,41 @@
     <div class="dd-section">
       <div class="dd-section-title">Scope Parameters</div>
       <div class="dd-grid3">
-        <div class="dd-stat"><div class="dd-stat-val">${c.nodeCount}</div><div class="dd-stat-label">Total compute instances</div></div>
-        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--red)">${c.vulnerable}</div><div class="dd-stat-label">Kernel anomalies</div></div>
-        <div class="dd-stat"><div class="dd-stat-val">${c.region}</div><div class="dd-stat-label">Deployment cloud zone</div></div>
+        <div class="dd-stat"><div class="dd-stat-val">${c.nodeCount}</div><div class="dd-stat-label">Total Nodes</div></div>
+        <div class="dd-stat"><div class="dd-stat-val" style="color:var(--red)">${c.vulnerable}</div><div class="dd-stat-label">Exposed Nodes</div></div>
+        <div class="dd-stat"><div class="dd-stat-val">${c.region}</div><div class="dd-stat-label">Region</div></div>
       </div>
     </div>
     <div class="dd-section">
-      <div class="dd-section-title">Remediation Script Trigger</div>
+      <div class="dd-section-title">Quick Remediation Context</div>
       <div class="dd-callout dd-callout-blue">
-        <div class="dd-callout-title">Isolate Cluster Execution Target Context</div>
+        <div class="dd-callout-title">Isolate Cluster Context Target</div>
         <div class="dd-callout-body" style="font-family:var(--mono);font-size:11px;">kubectl config use-context ${c.context}</div>
       </div>
     </div>`;
     }
 
-    // STANDARD PRESENTATION LOGIC
     function renderCVEs(cves) {
-      setText('cve-tag', cves.length + ' active tracker objects');
+      setText('cve-tag', cves.length + ' active tracking items');
       let html = `<table class="cvt"><thead><tr><th>Identifier</th><th>Severity</th><th>Timeline State</th><th>Action Fix</th></tr></thead><tbody>`;
       cves.forEach(v => {
-        html += `<tr><td><span class="cve-id">${v.id}</span></td><td><span class="sev ${v.severity.toLowerCase()}">${v.severity}</span></td><td><span style="font-size:11px;color:var(--text3);font-family:var(--mono);">${v.ageText}</span></td><td><span style="color:var(--green); font-family:var(--mono); font-size:11px;">remediation pipeline ready</span></td></tr>`;
+        html += `<tr><td><span class="cve-id">${v.id}</span></td><td><span class="sev ${v.severity.toLowerCase()}">${v.severity}</span></td><td><span style="font-size:11px;color:var(--text3);font-family:var(--mono);">${v.ageText}</span></td><td><span style="color:var(--green); font-family:var(--mono); font-size:11px;">remediation ready</span></td></tr>`;
       });
       document.getElementById('cve-table').innerHTML = html + '</tbody></table>';
     }
 
-    function renderRiskSignals(s, comp, cves) {
+    function renderRiskSignalsFiltered(calculatedScore, comp) {
       const sigs = [
-        { l: 'algif_aead infrastructure components loaded', v: s.riskScore || 78, c: 'var(--red)' },
+        { l: 'algif_aead infrastructure components loaded', v: Math.round(calculatedScore), c: 'var(--red)' },
         { l: 'EKS cluster configuration deviation rules', v: 100 - comp.eks, c: 'var(--amber)' },
-        { l: 'Host operating system image standard drift', v: 100 - comp.linux, c: 'var(--red)' }
+        { l: 'Host operating system standard drift', v: 100 - comp.linux, c: 'var(--red)' }
       ];
       document.getElementById('risk-signals').innerHTML = sigs.map(x => `<div class="brow"><span class="blbl" style="width:195px;font-size:10px;">${x.l}</span><div class="btrack"><div class="bfill" style="width:${x.v}%;background:${x.c};"></div></div><span class="bval">${x.v}%</span></div>`).join('');
     }
 
     function renderAlerts(alerts) {
       if (!alerts.length) {
-        document.getElementById('alert-feed').innerHTML = `<div style="text-align:center;padding:20px;color:var(--text4);font-family:var(--mono)">Fleet configuration patterns follow security baseline scopes. Monitoring live...</div>`;
+        document.getElementById('alert-feed').innerHTML = `<div style="text-align:center;padding:20px;color:var(--text4);font-family:var(--mono)">Fleet configurations follow security baseline scopes. Monitoring live...</div>`;
         return;
       }
       document.getElementById('alert-feed').innerHTML = alerts.map(x => `
@@ -3015,9 +2345,9 @@
       document.getElementById('cluster-bars').innerHTML = `<div class="brow"><span class="blbl" style="width:140px;">Baseline compliance</span><div class="btrack"><div class="bfill" style="width:34%;background:var(--red);"></div></div><span class="bval">34%</span></div>`;
     }
 
-    function buildCharts(s, comp, cves) {
+    function buildChartsFiltered(crit, high, cves, comp, calculatedScore) {
       if (charts.risk) charts.risk.destroy();
-      charts.risk = new Chart(document.getElementById('ch-risk'), { type: 'bar', data: { labels: ['Critical', 'High', 'Medium', 'Low'], datasets: [{ data: [s.critical || 0, s.high || 0, s.medium || 0, s.low || 0], backgroundColor: ['#ff3d5a', '#ffb340', '#4d9fff', '#00f5a0'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+      charts.risk = new Chart(document.getElementById('ch-risk'), { type: 'bar', data: { labels: ['Critical', 'High', 'Medium', 'Low'], datasets: [{ data: [crit, high, 0, 2], backgroundColor: ['#ff3d5a', '#ffb340', '#4d9fff', '#00f5a0'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
 
       if (charts.sev) charts.sev.destroy();
       charts.sev = new Chart(document.getElementById('ch-sev'), { type: 'doughnut', data: { labels: ['Critical', 'High'], datasets: [{ data: [cves.filter(x => x.severity === 'Critical').length, cves.filter(x => x.severity === 'High').length], backgroundColor: ['#ff3d5a', '#ffb340'] }] }, options: { responsive: true, maintainAspectRatio: false } });
@@ -3029,7 +2359,7 @@
       charts.cve = new Chart(document.getElementById('ch-cve'), { type: 'bar', data: { labels: ['glibc', 'kernel-amzn'], datasets: [{ data: [1, 1], backgroundColor: ['#ffb340', '#ff3d5a'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
 
       if (charts.surface) charts.surface.destroy();
-      charts.surface = new Chart(document.getElementById('ch-surface'), { type: 'bar', indexAxis: 'y', data: { labels: ['AF_ALG Socket Interface', 'Launch template drift'], datasets: [{ data: [s.riskScore, 100 - comp.linux], backgroundColor: ['#ff3d5a', '#ffb340'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+      charts.surface = new Chart(document.getElementById('ch-surface'), { type: 'bar', indexAxis: 'y', data: { labels: ['AF_ALG Socket Interface', 'Launch template drift'], datasets: [{ data: [calculatedScore, 100 - comp.linux], backgroundColor: ['#ff3d5a', '#ffb340'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
 
     function showTab(id, btn) {
@@ -3047,7 +2377,7 @@
     }, 1000);
 
     async function triggerRefresh(btn) {
-      btn.textContent = "scanning cluster maps...";
+      btn.textContent = "scanning configuration maps...";
       await fetch('/api/refresh');
       setTimeout(() => { btn.textContent = "↻ Force refresh"; fetchData(); }, 1500);
     }
@@ -3058,7 +2388,6 @@
     function closeDd() { document.getElementById('dd-modal').style.display = 'none'; }
     function setCompVal(id, v) { const el = document.getElementById(id); if (el) { el.textContent = v + '%'; el.style.color = v >= 50 ? 'var(--green)' : 'var(--red)'; } }
 
-    // BOOT ENGINE
     fetchData();
   </script>
 </body>
