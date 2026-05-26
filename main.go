@@ -150,7 +150,7 @@ func main() {
 	http.HandleFunc("/api/refresh", forceRefreshHandler)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "index.html")
+		http.ServeFile(w, r, "dashboard.html")
 	})
 
 	fmt.Println("🚀 PDKS Security backend serving on: http://localhost:8080")
@@ -229,9 +229,13 @@ func triggerMetricsScan() {
 				clusterReport.Region = "eu-west-1"
 			}
 
-			clientConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+			// Replace the old clientConfig setup block around line 234 with this:
+			clientConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+				&clientcmd.ConfigOverrides{CurrentContext: ctxName},
+			).ClientConfig()
+
 			if err == nil {
-				clientConfig.CurrentContext = ctxName
 				clientConfig.Timeout = 7 * time.Second
 			}
 
@@ -475,13 +479,15 @@ func fetchRealNodePods(nodeName, ctxName string) NodeDrilldownDetail {
 	}
 
 	kubeconfigPath := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	clientConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	// Replace the old clientConfig setup block around line 484 with this:
+	clientConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+		&clientcmd.ConfigOverrides{CurrentContext: ctxName},
+	).ClientConfig()
+
 	if err != nil {
 		detail.Error = err.Error()
 		return detail
-	}
-	if ctxName != "" {
-		clientConfig.CurrentContext = ctxName
 	}
 
 	clientset, err := kubernetes.NewForConfig(clientConfig)
