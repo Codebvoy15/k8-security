@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"path/filepath"
+	"os"
+	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -14,552 +17,614 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
-type DashboardData struct {
-	Summary         SummaryData      `json:"summary"`
-	Compliance      ComplianceData   `json:"compliance"`
-	Cves            []CVE            `json:"cves"`
-	Nodes           []NodeReport     `json:"nodes"`
-	Workloads       []WorkloadReport `json:"workloads"` // Updated to track true workloads
-	Clusters        []ClusterReport  `json:"clusters"`
-	Alerts          []AlertItem      `json:"alerts"`
-	ScanAge         string           `json:"scanAge"`
-	ScanInProgress  bool             `json:"scanInProgress"`
-	ScanPct         int              `json:"scanPct"`
-	TotalContexts   int              `json:"totalContexts"`
-	ScannedContexts int              `json:"scannedContexts"`
-	FailedContexts  int              `json:"failedContexts"`
-}
+//go:embed dashboard.html
+var dashboardHTML []byte
 
-type SummaryData struct {
-	Vulnerable  int `json:"vulnerable"`
-	Critical    int `json:"critical"`
-	High        int `json:"high"`
-	Medium      int `json:"medium"`
-	Low         int `json:"low"`
-	AgentsLive  int `json:"agentsLive"`
-	TotalNodes  int `json:"totalNodes"`
-	AlgifLoaded int `json:"algifLoaded"`
-	RiskScore   int `json:"riskScore"`
-}
+// ── MODELS ───────────────────────────────────────────────────────────────────
 
-type ComplianceData struct {
-	Eks    int `json:"eks"`
-	Linux  int `json:"linux"`
-	Sysdig int `json:"sysdig"`
-}
-
-type CVE struct {
-	ID        string `json:"id"`
-	Severity  string `json:"severity"`
-	AgeDays   int    `json:"ageDays"`
-	AgeText   string `json:"ageText"`
-	Component string `json:"component"`
-}
-
-type NodeReport struct {
-	Name           string   `json:"name"`
-	Cluster        string   `json:"cluster"`
-	ClusterContext string   `json:"clusterContext"`
-	Kernel         string   `json:"kernel"`
-	PatchStatus    string   `json:"patchStatus"`
-	AlgifStatus    string   `json:"algifStatus"`
-	Ready          string   `json:"ready"`
-	NodeType       string   `json:"nodeType"`
-	Zone           string   `json:"zone"`
-	IsSpot         bool     `json:"isSpot"`
-	Karpenter      bool     `json:"karpenter"`
-	Nodepool       string   `json:"nodepool"`
-	RiskScore      int      `json:"riskScore"`
-	RiskLevel      string   `json:"riskLevel"`
-	RiskFactors    []string `json:"riskFactors"`
-	ScannedAt      string   `json:"scannedAt"`
-}
-
-type WorkloadReport struct {
-	Name       string `json:"name"`
-	Namespace  string `json:"namespace"`
-	Cluster    string `json:"cluster"`
-	Type       string `json:"type"` // e.g., "Deployment", "DaemonSet"
-	Replicas   string `json:"replicas"`
-	RiskScore  int    `json:"riskScore"`
-	RiskLevel  string `json:"riskLevel"`
-	Issues     string `json:"issues"`
-	Image      string `json:"image"`
-	Vulnerable bool   `json:"vulnerable"`
-}
-
-type ClusterReport struct {
-	Name       string `json:"name"`
-	Context    string `json:"context"`
-	Region     string `json:"region"`
-	NodeCount  int    `json:"nodeCount"`
-	Vulnerable int    `json:"vulnerable"`
-	Status     string `json:"status"`
-	Error      string `json:"error,omitempty"`
-	ScannedAt  string `json:"scannedAt"`
-}
-
-type AlertItem struct {
-	Title    string `json:"title"`
-	Body     string `json:"body"`
-	Level    string `json:"level"`
-	FiredAt  string `json:"firedAt"`
-	Notified bool   `json:"notified"`
-}
-
-type NodeDrilldownDetail struct {
-	PodCount     int        `json:"podCount"`
-	PrivCount    int        `json:"privCount"`
-	HostNetCount int        `json:"hostNetCount"`
-	SecretCount  int        `json:"secretCount"`
-	BlastLevel   string     `json:"blastLevel"`
-	Namespaces   []string   `json:"namespaces"`
-	Pods         []PodBrief `json:"pods"`
-	ScannedAt    string     `json:"scannedAt"`
-	Error        string     `json:"error,omitempty"`
-}
-
-type PodBrief struct {
+type AppDetail struct {
 	Name        string   `json:"name"`
 	Namespace   string   `json:"namespace"`
-	Status      string   `json:"status"`
+	Image       string   `json:"image"`
+	Privileged  bool     `json:"privileged"`
+	HostNetwork bool     `json:"hostNetwork"`
+	RunAsRoot   bool     `json:"runAsRoot"`
+	NoLimits    bool     `json:"noLimits"`
+	Issues      []string `json:"issues"`
 	RiskScore   int      `json:"riskScore"`
-	RiskReasons []string `json:"riskReasons"`
 }
+
+type NamespaceSummary struct {
+	Name     string      `json:"name"`
+	AppCount int         `json:"appCount"`
+	Issues   int         `json:"issues"`
+	Risk     string      `json:"risk"`
+	Apps     []AppDetail `json:"apps"`
+}
+
+type NodeInfo struct {
+	Name        string `json:"name"`
+	Kernel      string `json:"kernel"`
+	PatchStatus string `json:"patchStatus"`
+	AlgifStatus string `json:"algifStatus"`
+	Vulnerable  bool   `json:"vulnerable"`
+	NodeType    string `json:"nodeType"`
+	Zone        string `json:"zone"`
+	IsSpot      bool   `json:"isSpot"`
+	Ready       string `json:"ready"`
+	RiskScore   int    `json:"riskScore"`
+	RiskLevel   string `json:"riskLevel"`
+}
+
+type ClusterDetail struct {
+	Name       string             `json:"name"`
+	Context    string             `json:"context"`
+	Region     string             `json:"region"`
+	Status     string             `json:"status"`
+	Error      string             `json:"error,omitempty"`
+	Nodes      []NodeInfo         `json:"nodes"`
+	Namespaces []NamespaceSummary `json:"namespaces"`
+	NodeCount  int                `json:"nodeCount"`
+	Vulnerable int                `json:"vulnerable"`
+	PodCount   int                `json:"podCount"`
+	NSCount    int                `json:"nsCount"`
+	ScannedAt  time.Time          `json:"scannedAt"`
+}
+
+type FleetData struct {
+	Clusters        []ClusterDetail `json:"clusters"`
+	TotalClusters   int             `json:"totalClusters"`
+	ScannedClusters int             `json:"scannedClusters"`
+	FailedClusters  int             `json:"failedClusters"`
+	TotalNodes      int             `json:"totalNodes"`
+	VulnNodes       int             `json:"vulnNodes"`
+	TotalPods       int             `json:"totalPods"`
+	ScanInProgress  bool            `json:"scanInProgress"`
+	ScanPct         int             `json:"scanPct"`
+	LastScan        time.Time       `json:"lastScan"`
+	ScanAge         string          `json:"scanAge"`
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
 
 var (
-	cacheMutex sync.RWMutex
-	cachedData DashboardData
+	mu       sync.RWMutex
+	fleet    FleetData
+	scanning bool
 )
 
-func main() {
-	go triggerMetricsScan()
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 
-	ticker := time.NewTicker(60 * time.Second)
-	go func() {
-		for range ticker.C {
-			triggerMetricsScan()
+func clusterName(ctx string) string {
+	if strings.Contains(ctx, "/") {
+		p := strings.Split(ctx, "/")
+		return p[len(p)-1]
+	}
+	return ctx
+}
+
+func regionFromCtx(ctx string) string {
+	p := strings.Split(ctx, ":")
+	if len(p) >= 4 && strings.HasPrefix(ctx, "arn:aws:eks:") {
+		return p[3]
+	}
+	return ""
+}
+
+func assessKernel(kernel string, labels map[string]string) (patched bool, algif string, status string) {
+	if v := labels["security.pfizer.com/algif-aead-status"]; v != "" {
+		algif = v
+		patched = v == "blocked"
+		if patched {
+			status = "patched"
+		} else {
+			status = "unpatched"
 		}
-	}()
-
-	http.HandleFunc("/api/data", getDataHandler)
-	http.HandleFunc("/api/nodedetail", getNodeDetailHandler)
-	http.HandleFunc("/api/refresh", forceRefreshHandler)
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "dashboard.html")
-	})
-
-	fmt.Println("🚀 PDKS Security backend serving on: http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func getDataHandler(w http.ResponseWriter, r *http.Request) {
-	cacheMutex.RLock()
-	defer cacheMutex.RUnlock()
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cachedData)
-}
-
-func forceRefreshHandler(w http.ResponseWriter, r *http.Request) {
-	triggerMetricsScan()
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"scan triggered"}`))
-}
-
-func getNodeDetailHandler(w http.ResponseWriter, r *http.Request) {
-	nodeName := r.URL.Query().Get("node")
-	targetContext := r.URL.Query().Get("context")
-	w.Header().Set("Content-Type", "application/json")
-	if nodeName == "" {
-		http.Error(w, "missing node query param", http.StatusBadRequest)
 		return
 	}
-	detail := fetchRealNodePods(nodeName, targetContext)
-	json.NewEncoder(w).Encode(detail)
+	if !strings.Contains(kernel, "amzn2023") {
+		return true, "n/a", "non-al2023"
+	}
+	parts := strings.Split(strings.Split(kernel, "-")[0], ".")
+	if len(parts) < 3 {
+		return false, "unknown", "unknown"
+	}
+	var major, minor, patch int
+	fmt.Sscanf(parts[0], "%d", &major)
+	fmt.Sscanf(parts[1], "%d", &minor)
+	fmt.Sscanf(parts[2], "%d", &patch)
+	if major == 6 && minor == 1 && patch >= 141 {
+		return true, "blocked", "patched"
+	}
+	return false, "loaded", "unpatched"
 }
 
-func triggerMetricsScan() {
-	cacheMutex.Lock()
-	cachedData.ScanInProgress = true
-	cachedData.ScanPct = 10
-	cacheMutex.Unlock()
-
-	var nodesList []NodeReport
-	var workloadsList []WorkloadReport
-	var clustersList []ClusterReport
-	var alertsList []AlertItem
-
-	kubeconfigPath := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	config, err := clientcmd.LoadFromFile(kubeconfigPath)
-	if err != nil {
-		log.Printf("Failed to load local Kubeconfig: %v", err)
-		return
+func nodeRisk(score int) string {
+	if score >= 65 {
+		return "critical"
+	} else if score >= 40 {
+		return "high"
+	} else if score >= 20 {
+		return "medium"
 	}
-
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-
-	totalCtxs := len(config.Contexts)
-	scannedCtxs := 0
-	failedCtxs := 0
-
-	for contextName := range config.Contexts {
-		wg.Add(1)
-		go func(ctxName string) {
-			defer wg.Done()
-
-			ctxParts := strings.Split(ctxName, "/")
-			cName := ctxParts[len(ctxParts)-1]
-
-			clusterReport := ClusterReport{
-				Context:   ctxName,
-				Name:      cName,
-				Status:    "ok",
-				ScannedAt: time.Now().Format(time.RFC3339),
-			}
-
-			clusterReport.Region = "us-east-1"
-			if strings.Contains(ctxName, "us-west-2") {
-				clusterReport.Region = "us-west-2"
-			} else if strings.Contains(ctxName, "eu-west-1") {
-				clusterReport.Region = "eu-west-1"
-			}
-
-			// Replace the old clientConfig setup block around line 234 with this:
-			clientConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
-				&clientcmd.ConfigOverrides{CurrentContext: ctxName},
-			).ClientConfig()
-
-			if err == nil {
-				clientConfig.Timeout = 7 * time.Second
-			}
-
-			var clientset *kubernetes.Clientset
-			if err == nil {
-				clientset, err = kubernetes.NewForConfig(clientConfig)
-			}
-
-			if err != nil {
-				clusterReport.Status = "error"
-				clusterReport.Error = err.Error()
-				mu.Lock()
-				failedCtxs++
-				clustersList = append(clustersList, clusterReport)
-				mu.Unlock()
-				return
-			}
-
-			// Gather Live Nodes
-			liveNodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-			if err != nil {
-				clusterReport.Status = "error"
-				clusterReport.Error = err.Error()
-				mu.Lock()
-				failedCtxs++
-				clustersList = append(clustersList, clusterReport)
-				mu.Unlock()
-				return
-			}
-
-			clusterReport.NodeCount = len(liveNodes.Items)
-			var clusterVulnNodes int
-			var localNodes []NodeReport
-
-			clusterIsVulnerable := false
-			for _, node := range liveNodes.Items {
-				kVersion := node.Status.NodeInfo.KernelVersion
-				isUnpatched := true
-				if strings.Contains(kVersion, "6.1.") {
-					var revision int
-					_, fmtErr := fmt.Sscanf(kVersion, "6.1.%d", &revision)
-					if fmtErr == nil && revision >= 141 {
-						isUnpatched = false
-					}
-				}
-
-				patchStatus := "unpatched"
-				if !isUnpatched {
-					patchStatus = "patched"
-				}
-
-				nodeType := node.Labels["node.kubernetes.io/instance-type"]
-				if nodeType == "" {
-					nodeType = node.Labels["beta.kubernetes.io/instance-type"]
-				}
-				zone := node.Labels["topology.kubernetes.io/zone"]
-
-				_, isSpot := node.Labels["eks.amazonaws.com/capacityType"]
-				if !isSpot {
-					_, isSpot = node.Labels["karpenter.sh/capacity-type"]
-				}
-				nodepool, hasKarpenter := node.Labels["karpenter.sh/nodepool"]
-
-				readyStatus := "False"
-				for _, cond := range node.Status.Conditions {
-					if cond.Type == "Ready" {
-						readyStatus = string(cond.Status)
-					}
-				}
-
-				algifStatus := "loaded"
-				if !isUnpatched {
-					algifStatus = "blocked"
-				}
-
-				score := 15
-				var factors []string
-				if isUnpatched {
-					score += 50
-					factors = append(factors, "Kernel unpatched")
-					clusterVulnNodes++
-					clusterIsVulnerable = true
-				}
-				if algifStatus == "loaded" {
-					score += 15
-					factors = append(factors, "algif_aead module active")
-				}
-
-				level := "low"
-				if score >= 65 {
-					level = "critical"
-				} else if score >= 40 {
-					level = "high"
-				}
-
-				localNodes = append(localNodes, NodeReport{
-					Name:           node.Name,
-					Cluster:        clusterReport.Name,
-					ClusterContext: ctxName,
-					Kernel:         kVersion,
-					PatchStatus:    patchStatus,
-					AlgifStatus:    algifStatus,
-					Ready:          readyStatus,
-					NodeType:       nodeType,
-					Zone:           zone,
-					IsSpot:         isSpot,
-					Karpenter:      hasKarpenter,
-					Nodepool:       nodepool,
-					RiskScore:      score,
-					RiskLevel:      level,
-					RiskFactors:    factors,
-					ScannedAt:      time.Now().Format(time.RFC3339),
-				})
-			}
-
-			clusterReport.Vulnerable = clusterVulnNodes
-
-			// Gather Live Workloads (Deployments)
-			var localWorkloads []WorkloadReport
-			deps, err := clientset.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{})
-			if err == nil {
-				for _, dep := range deps.Items {
-					image := "unknown"
-					if len(dep.Spec.Template.Spec.Containers) > 0 {
-						image = dep.Spec.Template.Spec.Containers[0].Image
-					}
-
-					wlScore := 20
-					wlIssues := "None"
-					wlLevel := "low"
-
-					if clusterIsVulnerable && dep.Namespace != "kube-system" {
-						wlScore = 70
-						wlLevel = "critical"
-						wlIssues = "Runs on cluster with unpatched nodes"
-					}
-
-					localWorkloads = append(localWorkloads, WorkloadReport{
-						Name:       dep.Name,
-						Namespace:  dep.Namespace,
-						Cluster:    clusterReport.Name,
-						Type:       "Deployment",
-						Replicas:   fmt.Sprintf("%d/%d", dep.Status.ReadyReplicas, *dep.Spec.Replicas),
-						RiskScore:  wlScore,
-						RiskLevel:  wlLevel,
-						Issues:     wlIssues,
-						Image:      image,
-						Vulnerable: clusterIsVulnerable,
-					})
-				}
-			}
-
-			mu.Lock()
-			scannedCtxs++
-			nodesList = append(nodesList, localNodes...)
-			workloadsList = append(workloadsList, localWorkloads...)
-			clustersList = append(clustersList, clusterReport)
-			mu.Unlock()
-
-		}(contextName)
-	}
-
-	wg.Wait()
-
-	var vulnNodes, critNodes, highNodes, medNodes, lowNodes, algifCount int
-	for _, n := range nodesList {
-		if n.PatchStatus == "unpatched" {
-			vulnNodes++
-		}
-		if n.AlgifStatus == "loaded" {
-			algifCount++
-		}
-		switch n.RiskLevel {
-		case "critical":
-			critNodes++
-		case "high":
-			highNodes++
-		case "medium":
-			medNodes++
-		case "low":
-			lowNodes++
-		}
-	}
-
-	globalRisk := 20
-	if len(nodesList) > 0 {
-		globalRisk = (critNodes*90 + highNodes*65 + medNodes*35) / len(nodesList)
-	}
-
-	dummyCVEs := []CVE{
-		{ID: "CVE-2026-31431", Severity: "Critical", AgeDays: 14, AgeText: "14d ago", Component: "kernel-amzn"},
-		{ID: "CVE-2025-58186", Severity: "High", AgeDays: 210, AgeText: "7 months ago", Component: "glibc"},
-	}
-
-	if vulnNodes > 0 {
-		alertsList = append(alertsList, AlertItem{
-			Title:   "Copy Fail Vulnerability Exposure",
-			Body:    fmt.Sprintf("Detected %d nodes exposed across reachable execution contexts.", vulnNodes),
-			Level:   "critical",
-			FiredAt: time.Now().Format(time.RFC3339),
-		})
-	}
-
-	cacheMutex.Lock()
-	cachedData = DashboardData{
-		Summary: SummaryData{
-			Vulnerable:  vulnNodes,
-			Critical:    critNodes,
-			High:        highNodes,
-			Medium:      medNodes,
-			Low:         lowNodes,
-			AgentsLive:  746,
-			TotalNodes:  len(nodesList),
-			AlgifLoaded: algifCount,
-			RiskScore:   globalRisk,
-		},
-		Compliance: ComplianceData{
-			Eks:    48,
-			Linux:  12,
-			Sysdig: 0,
-		},
-		Cves:            dummyCVEs,
-		Nodes:           nodesList,
-		Workloads:       workloadsList,
-		Clusters:        clustersList,
-		Alerts:          alertsList,
-		ScanAge:         "just now",
-		ScanInProgress:  false,
-		ScanPct:         100,
-		TotalContexts:   totalCtxs,
-		ScannedContexts: scannedCtxs,
-		FailedContexts:  failedCtxs,
-	}
-	cacheMutex.Unlock()
+	return "low"
 }
 
-func fetchRealNodePods(nodeName, ctxName string) NodeDrilldownDetail {
-	detail := NodeDrilldownDetail{
-		ScannedAt:  time.Now().Format(time.RFC3339),
-		BlastLevel: "LOW",
+func classifyErr(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "Token has expired"), strings.Contains(msg, "token has expired"):
+		return "SSO token expired"
+	case strings.Contains(msg, "Unauthorized"), strings.Contains(msg, "401"):
+		return "Unauthorized"
+	case strings.Contains(msg, "timeout"), strings.Contains(msg, "deadline exceeded"):
+		return "Timed out (25s)"
+	case strings.Contains(msg, "connection refused"):
+		return "Connection refused"
+	case strings.Contains(msg, "exit status 1"):
+		return "SSO token expired"
+	default:
+		if len(msg) > 80 {
+			return msg[:80] + "..."
+		}
+		return msg
+	}
+}
+
+// ── SCAN ONE CLUSTER ──────────────────────────────────────────────────────────
+
+func scanCluster(kubeconfigPath, contextName string) ClusterDetail {
+	name := clusterName(contextName)
+	region := regionFromCtx(contextName)
+	detail := ClusterDetail{
+		Name: name, Context: contextName, Region: region, ScannedAt: time.Now(),
 	}
 
-	kubeconfigPath := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	// Replace the old clientConfig setup block around line 484 with this:
-	clientConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
-		&clientcmd.ConfigOverrides{CurrentContext: ctxName},
+	// Try client-go first
+	rules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if kubeconfigPath != "" {
+		rules.ExplicitPath = kubeconfigPath
+	}
+	restCfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		rules,
+		&clientcmd.ConfigOverrides{CurrentContext: contextName},
 	).ClientConfig()
 
 	if err != nil {
-		detail.Error = err.Error()
-		return detail
+		return scanViaKubectl(kubeconfigPath, contextName, name, region)
 	}
+	restCfg.Timeout = 20 * time.Second
 
-	clientset, err := kubernetes.NewForConfig(clientConfig)
+	cs, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		detail.Error = err.Error()
-		return detail
+		return scanViaKubectl(kubeconfigPath, contextName, name, region)
 	}
 
-	pods, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
-		FieldSelector: "spec.nodeName=" + nodeName,
-	})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// ── Nodes ──
+	nodeList, err := cs.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		detail.Error = err.Error()
-		return detail
+		return scanViaKubectl(kubeconfigPath, contextName, name, region)
 	}
 
-	detail.PodCount = len(pods.Items)
-	nsMap := make(map[string]bool)
-
-	for _, pod := range pods.Items {
-		nsMap[pod.Namespace] = true
-		isPrivileged := false
-		hasHostNetwork := pod.Spec.HostNetwork
-		hasSecrets := false
-
-		for _, container := range pod.Spec.Containers {
-			if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
-				isPrivileged = true
+	for _, n := range nodeList.Items {
+		labels := n.Labels
+		info := n.Status.NodeInfo
+		ready := "Unknown"
+		for _, c := range n.Status.Conditions {
+			if string(c.Type) == "Ready" {
+				ready = string(c.Status)
 			}
 		}
-		for _, vol := range pod.Spec.Volumes {
-			if vol.Secret != nil {
-				hasSecrets = true
-			}
+		patched, algif, status := assessKernel(info.KernelVersion, labels)
+		score := 0
+		if !patched {
+			score += 65
 		}
-
-		podScore := 10
-		var reasons []string
-		if isPrivileged {
-			detail.PrivCount++
-			podScore += 50
-			reasons = append(reasons, "Privileged space container")
+		if algif == "loaded" {
+			score += 25
 		}
-		if hasHostNetwork {
-			detail.HostNetCount++
-			podScore += 20
-			reasons = append(reasons, "hostNetwork configuration active")
+		if score > 99 {
+			score = 99
 		}
-		if hasSecrets {
-			detail.SecretCount++
-			podScore += 5
-			reasons = append(reasons, "Mounted core Secret mapping")
-		}
-
-		detail.Pods = append(detail.Pods, PodBrief{
-			Name:        pod.Name,
-			Namespace:   pod.Namespace,
-			Status:      string(pod.Status.Phase),
-			RiskScore:   podScore,
-			RiskReasons: reasons,
+		detail.Nodes = append(detail.Nodes, NodeInfo{
+			Name: n.Name, Kernel: info.KernelVersion,
+			PatchStatus: status, AlgifStatus: algif, Vulnerable: !patched,
+			NodeType: labels["node.kubernetes.io/instance-type"],
+			Zone:     labels["topology.kubernetes.io/zone"],
+			IsSpot:   labels["eks.amazonaws.com/capacityType"] == "SPOT",
+			Ready: ready, RiskScore: score, RiskLevel: nodeRisk(score),
 		})
+		detail.NodeCount++
+		if !patched {
+			detail.Vulnerable++
+		}
 	}
 
-	for ns := range nsMap {
-		detail.Namespaces = append(detail.Namespaces, ns)
+	// ── Pods → Namespace summary ──
+	podList, err := cs.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		detail.PodCount = len(podList.Items)
+		nsMap := map[string]*NamespaceSummary{}
+
+		for _, pod := range podList.Items {
+			ns := pod.Namespace
+			if nsMap[ns] == nil {
+				nsMap[ns] = &NamespaceSummary{Name: ns}
+			}
+			nsMap[ns].AppCount++
+
+			app := AppDetail{Name: pod.Name, Namespace: ns}
+			if len(pod.Spec.Containers) > 0 {
+				img := pod.Spec.Containers[0].Image
+				// Trim long image names
+				if idx := strings.LastIndex(img, "/"); idx >= 0 {
+					img = img[idx+1:]
+				}
+				app.Image = img
+			}
+			app.HostNetwork = pod.Spec.HostNetwork
+
+			for _, c := range pod.Spec.Containers {
+				if c.SecurityContext != nil {
+					if c.SecurityContext.Privileged != nil && *c.SecurityContext.Privileged {
+						app.Privileged = true
+					}
+					if c.SecurityContext.RunAsUser != nil && *c.SecurityContext.RunAsUser == 0 {
+						app.RunAsRoot = true
+					}
+				}
+				if c.Resources.Limits == nil || len(c.Resources.Limits) == 0 {
+					app.NoLimits = true
+				}
+			}
+
+			if app.Privileged {
+				app.Issues = append(app.Issues, "privileged")
+				app.RiskScore += 40
+			}
+			if app.HostNetwork {
+				app.Issues = append(app.Issues, "hostNetwork")
+				app.RiskScore += 25
+			}
+			if app.RunAsRoot {
+				app.Issues = append(app.Issues, "runAsRoot")
+				app.RiskScore += 15
+			}
+			if app.NoLimits {
+				app.Issues = append(app.Issues, "noLimits")
+				app.RiskScore += 5
+			}
+
+			if len(app.Issues) > 0 {
+				nsMap[ns].Issues++
+				nsMap[ns].Apps = append(nsMap[ns].Apps, app)
+			}
+		}
+
+		for _, ns := range nsMap {
+			if ns.AppCount == 0 {
+				continue
+			}
+			switch {
+			case ns.Issues > 5:
+				ns.Risk = "critical"
+			case ns.Issues > 2:
+				ns.Risk = "high"
+			case ns.Issues > 0:
+				ns.Risk = "medium"
+			default:
+				ns.Risk = "low"
+			}
+			// Sort apps by risk
+			sort.Slice(ns.Apps, func(i, j int) bool {
+				return ns.Apps[i].RiskScore > ns.Apps[j].RiskScore
+			})
+			detail.Namespaces = append(detail.Namespaces, *ns)
+		}
+		sort.Slice(detail.Namespaces, func(i, j int) bool {
+			return detail.Namespaces[i].Issues > detail.Namespaces[j].Issues
+		})
+		detail.NSCount = len(detail.Namespaces)
 	}
 
-	if detail.PrivCount > 0 || detail.HostNetCount > 0 {
-		detail.BlastLevel = "CRITICAL"
-	} else if detail.SecretCount > 3 {
-		detail.BlastLevel = "HIGH"
-	}
-
+	detail.Status = "ok"
+	log.Printf("[SCAN] ✓ %s: nodes=%d vuln=%d pods=%d ns=%d",
+		name, detail.NodeCount, detail.Vulnerable, detail.PodCount, detail.NSCount)
 	return detail
+}
+
+func scanViaKubectl(kubeconfigPath, contextName, name, region string) ClusterDetail {
+	detail := ClusterDetail{
+		Name: name, Context: contextName, Region: region, ScannedAt: time.Now(),
+	}
+	args := []string{"--context=" + contextName, "get", "nodes", "-o", "json"}
+	cmd := exec.Command("kubectl", args...)
+	cmd.Env = os.Environ()
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		detail.Status = "error"
+		detail.Error = classifyErr(err)
+		return detail
+	}
+
+	var raw struct {
+		Items []struct {
+			Metadata struct {
+				Name   string            `json:"name"`
+				Labels map[string]string `json:"labels"`
+			} `json:"metadata"`
+			Status struct {
+				NodeInfo   struct{ KernelVersion string `json:"kernelVersion"` } `json:"nodeInfo"`
+				Conditions []struct {
+					Type   string `json:"type"`
+					Status string `json:"status"`
+				} `json:"conditions"`
+			} `json:"status"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(out, &raw); err != nil {
+		detail.Status = "error"
+		detail.Error = "parse error"
+		return detail
+	}
+	for _, item := range raw.Items {
+		labels := item.Metadata.Labels
+		ready := "Unknown"
+		for _, c := range item.Status.Conditions {
+			if c.Type == "Ready" {
+				ready = c.Status
+			}
+		}
+		patched, algif, status := assessKernel(item.Status.NodeInfo.KernelVersion, labels)
+		score := 0
+		if !patched {
+			score += 65
+		}
+		if algif == "loaded" {
+			score += 25
+		}
+		detail.Nodes = append(detail.Nodes, NodeInfo{
+			Name: item.Metadata.Name, Kernel: item.Status.NodeInfo.KernelVersion,
+			PatchStatus: status, AlgifStatus: algif, Vulnerable: !patched,
+			NodeType: labels["node.kubernetes.io/instance-type"],
+			Zone:     labels["topology.kubernetes.io/zone"],
+			IsSpot:   labels["eks.amazonaws.com/capacityType"] == "SPOT",
+			Ready: ready, RiskScore: score, RiskLevel: nodeRisk(score),
+		})
+		detail.NodeCount++
+		if !patched {
+			detail.Vulnerable++
+		}
+	}
+	detail.Status = "ok"
+	return detail
+}
+
+// ── FLEET SCAN ────────────────────────────────────────────────────────────────
+
+func getAllContexts(kubeconfigPath string) ([]string, error) {
+	rules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if kubeconfigPath != "" {
+		rules.ExplicitPath = kubeconfigPath
+	}
+	cfg, err := rules.Load()
+	if err != nil {
+		return nil, err
+	}
+	var ctxs []string
+	for n := range cfg.Contexts {
+		ctxs = append(ctxs, n)
+	}
+	sort.Strings(ctxs)
+	return ctxs, nil
+}
+
+func runFleetScan() {
+	mu.Lock()
+	if scanning {
+		mu.Unlock()
+		return
+	}
+	scanning = true
+	fleet.ScanInProgress = true
+	fleet.ScanPct = 0
+	mu.Unlock()
+
+	kc := os.Getenv("KUBECONFIG")
+	if kc == "" {
+		home, _ := os.UserHomeDir()
+		kc = home + "/.kube/config"
+	}
+
+	contexts, err := getAllContexts(kc)
+	if err != nil {
+		log.Printf("[SCAN] kubeconfig error: %v", err)
+		mu.Lock()
+		scanning = false
+		fleet.ScanInProgress = false
+		mu.Unlock()
+		return
+	}
+
+	total := len(contexts)
+	log.Printf("[SCAN] Starting — %d clusters", total)
+
+	type result struct{ detail ClusterDetail }
+	resultCh := make(chan result, total)
+	sem := make(chan struct{}, 10)
+
+	for _, ctx := range contexts {
+		go func(c string) {
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			resultCh <- result{detail: scanCluster(kc, c)}
+		}(ctx)
+	}
+
+	var clusters []ClusterDetail
+	done, okCount, failCount := 0, 0, 0
+	totalNodes, vulnNodes, totalPods := 0, 0, 0
+
+	for done < total {
+		r := <-resultCh
+		done++
+		clusters = append(clusters, r.detail)
+
+		if r.detail.Status == "ok" {
+			okCount++
+			totalNodes += r.detail.NodeCount
+			vulnNodes += r.detail.Vulnerable
+			totalPods += r.detail.PodCount
+		} else {
+			failCount++
+		}
+
+		pct := done * 100 / total
+
+		// Sort: most vulnerable first, then errors, then by name
+		sorted := make([]ClusterDetail, len(clusters))
+		copy(sorted, clusters)
+		sort.Slice(sorted, func(i, j int) bool {
+			if sorted[i].Vulnerable != sorted[j].Vulnerable {
+				return sorted[i].Vulnerable > sorted[j].Vulnerable
+			}
+			if sorted[i].Status != sorted[j].Status {
+				return sorted[i].Status == "ok"
+			}
+			return sorted[i].Name < sorted[j].Name
+		})
+
+		mu.Lock()
+		fleet = FleetData{
+			Clusters:        sorted,
+			TotalClusters:   total,
+			ScannedClusters: okCount,
+			FailedClusters:  failCount,
+			TotalNodes:      totalNodes,
+			VulnNodes:       vulnNodes,
+			TotalPods:       totalPods,
+			ScanInProgress:  done < total,
+			ScanPct:         pct,
+			LastScan:        time.Now(),
+			ScanAge:         fmt.Sprintf("scanning %d/%d clusters", done, total),
+		}
+		scanning = done < total
+		mu.Unlock()
+	}
+
+	mu.Lock()
+	fleet.ScanInProgress = false
+	fleet.ScanPct = 100
+	fleet.ScanAge = "just now"
+	scanning = false
+	mu.Unlock()
+
+	log.Printf("[SCAN] Done — %d clusters OK, %d failed, %d nodes, %d vulnerable",
+		okCount, failCount, totalNodes, vulnNodes)
+}
+
+// ── HTTP HANDLERS ─────────────────────────────────────────────────────────────
+
+func handleData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Cache-Control", "no-cache")
+	mu.RLock()
+	defer mu.RUnlock()
+	json.NewEncoder(w).Encode(fleet)
+}
+
+func handleRefresh(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	go runFleetScan()
+	json.NewEncoder(w).Encode(map[string]string{"status": "triggered"})
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	mu.RLock()
+	defer mu.RUnlock()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok", "scanning": fleet.ScanInProgress,
+		"pct": fleet.ScanPct, "clusters": fleet.TotalClusters,
+	})
+}
+
+func handleDashboard(w http.ResponseWriter, r *http.Request) {
+	// Serve file if present (hot reload), otherwise embedded
+	if b, err := os.ReadFile("dashboard.html"); err == nil {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(b)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(dashboardHTML)
+}
+
+func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.Println("╔═══════════════════════════════════════╗")
+	log.Println("║  PDKS Security Intelligence Platform  ║")
+	log.Println("║  Pfizer Platform Engineering          ║")
+	log.Println("╚═══════════════════════════════════════╝")
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// Start scan immediately
+	go runFleetScan()
+
+	// Re-scan every 5 minutes
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			go runFleetScan()
+		}
+	}()
+
+	// Age ticker
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			mu.Lock()
+			if !fleet.ScanInProgress && !fleet.LastScan.IsZero() {
+				age := time.Since(fleet.LastScan)
+				if age < time.Minute {
+					fleet.ScanAge = "just now"
+				} else if age < time.Hour {
+					fleet.ScanAge = fmt.Sprintf("%dm ago", int(age.Minutes()))
+				} else {
+					fleet.ScanAge = fmt.Sprintf("%dh ago", int(age.Hours()))
+				}
+			}
+			mu.Unlock()
+		}
+	}()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/data", handleData)
+	mux.HandleFunc("/api/refresh", handleRefresh)
+	mux.HandleFunc("/api/health", handleHealth)
+	mux.HandleFunc("/", handleDashboard)
+
+	log.Printf("[SERVER] Listening on http://localhost:%s", port)
+	if err := http.ListenAndServe("0.0.0.0:"+port, mux); err != nil {
+		log.Fatalf("[FATAL] %v", err)
+	}
 }
