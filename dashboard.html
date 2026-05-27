@@ -4,90 +4,107 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>· Command Control Plane</title>
+  <title>PDKS · Security Intelligence</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <style>
-    * {
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
       margin: 0;
-      padding: 0;
+      padding: 0
     }
 
     :root {
-      --bg: #05070f;
-      --s1: #0b0e17;
-      --s2: #101424;
-      --s3: #161c32;
-      --s4: #1c243f;
-      --border: rgba(255, 255, 255, 0.05);
-      --border2: rgba(255, 255, 255, 0.12);
-      --text: #e6edf8;
-      --t2: #8fa0c2;
-      --t3: #4e5e80;
-      --t4: #28334e;
+      --bg: #07090f;
+      --s1: #0c0f1a;
+      --s2: #111520;
+      --s3: #161c2c;
+      --s4: #1b2133;
+      --bd: rgba(255, 255, 255, 0.06);
+      --bd2: rgba(255, 255, 255, 0.11);
+      --t1: #e2e8f4;
+      --t2: #8892aa;
+      --t3: #4a5570;
+      --t4: #252d42;
       --red: #f43f5e;
-      --rbg: rgba(244, 63, 94, 0.06);
-      --rb: rgba(244, 63, 94, 0.2);
-      --amber: #fbbf24;
-      --abg: rgba(251, 191, 36, 0.06);
-      --ab: rgba(251, 191, 36, 0.2);
-      --green: #10b981;
-      --gbg: rgba(16, 185, 129, 0.06);
-      --gb: rgba(16, 185, 129, 0.2);
-      --blue: #3b82f6;
-      --bbg: rgba(59, 130, 246, 0.06);
-      --bb: rgba(59, 130, 246, 0.2);
-      --purple: #8b5cf6;
+      --rbg: rgba(244, 63, 94, 0.08);
+      --rbd: rgba(244, 63, 94, 0.2);
+      --amb: #f59e0b;
+      --abg: rgba(245, 158, 11, 0.08);
+      --abd: rgba(245, 158, 11, 0.2);
+      --grn: #10b981;
+      --gbg: rgba(16, 185, 129, 0.08);
+      --gbd: rgba(16, 185, 129, 0.2);
+      --blu: #3b82f6;
+      --bbg: rgba(59, 130, 246, 0.08);
+      --bbd: rgba(59, 130, 246, 0.2);
+      --pur: #8b5cf6;
+      --pbg: rgba(139, 92, 246, 0.08);
+      --pbd: rgba(139, 92, 246, 0.2);
       --mono: 'JetBrains Mono', monospace;
       --sans: 'Inter', sans-serif;
       --r: 6px;
       --rl: 10px;
+      --rxl: 14px;
     }
 
     body {
       background: var(--bg);
-      color: var(--text);
+      color: var(--t1);
       font-family: var(--sans);
       font-size: 13px;
       -webkit-font-smoothing: antialiased;
       overflow: hidden;
+      height: 100vh;
     }
 
-    #scan-bar {
+    ::-webkit-scrollbar {
+      width: 3px;
+      height: 3px
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .08);
+      border-radius: 2px
+    }
+
+    #pgbar {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       height: 2px;
-      z-index: 300;
-      background: transparent;
+      z-index: 500;
+      pointer-events: none;
     }
 
-    #scan-fill {
+    #pgfill {
       height: 100%;
-      background: linear-gradient(90deg, var(--blue), var(--purple));
-      width: 0%;
-      transition: width 0.4s ease;
+      background: linear-gradient(90deg, var(--blu), var(--pur));
+      width: 0;
+      transition: width .6s ease;
+      border-radius: 0 2px 2px 0;
     }
 
-    .topbar {
+    .tb {
       height: 52px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 18px;
-      background: rgba(13, 15, 24, 0.97);
-      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      background: rgba(12, 15, 26, .97);
+      border-bottom: 1px solid var(--bd);
       position: sticky;
       top: 0;
       z-index: 100;
       backdrop-filter: blur(12px);
     }
 
-    .tb-left {
+    .tb-l {
       display: flex;
       align-items: center;
       gap: 10px;
@@ -97,55 +114,69 @@
       width: 28px;
       height: 28px;
       border-radius: 7px;
-      background: linear-gradient(135deg, var(--blue), var(--purple));
+      background: linear-gradient(135deg, var(--blu), var(--pur));
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
+      flex-shrink: 0;
     }
 
-    .tb-title {
-      font-size: 14px;
+    .tb-name {
+      font-size: 13px;
       font-weight: 600;
-      letter-spacing: -0.2px;
-      cursor: pointer;
+      letter-spacing: -.2px;
+    }
+
+    .tb-sep {
+      width: 1px;
+      height: 14px;
+      background: var(--bd2);
+      margin: 0 4px;
     }
 
     .tb-sub {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--t3);
+    }
+
+    .tb-c {
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .pill {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 3px 10px;
+      padding: 3px 9px;
       border-radius: 20px;
       font-size: 10px;
       font-weight: 500;
       border: 1px solid;
+      white-space: nowrap;
     }
 
-    .p-live {
+    .pl {
       background: var(--gbg);
-      border-color: var(--gb);
-      color: var(--green);
+      border-color: var(--gbd);
+      color: var(--grn);
     }
 
-    .p-scan {
+    .ps {
       background: var(--bbg);
-      border-color: var(--bb);
-      color: var(--blue);
+      border-color: var(--bbd);
+      color: var(--blu);
     }
 
-    .p-warn {
+    .pw {
       background: var(--rbg);
-      border-color: var(--rb);
+      border-color: var(--rbd);
       color: var(--red);
     }
 
-    .p-dot {
+    .pdot {
       width: 5px;
       height: 5px;
       border-radius: 50%;
@@ -161,15 +192,15 @@
       }
 
       50% {
-        opacity: .25
+        opacity: .2
       }
     }
 
     .spin {
-      width: 8px;
-      height: 8px;
-      border: 1.5px solid rgba(59, 130, 246, .25);
-      border-top-color: var(--blue);
+      width: 7px;
+      height: 7px;
+      border: 1.5px solid rgba(59, 130, 246, .2);
+      border-top-color: var(--blu);
       border-radius: 50%;
       animation: spin .7s linear infinite;
     }
@@ -180,31 +211,78 @@
       }
     }
 
+    .tb-r {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 5px 12px;
+      gap: 4px;
+      padding: 5px 11px;
       border-radius: var(--r);
-      border: 1px solid var(--border2);
+      border: 1px solid var(--bd2);
       background: var(--s2);
       color: var(--t2);
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
+      font-family: var(--sans);
       transition: all .12s;
     }
 
     .btn:hover {
       background: var(--s3);
-      color: var(--text);
+      color: var(--t1);
       border-color: rgba(255, 255, 255, .14);
     }
 
     .btn-p {
-      background: var(--blue);
-      border-color: var(--blue);
+      background: var(--blu);
+      border-color: var(--blu);
       color: #fff;
+    }
+
+    .btn-p:hover {
+      opacity: .88;
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 4px 9px;
+      font-size: 10px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      background: var(--s2);
+      border-radius: 20px;
+      padding: 2px;
+      border: 1px solid var(--bd);
+    }
+
+    .ni {
+      padding: 4px 13px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--t3);
+      cursor: pointer;
+      transition: all .12s;
+    }
+
+    .ni:hover {
+      color: var(--t2);
+    }
+
+    .ni.active {
+      background: var(--s1);
+      color: var(--t1);
+      box-shadow: 0 0 0 1px var(--bd2);
     }
 
     .layout {
@@ -213,46 +291,43 @@
     }
 
     .sidebar {
-      width: 265px;
+      width: 238px;
       flex-shrink: 0;
       background: var(--s1);
-      border-right: 1px solid var(--border);
+      border-right: 1px solid var(--bd);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
-    .sb-head {
-      padding: 12px;
+    .sb-top {
+      padding: 10px;
+      border-bottom: 1px solid var(--bd);
     }
 
-    .sb-stats {
+    .sb-kpis {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-bottom: 10px;
+      gap: 5px;
+      margin-bottom: 8px;
     }
 
-    .sb-stat {
+    .sb-kpi {
       background: var(--s2);
+      border: 1px solid var(--bd);
       border-radius: var(--r);
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      cursor: pointer;
+      padding: 7px 9px;
     }
 
-    .sb-stat:hover {
-      border-color: var(--blue);
-    }
-
-    .sb-stat-val {
-      font-size: 18px;
+    .skv {
+      font-size: 17px;
       font-weight: 600;
       font-family: var(--mono);
       line-height: 1;
       margin-bottom: 2px;
     }
 
-    .sb-stat-label {
+    .skl {
       font-size: 9px;
       color: var(--t3);
       text-transform: uppercase;
@@ -262,31 +337,42 @@
     .sb-search {
       width: 100%;
       background: var(--s2);
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       border-radius: var(--r);
-      padding: 6px 10px;
-      color: var(--text);
+      padding: 5px 9px;
+      color: var(--t1);
       font-size: 11px;
       outline: none;
-      margin-bottom: 6px;
+      font-family: var(--sans);
+      margin-bottom: 5px;
     }
 
     .sb-search:focus {
-      border-color: var(--blue);
+      border-color: var(--blu);
     }
 
-    .sb-filters {
+    .sb-search::placeholder {
+      color: var(--t4);
+    }
+
+    .sb-row {
       display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 4px;
-      flex-wrap: wrap;
+    }
+
+    .sf-wrap {
+      display: flex;
+      gap: 3px;
     }
 
     .sf {
-      padding: 3px 9px;
+      padding: 3px 8px;
       border-radius: 20px;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 500;
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       background: transparent;
       color: var(--t3);
       cursor: pointer;
@@ -294,179 +380,258 @@
 
     .sf.a {
       background: var(--bbg);
-      border-color: var(--bb);
-      color: var(--blue);
+      border-color: var(--bbd);
+      color: var(--blu);
     }
 
     .sf.ar {
       background: var(--rbg);
-      border-color: var(--rb);
+      border-color: var(--rbd);
       color: var(--red);
     }
 
-    .sb-sort {
+    .ss-wrap {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 8px 12px 4px;
-      border-top: 1px solid var(--border);
+      gap: 3px;
+      font-size: 9px;
+      color: var(--t3);
     }
 
-    .sb-sort select {
+    .ss-wrap select {
       background: var(--s2);
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       color: var(--t2);
-      font-size: 10px;
+      font-size: 9px;
       border-radius: 4px;
-      padding: 2px 6px;
+      padding: 2px 5px;
       outline: none;
+      font-family: var(--sans);
     }
 
     .cl-list {
       flex: 1;
       overflow-y: auto;
-      padding: 6px 8px;
+      padding: 5px 6px;
     }
 
-    .cl-item {
+    .ci {
       border-radius: var(--r);
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       background: var(--s1);
       margin-bottom: 3px;
       cursor: pointer;
       transition: all .12s;
-      padding: 8px;
+      overflow: hidden;
     }
 
-    .cl-item:hover {
+    .ci:hover {
       background: var(--s2);
-      border-color: var(--border2);
+      border-color: var(--bd2);
     }
 
-    .cl-item.active {
-      border-color: var(--bb);
+    .ci.active {
+      border-color: var(--bbd);
       background: var(--bbg);
     }
 
-    .cl-top {
+    .ci-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
+      padding: 7px 9px;
     }
 
-    .cl-name {
-      font-size: 11px;
+    .ci-acc {
+      width: 3px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      align-self: stretch;
+      min-height: 22px;
+    }
+
+    .ci-acc.crit {
+      background: var(--red);
+    }
+
+    .ci-acc.high {
+      background: var(--amb);
+    }
+
+    .ci-acc.safe {
+      background: var(--grn);
+    }
+
+    .ci-acc.err {
+      background: var(--t4);
+    }
+
+    .ci-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ci-nl {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ci-name {
+      font-size: 10px;
       font-weight: 500;
       font-family: var(--mono);
-      color: var(--text);
+      color: var(--t1);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      flex: 1;
     }
 
-    .cl-meta {
+    .ci-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      font-size: 8px;
+      font-weight: 700;
+      font-family: var(--mono);
+      flex-shrink: 0;
+    }
+
+    .rk1 {
+      background: rgba(244, 63, 94, .15);
+      color: var(--red);
+    }
+
+    .rk2 {
+      background: rgba(245, 158, 11, .15);
+      color: var(--amb);
+    }
+
+    .rk3 {
+      background: rgba(59, 130, 246, .15);
+      color: var(--blu);
+    }
+
+    .rkn {
+      background: var(--s3);
+      color: var(--t3);
+    }
+
+    .ci-meta {
       font-size: 9px;
       color: var(--t3);
       margin-top: 1px;
     }
 
-    .cl-vuln {
-      font-size: 13px;
+    .ci-stat {
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .ci-vuln {
+      font-size: 12px;
       font-weight: 600;
       font-family: var(--mono);
+      line-height: 1;
     }
 
-    .cl-bar {
+    .ci-vlbl {
+      font-size: 8px;
+      color: var(--t3);
+    }
+
+    .ci-bar {
       height: 2px;
-      background: var(--s3);
+      margin: 0 9px 4px;
       border-radius: 1px;
+      background: var(--s3);
       overflow: hidden;
-      margin-top: 5px;
     }
 
-    .cl-bar-fill {
+    .ci-bfill {
       height: 100%;
       border-radius: 1px;
     }
 
-    .cl-err-msg {
-      font-size: 9px;
+    .ci-err {
+      padding: 2px 9px 5px 19px;
+      font-size: 8px;
       color: var(--red);
       font-family: var(--mono);
-      padding-top: 4px;
+      line-height: 1.4;
     }
 
-    .cl-count {
-      font-size: 9px;
+    .ci-foot {
+      font-size: 8px;
+      color: var(--t4);
+      padding: 2px 9px 5px;
+      text-align: right;
+    }
+
+    .stale {
+      font-size: 8px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: var(--s3);
       color: var(--t3);
-      padding: 6px;
-      text-align: center;
+      border: 1px solid var(--bd2);
+      margin-left: 3px;
     }
 
     .main {
       flex: 1;
       overflow-y: auto;
       background: var(--bg);
-      padding: 20px;
     }
 
-    .welcome {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      gap: 12px;
-      color: var(--t3);
+    .page {
+      display: none;
+      padding: 18px;
     }
 
-    .welcome-icon {
-      font-size: 36px;
-      opacity: .25;
+    .page.active {
+      display: block;
     }
 
-    .dh {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 16px;
-    }
-
-    .dh-title {
-      font-size: 18px;
-      font-weight: 600;
-      font-family: var(--mono);
-    }
-
-    .dh-sub {
-      font-size: 11px;
-      color: var(--t3);
-      margin-top: 2px;
-    }
-
-    .metrics {
+    /* KPI CARDS */
+    .kpi-row {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
-    .metric {
+    .kpi5 {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .kpi4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .kpi6 {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    .kpi {
       background: var(--s1);
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       border-radius: var(--rl);
-      padding: 11px 13px;
+      padding: 13px 15px;
       position: relative;
+      overflow: hidden;
       cursor: pointer;
-      transition: border-color 0.1s;
+      transition: all .15s;
     }
 
-    .metric:hover {
-      border-color: var(--border2);
+    .kpi:hover {
+      border-color: var(--bd2);
+      transform: translateY(-1px);
     }
 
-    .metric-acc {
+    .kpi-acc {
       position: absolute;
       top: 0;
       left: 0;
@@ -474,1027 +639,1917 @@
       height: 1px;
     }
 
-    .metric-val {
-      font-size: 22px;
+    .kpi-val {
+      font-size: 24px;
       font-weight: 600;
       font-family: var(--mono);
       line-height: 1;
       margin-bottom: 3px;
+      letter-spacing: -.5px;
     }
 
-    .metric-lbl {
+    .kpi-lbl {
       font-size: 9px;
       color: var(--t3);
       text-transform: uppercase;
       letter-spacing: .07em;
     }
 
-    .visual-workspace {
-      display: grid;
-      grid-template-columns: 1.3fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
+    .kpi-sub {
+      font-size: 9px;
+      color: var(--t4);
+      margin-top: 2px;
     }
 
-    .panel {
+    /* CARDS */
+    .card {
       background: var(--s1);
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       border-radius: var(--rl);
-      padding: 16px;
-      min-height: 255px;
-      display: flex;
-      flex-direction: column;
+      overflow: hidden;
     }
 
-    .panel-hdr {
+    .ch {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
+      justify-content: space-between;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--bd);
     }
 
-    .panel-title {
-      font-size: 10px;
+    .ct {
+      font-size: 11px;
       font-weight: 600;
       color: var(--t2);
       text-transform: uppercase;
-      letter-spacing: .07em;
+      letter-spacing: .06em;
     }
 
-    .chart-controls {
-      display: flex;
-      gap: 2px;
+    .cb {
+      padding: 14px;
     }
 
-    .chart-wrapper {
-      flex: 1;
-      position: relative;
-      height: 185px;
-      width: 100%;
-    }
-
-    .threat-feed {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      overflow-y: auto;
-      max-height: 195px;
-    }
-
-    .threat-item {
+    .csel {
       background: var(--s2);
-      border-left: 3px solid var(--purple);
-      padding: 8px 10px;
+      border: 1px solid var(--bd);
+      color: var(--t2);
+      font-size: 9px;
       border-radius: 4px;
+      padding: 2px 6px;
+      outline: none;
+      font-family: var(--sans);
+    }
+
+    .chart-wrap {
+      position: relative;
+    }
+
+    .g2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .g3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .g21 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    /* ALERT */
+    .alert {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 9px 12px;
+      border-radius: var(--r);
+      border: 1px solid;
+      margin-bottom: 10px;
     }
 
-    .threat-item.CRITICAL {
-      border-left-color: var(--red);
+    .alert.r {
+      background: var(--rbg);
+      border-color: var(--rbd);
     }
 
-    .threat-cve {
-      font-family: var(--mono);
-      font-weight: 600;
-      font-size: 11px;
-      color: var(--text);
+    .alert.a {
+      background: var(--abg);
+      border-color: var(--abd);
     }
 
-    .threat-desc {
-      font-size: 10px;
-      color: var(--t3);
+    .alert.g {
+      background: var(--gbg);
+      border-color: var(--gbd);
+    }
+
+    .alert.b {
+      background: var(--bbg);
+      border-color: var(--bbd);
+    }
+
+    .adot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
       margin-top: 2px;
-      line-height: 1.3;
+      animation: blink 1s infinite;
     }
 
-    .threat-right {
-      text-align: right;
-      font-family: var(--mono);
+    .alert.r .adot {
+      background: var(--red);
     }
 
+    .alert.a .adot {
+      background: var(--amb);
+    }
+
+    .alert.g .adot {
+      background: var(--grn);
+    }
+
+    .alert.b .adot {
+      background: var(--blu);
+    }
+
+    .atitle {
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .alert.r .atitle {
+      color: var(--red);
+    }
+
+    .alert.a .atitle {
+      color: var(--amb);
+    }
+
+    .alert.g .atitle {
+      color: var(--grn);
+    }
+
+    .alert.b .atitle {
+      color: var(--blu);
+    }
+
+    .abody {
+      font-size: 10px;
+      color: var(--t2);
+      line-height: 1.5;
+    }
+
+    /* TABS */
     .tabs {
       display: flex;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 14px;
-      gap: 2px;
+      border-bottom: 1px solid var(--bd);
+      margin-bottom: 12px;
     }
 
     .tab {
-      padding: 8px 14px;
+      padding: 6px 13px;
       font-size: 11px;
       font-weight: 500;
       color: var(--t3);
       cursor: pointer;
       border-bottom: 2px solid transparent;
-      position: relative;
       top: 1px;
+      position: relative;
+      transition: all .12s;
+    }
+
+    .tab:hover {
+      color: var(--t2);
     }
 
     .tab.active {
-      color: var(--blue);
-      border-bottom-color: var(--blue);
-      font-weight: 600;
+      color: var(--blu);
+      border-bottom-color: var(--blu);
     }
 
-    .tab-badge {
-      font-size: 9px;
+    .tbg {
+      font-size: 8px;
       padding: 1px 5px;
       border-radius: 3px;
       font-weight: 600;
-      margin-left: 4px;
+      margin-left: 3px;
+      vertical-align: middle;
     }
 
-    .tb-red {
+    .tbgr {
       background: var(--rbg);
       color: var(--red);
     }
 
-    .tb-blue {
+    .tbgb {
       background: var(--bbg);
-      color: var(--blue);
+      color: var(--blu);
     }
 
-    .node-grid {
+    /* NODE GRID */
+    .ng {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
+      gap: 7px;
     }
 
     .nc {
       background: var(--s1);
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       border-radius: var(--rl);
       overflow: hidden;
+      cursor: pointer;
+      transition: all .12s;
+    }
+
+    .nc:hover {
+      border-color: var(--bd2);
+      transform: translateY(-1px);
     }
 
     .nc-top {
-      height: 3px;
+      height: 2px;
     }
 
-    .nc-top.critical {
+    .nc-top.crit {
       background: var(--red);
     }
 
     .nc-top.high {
-      background: var(--amber);
+      background: var(--amb);
     }
 
-    .nc-top.low {
-      background: var(--green);
+    .nc-top.safe {
+      background: var(--grn);
     }
 
     .nc-body {
-      padding: 10px;
+      padding: 9px 11px;
     }
 
     .nc-name {
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 500;
       font-family: var(--mono);
-      margin-bottom: 8px;
+      color: var(--t1);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-bottom: 6px;
     }
 
-    .nc-row {
+    .ncr {
       display: flex;
+      align-items: center;
       justify-content: space-between;
       margin-bottom: 3px;
-      font-size: 11px;
     }
 
-    .nc-key {
+    .nck {
+      font-size: 9px;
       color: var(--t3);
     }
 
-    .nc-val {
+    .ncv {
+      font-size: 9px;
+      font-weight: 500;
       font-family: var(--mono);
     }
 
-    .nc-tags {
+    .nc-score {
       display: flex;
-      flex-wrap: wrap;
-      gap: 3px;
-      margin-top: 8px;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 7px;
+      padding-top: 6px;
+      border-top: 1px solid var(--bd);
     }
 
-    .nctag {
+    .ncs-l {
+      font-size: 8px;
+      color: var(--t3);
+      text-transform: uppercase;
+    }
+
+    .ncs-v {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+
+    .nctags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin-top: 6px;
+    }
+
+    .nct {
       font-size: 8px;
       padding: 1px 5px;
       border-radius: 3px;
       border: 1px solid;
-      font-weight: 600;
     }
 
     .nct-r {
       background: var(--rbg);
       color: var(--red);
-      border-color: var(--rb);
+      border-color: var(--rbd);
+    }
+
+    .nct-a {
+      background: var(--abg);
+      color: var(--amb);
+      border-color: var(--abd);
+    }
+
+    .nct-g {
+      background: var(--gbg);
+      color: var(--grn);
+      border-color: var(--gbd);
     }
 
     .nct-b {
       background: var(--bbg);
-      color: var(--blue);
-      border-color: var(--bb);
+      color: var(--blu);
+      border-color: var(--bbd);
     }
 
+    /* NS TABLE */
     .ns-wrap {
-      border: 1px solid var(--border);
+      border: 1px solid var(--bd);
       border-radius: var(--rl);
       overflow: hidden;
-      background: var(--s1);
     }
 
     .ns-hdr {
       display: grid;
-      grid-template-columns: 2fr 70px 70px 90px 20px;
-      padding: 8px 14px;
+      grid-template-columns: 1.8fr 60px 60px 80px 70px 70px 20px;
+      padding: 7px 12px;
       background: var(--s2);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .ns-hdr span {
       font-size: 9px;
       color: var(--t3);
       text-transform: uppercase;
-      letter-spacing: .05em;
+      letter-spacing: .07em;
+      font-weight: 500;
     }
 
     .ns-row {
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--bd);
     }
 
-    .ns-main-row {
+    .ns-row:last-child {
+      border-bottom: none;
+    }
+
+    .ns-mr {
       display: grid;
-      grid-template-columns: 2fr 70px 70px 90px 20px;
-      padding: 10px 14px;
+      grid-template-columns: 1.8fr 60px 60px 80px 70px 70px 20px;
+      padding: 8px 12px;
       cursor: pointer;
       align-items: center;
+      transition: background .1s;
     }
 
-    .ns-main-row:hover {
+    .ns-mr:hover {
       background: var(--s2);
     }
 
     .ns-name {
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 500;
       font-family: var(--mono);
+      color: var(--t1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .ns-val {
-      font-family: var(--mono);
+    .ns-arr {
+      font-size: 8px;
+      color: var(--t3);
+      flex-shrink: 0;
     }
 
     .ns-expand {
       display: none;
-      background: #090c14;
-      border-top: 1px solid var(--border);
+      background: var(--s2);
+      border-top: 1px solid var(--bd);
     }
 
     .ns-expand.open {
       display: block;
     }
 
-    .app-hdr {
+    /* WORKLOAD TABLE inside NS */
+    .wl-hdr {
       display: grid;
-      grid-template-columns: 1.5fr 1.2fr 1.5fr 60px;
-      padding: 6px 14px;
+      grid-template-columns: 1.4fr 1.1fr 1fr 60px 80px 80px;
+      padding: 5px 14px;
       background: var(--s3);
-      font-size: 9px;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .wl-hdr span {
+      font-size: 8px;
       color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .07em;
     }
 
-    .app-row {
+    .wl-row {
       display: grid;
-      grid-template-columns: 1.5fr 1fr 1.5fr 60px;
-      padding: 8px 14px;
+      grid-template-columns: 1.4fr 1.1fr 1fr 60px 80px 80px;
+      padding: 6px 14px;
+      border-bottom: 1px solid var(--bd);
       align-items: center;
-      border-top: 1px solid var(--border);
-      font-size: 11px;
+      cursor: pointer;
+      transition: background .1s;
     }
 
-    .app-name {
+    .wl-row:last-child {
+      border-bottom: none;
+    }
+
+    .wl-row:hover {
+      background: var(--s3);
+    }
+
+    .wl-name {
+      font-size: 10px;
       font-family: var(--mono);
+      color: var(--t1);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .app-image {
-      color: var(--t3);
+    .wl-img {
+      font-size: 9px;
       font-family: var(--mono);
+      color: var(--t3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .itags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+    }
+
+    .it {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid;
+    }
+
+    .it-r {
+      background: var(--rbg);
+      color: var(--red);
+      border-color: var(--rbd);
+    }
+
+    .it-a {
+      background: var(--abg);
+      color: var(--amb);
+      border-color: var(--abd);
+    }
+
+    .it-b {
+      background: var(--bbg);
+      color: var(--blu);
+      border-color: var(--bbd);
+    }
+
+    .rnum {
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+
+    /* CVE MINI TABLE */
+    .cve-mini {
+      margin: 0 14px 8px;
+    }
+
+    .cve-mini-hdr {
+      display: grid;
+      grid-template-columns: 1fr 60px 60px 80px 80px 80px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .cve-mini-hdr span {
+      font-size: 8px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .cve-mini-row {
+      display: grid;
+      grid-template-columns: 1fr 60px 60px 80px 80px 80px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .cve-mini-row:last-child {
+      border-bottom: none;
+    }
+
+    /* BADGE */
+    .badge {
+      display: inline-flex;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-size: 8px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .br {
+      background: var(--rbg);
+      color: var(--red);
+      border-color: var(--rbd);
+    }
+
+    .ba {
+      background: var(--abg);
+      color: var(--amb);
+      border-color: var(--abd);
+    }
+
+    .bg {
+      background: var(--gbg);
+      color: var(--grn);
+      border-color: var(--gbd);
+    }
+
+    .bb {
+      background: var(--bbg);
+      color: var(--blu);
+      border-color: var(--bbd);
+    }
+
+    .bp {
+      background: var(--pbg);
+      color: var(--pur);
+      border-color: var(--pbd);
+    }
+
+    .bx {
+      background: var(--s3);
+      color: var(--t3);
+      border-color: var(--bd2);
+    }
+
+    /* CVSS PILL */
+    .cvss {
+      display: inline-flex;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      font-family: var(--mono);
+    }
+
+    .cvss-c {
+      background: rgba(139, 0, 0, .4);
+      color: #ff9999;
+    }
+
+    .cvss-h {
+      background: rgba(139, 80, 0, .4);
+      color: #ffcc88;
+    }
+
+    .cvss-m {
+      background: rgba(0, 60, 139, .4);
+      color: #88aaff;
+    }
+
+    .cvss-l {
+      background: rgba(0, 100, 50, .4);
+      color: #88ffcc;
+    }
+
+    /* VULN TABLE */
+    .vf-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .vf-search {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 5px 10px;
+      color: var(--t1);
+      font-size: 11px;
+      outline: none;
+      font-family: var(--sans);
+      width: 240px;
+    }
+
+    .vf-search:focus {
+      border-color: var(--blu);
+    }
+
+    .vfc {
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 9px;
+      font-weight: 500;
+      border: 1px solid var(--bd);
+      background: transparent;
+      color: var(--t3);
+      cursor: pointer;
+    }
+
+    .vfc.a {
+      background: var(--bbg);
+      border-color: var(--bbd);
+      color: var(--blu);
+    }
+
+    .vfc.ar {
+      background: var(--rbg);
+      border-color: var(--rbd);
+      color: var(--red);
+    }
+
+    .vf-tw {
+      overflow-x: auto;
+      border: 1px solid var(--bd);
+      border-radius: var(--rl);
+    }
+
+    .vft {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1600px;
+    }
+
+    .vft thead {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .vft th {
+      font-size: 9px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: 7px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--bd);
+      background: var(--s2);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .vft th:hover {
+      color: var(--t2);
+    }
+
+    .vft th.sa::after {
+      content: " ↑";
+      color: var(--blu);
+    }
+
+    .vft th.sd::after {
+      content: " ↓";
+      color: var(--blu);
+    }
+
+    .vft td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--bd);
       font-size: 10px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      padding-right: 8px;
+      max-width: 180px;
     }
 
-    .tag {
-      font-size: 8px;
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-weight: 600;
-      border: 1px solid transparent;
-    }
-
-    .tag-red {
-      background: var(--rbg);
-      color: var(--red);
-      border-color: var(--rb);
-    }
-
-    .alert {
-      display: flex;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: var(--r);
-      border: 1px solid;
-      margin-bottom: 14px;
-      font-size: 11px;
-    }
-
-    .alert.r {
-      background: var(--rbg);
-      border-color: var(--rb);
-      color: var(--text);
-    }
-
-    .alert.g {
-      background: var(--gbg);
-      border-color: var(--gb);
-      color: var(--text);
-    }
-
-    .alert-title {
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-
-    .alert.r .alert-title {
-      color: var(--red);
-    }
-
-    .alert.g .alert-title {
-      color: var(--green);
-    }
-
-    .fleet-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 12px;
-    }
-
-    .fleet-card {
-      background: var(--s1);
-      border: 1px solid var(--border);
-      border-radius: var(--rl);
-      padding: 16px;
+    .vft tbody tr {
       cursor: pointer;
-      transition: all .15s;
+      transition: background .1s;
     }
 
-    .fleet-card:hover {
-      border-color: var(--blue);
-      transform: translateY(-2px);
+    .vft tbody tr:hover {
+      background: var(--s2);
     }
 
-    .fleet-card-hdr {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
+    .vft tbody tr:last-child td {
+      border-bottom: none;
     }
 
-    .fleet-card-title {
-      font-family: var(--mono);
+    .s-crit {
+      font-size: 9px;
       font-weight: 600;
-      font-size: 13px;
-      color: var(--text);
+      color: var(--red);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
     }
 
-    .fleet-card-stat {
-      display: flex;
-      justify-content: space-between;
+    .s-high {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--amb);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .s-med {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--blu);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .s-low {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--grn);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .sdot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    /* PREDICTIVE */
+    .pred-g2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .risk-big {
+      text-align: center;
+      padding: 18px 0;
+    }
+
+    .risk-n {
+      font-size: 54px;
+      font-weight: 700;
+      font-family: var(--mono);
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+
+    .risk-l {
       font-size: 11px;
-      margin-bottom: 4px;
       color: var(--t2);
     }
 
-    .modal-backdrop {
+    .risk-bar {
+      height: 8px;
+      background: var(--s3);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0 5px;
+    }
+
+    .risk-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .risk-lbls {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--t3);
+    }
+
+    .sig-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+
+    .sig-lbl {
+      font-size: 10px;
+      color: var(--t2);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sig-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--s3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .sig-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    .sig-v {
+      font-size: 9px;
+      font-family: var(--mono);
+      width: 28px;
+      text-align: right;
+    }
+
+    .sce-item {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 13px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color .12s;
+    }
+
+    .sce-item:hover {
+      border-color: var(--bd2);
+    }
+
+    .sce-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+
+    .sce-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--t1);
+      flex: 1;
+    }
+
+    .sce-meta {
+      font-size: 9px;
+      color: var(--t3);
+      margin-bottom: 6px;
+    }
+
+    .sce-steps {
+      font-size: 10px;
+      color: var(--t2);
+      line-height: 1.7;
+      padding-left: 14px;
+    }
+
+    .sce-mit {
+      margin-top: 8px;
+      padding: 7px 10px;
+      background: var(--gbg);
+      border: 1px solid var(--gbd);
+      border-radius: var(--r);
+      font-size: 10px;
+      color: var(--grn);
+      font-family: var(--mono);
+      line-height: 1.6;
+    }
+
+    /* MODAL */
+    .mov {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      z-index: 400;
-      display: none;
+      background: rgba(0, 0, 0, .7);
+      z-index: 300;
+      display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(5px);
     }
 
-    .modal {
+    .mbox {
+      width: 680px;
+      max-height: 84vh;
       background: var(--s1);
-      border: 1px solid var(--border2);
-      width: 440px;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--bd2);
+      border-radius: var(--rxl);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
     }
 
-    .modal-title {
-      font-size: 13px;
+    .mh {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .mt {
+      font-size: 14px;
       font-weight: 600;
-      color: var(--text);
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 6px;
+      color: var(--t1);
+    }
+
+    .ms {
+      font-size: 10px;
+      color: var(--t3);
+      margin-top: 2px;
+    }
+
+    .mx {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      color: var(--t3);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mx:hover {
+      background: var(--s3);
+      color: var(--t1);
+    }
+
+    .mb {
+      padding: 18px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .msec {
+      margin-bottom: 16px;
+    }
+
+    .msec-t {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      margin-bottom: 8px;
+    }
+
+    .mg2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .mst {
+      background: var(--s2);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      border: 1px solid var(--bd);
+    }
+
+    .mst-v {
+      font-size: 20px;
+      font-weight: 600;
+      font-family: var(--mono);
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .mst-l {
+      font-size: 9px;
+      color: var(--t3);
       text-transform: uppercase;
     }
 
-    .modal-opt {
-      background: var(--s2);
-      border: 1px solid var(--border);
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: all .1s;
+    .mr {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--bd);
     }
 
-    .modal-opt:hover {
-      background: var(--s3);
-      border-color: var(--blue);
+    .mr:last-child {
+      border-bottom: none;
     }
 
-    .modal-opt-title {
-      font-weight: 600;
-      font-size: 12px;
-      color: var(--text);
-    }
-
-    .modal-opt-desc {
+    .mrk {
       font-size: 11px;
-      color: var(--t3);
-      margin-top: 3px;
-      line-height: 1.4;
+      color: var(--t2);
+      flex-shrink: 0;
+      margin-right: 10px;
     }
 
+    .mrv {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--t1);
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .mcode {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #67e8f9;
+      line-height: 1.7;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* COLORS */
     .cr {
-      color: var(--red);
+      color: var(--red)
     }
 
     .ca {
-      color: var(--amber);
+      color: var(--amb)
     }
 
     .cg {
-      color: var(--green);
+      color: var(--grn)
     }
 
     .cb {
-      color: var(--blue);
+      color: var(--blu)
+    }
+
+    .cp {
+      color: var(--pur)
+    }
+
+    /* EMPTY */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--t3);
+      padding: 40px;
+      min-height: 280px;
+    }
+
+    .empty-i {
+      font-size: 32px;
+      opacity: .2;
+    }
+
+    .empty-t {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t2);
+    }
+
+    .empty-s {
+      font-size: 11px;
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.6;
+    }
+
+    .sec-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .sec-t {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--t2);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .pkg-path {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--t3);
     }
   </style>
 </head>
 
 <body>
-
-  <div id="scan-bar">
-    <div id="scan-fill"></div>
+  <div id="pgbar">
+    <div id="pgfill"></div>
   </div>
 
-  <div class="topbar">
-    <div class="tb-left">
-      <div class="tb-logo">🛡</div>
-      <span class="tb-title" onclick="loadFleetGlobalView()">Threat Analysis</span>
-      <div class="tb-sep" style="width:1px; height:14px; background:var(--border2)"></div>
-      <span class="tb-sub">Kubernetes Security</span>
+  <div class="tb">
+    <div class="tb-l">
+      <div class="tb-logo">&#128737;</div>
+      <span class="tb-name">PDKS Security Intelligence</span>
+      <div class="tb-sep"></div>
+      <span class="tb-sub">Pfizer Platform Engineering</span>
     </div>
-    <div class="tb-center">
-      <div class="pill p-live"><span class="p-dot"></span>LIVE DISCOVERY PIPELINE</div>
-      <div class="pill p-scan" id="pill-scan" style="display:none"><span class="spin"></span><span
-          id="pill-scan-txt">syncing</span></div>
-      <div class="pill p-warn" id="pill-warn" style="display:none;"><span class="p-dot"></span><span
-          id="pill-warn-txt"></span></div>
+    <div class="tb-c">
+      <div class="pill pl"><span class="pdot"></span>LIVE</div>
+      <div class="pill ps" id="pill-scan" style="display:none"><span class="spin"></span><span id="pst">scanning</span>
+      </div>
+      <div class="pill pw" id="pill-warn" style="display:none"><span class="pdot"></span><span id="pwt"></span></div>
     </div>
-    <div class="tb-right">
-      <span id="scan-age" style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-right:6px"></span>
-      <button class="btn" onclick="refresh()">↻ Force Sync</button>
-      <button class="btn btn-p" onclick="toggleReportingOverlay(true)">📄 Generate Audit Report</button>
+    <div class="tb-r">
+      <div class="nav">
+        <div class="ni active" onclick="showView('ov',this)">Overview</div>
+        <div class="ni" onclick="showView('cl',this)">Clusters</div>
+        <div class="ni" onclick="showView('vulns',this)">Vulnerabilities</div>
+        <div class="ni" onclick="showView('pred',this)">Predictive</div>
+      </div>
+      <span id="scan-age" style="font-size:10px;color:var(--t3);font-family:var(--mono)"></span>
+      <button class="btn btn-sm" onclick="doRefresh()">&#8635;</button>
+      <button class="btn btn-p btn-sm" onclick="genReport()">&#8659; Report</button>
     </div>
   </div>
 
   <div class="layout">
+
+    <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="sb-head">
-        <div class="sb-stats">
-          <div class="sb-stat" onclick="isolateSidebarToExposed()">
-            <div class="sb-stat-val cr" id="sb-vuln">—</div>
-            <div class="sb-stat-label">Nodes Exposed</div>
+      <div class="sb-top">
+        <div class="sb-kpis">
+          <div class="sb-kpi">
+            <div class="skv cr" id="sbv">&#8212;</div>
+            <div class="skl">Exposed</div>
           </div>
-          <div class="sb-stat" onclick="loadFleetGlobalView()">
-            <div class="sb-stat-val cb" id="sb-clusters">—</div>
-            <div class="sb-stat-label">Scanned Context</div>
+          <div class="sb-kpi">
+            <div class="skv cb" id="sbc">&#8212;</div>
+            <div class="skl">Scanned</div>
           </div>
         </div>
-        <input class="sb-search" id="cl-search" placeholder="Filter cluster profiles..." oninput="renderSidebar()">
-        <div class="sb-filters">
-          <div class="sf a" onclick="setF('all',this)">All Contexts</div>
-          <div class="sf" id="filter-btn-exposed" onclick="setF('exposed',this)">Exposed</div>
-          <div class="sf ar" onclick="setF('error',this)">Errors</div>
-          <div class="sf" onclick="setF('clean',this)">Clean</div>
+        <input class="sb-search" id="cl-q" placeholder="Search cluster, region..." oninput="renderList()">
+        <div class="sb-row">
+          <div class="sf-wrap">
+            <div class="sf a" onclick="setF('all',this)">All</div>
+            <div class="sf" onclick="setF('vuln',this)">Exposed</div>
+            <div class="sf ar" onclick="setF('err',this)">Errors</div>
+            <div class="sf" onclick="setF('ok',this)">Clean</div>
+          </div>
+          <div class="ss-wrap">
+            <select id="sort-sel" onchange="renderList()">
+              <option value="sev">&#8593; Severity</option>
+              <option value="nodes">&#8593; Nodes</option>
+              <option value="az">A&#8594;Z</option>
+              <option value="region">Region</option>
+            </select>
+          </div>
         </div>
-      </div>
-      <div class="sb-sort">
-        <span style="color:var(--t3)">Sort:</span>
-        <select id="sort-select" onchange="renderSidebar()">
-          <option value="severity">Highest Vulnerability %</option>
-          <option value="nodes-desc">Compute Density</option>
-          <option value="alpha">Alphabetical</option>
-        </select>
       </div>
       <div class="cl-list" id="cl-list"></div>
     </div>
 
-    <div class="main" id="mainZone"></div>
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- OVERVIEW -->
+      <div id="view-ov" class="page active">
+        <div class="kpi-row kpi5" id="ov-kpis"></div>
+        <div id="ov-alert"></div>
+        <div class="g3" id="ov-charts1"></div>
+        <div class="g21" id="ov-charts2"></div>
+        <div id="ov-actions"></div>
+      </div>
+
+      <!-- CLUSTERS -->
+      <div id="view-cl" class="page">
+        <div class="empty" id="cl-empty">
+          <div class="empty-i">&#9768;</div>
+          <div class="empty-t">Select a cluster from the sidebar</div>
+          <div class="empty-s">Click any cluster to see node risk, namespace security, workload vulnerabilities and CVE
+            details</div>
+        </div>
+        <div id="cl-detail" style="display:none"></div>
+      </div>
+
+      <!-- VULNERABILITIES -->
+      <div id="view-vulns" class="page">
+        <div id="vf-content">
+          <div class="empty">
+            <div class="empty-i">&#128274;</div>
+            <div class="empty-t">Click Vulnerabilities to load</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREDICTIVE -->
+      <div id="view-pred" class="page">
+        <div id="pred-content"></div>
+      </div>
+
+    </div>
   </div>
 
-  <div class="modal-backdrop" id="reportingModal" onclick="if(event.target===this)toggleReportingOverlay(false)">
-    <div class="modal">
-      <div class="modal-title">Select Audit Document Target Scope</div>
-      <div class="modal-opt" onclick="generateReportSuite('FLEET_GLOBAL')">
-        <div class="modal-opt-title">Choice 1: Global Fleet Executive Summary</div>
-        <div class="modal-opt-desc">Generates a unified assessment across all environments, detailing total exposed node
-          distribution by cluster.</div>
+  <!-- MODAL -->
+  <div id="modal" class="mov" style="display:none" onclick="if(event.target===this)closeM()">
+    <div class="mbox">
+      <div class="mh">
+        <div>
+          <div class="mt" id="m-t"></div>
+          <div class="ms" id="m-s"></div>
+        </div>
+        <div class="mx" onclick="closeM()">&#10005;</div>
       </div>
-      <div class="modal-opt" id="modalOptCluster" onclick="generateReportSuite('CLUSTER_ISOLATED')">
-        <div class="modal-opt-title">Choice 2: Target Cluster Asset Assessment</div>
-        <div class="modal-opt-desc">Isolates documentation exclusively to the selected cluster path. Compiles granular
-          namespace and pod risk vectors.</div>
-      </div>
-      <div class="modal-footer" style="display:flex; justify-content:flex-end; margin-top:12px;"><button class="btn"
-          onclick="toggleReportingOverlay(false)">Cancel</button></div>
+      <div class="mb" id="m-b"></div>
     </div>
   </div>
 
   <script>
-    let fleetPayload = {}, activeScopeContext = null, listFilter = 'all', nodeSubFilter = 'all', activeTabId = 'nodes', activeNSPanels = new Set(), dashboardChart = null;
+    // ── STATE ──────────────────────────────────────────────────────────────────────
+    var fleet = {}, selCtx = null, fltr = 'all', activeTab = 'nodes', expandedNS = new Set(), charts = {};
+    var vulnData = [], vulnFilter = 'all', vulnSort = { col: 'cvss', dir: 'desc' }, vulnLoaded = false;
 
-    async function initializeTelemetryStream() {
+    // ── FETCH ──────────────────────────────────────────────────────────────────────
+    async function fetchData() {
       try {
         const r = await fetch('/api/data', { cache: 'no-store' });
-        if (!r.ok) throw new Error(r.status);
-        fleetPayload = await r.json();
-        applyGlobalStateTransforms();
-      } catch (e) { console.warn('[STREAM_FAULT]', e); }
+        if (!r.ok) return;
+        fleet = await r.json();
+        apply();
+      } catch (e) { console.warn(e); }
     }
 
-    function applyGlobalStateTransforms() {
-      const f = fleetPayload;
-      const inProg = f.scanInProgress || false;
-
-      document.getElementById('scan-fill').style.width = inProg ? f.scanPct + '%' : '100%';
-      if (!inProg) setTimeout(() => document.getElementById('scan-fill').style.width = '0%', 500);
-
-      document.getElementById('pill-scan').style.display = inProg ? 'inline-flex' : 'none';
-      if (inProg) document.getElementById('pill-scan-txt').textContent = `Discovery loop syncing...`;
-
-      if (f.vulnNodes > 0) {
-        document.getElementById('pill-warn').style.display = 'inline-flex';
-        document.getElementById('pill-warn-txt').textContent = `${f.vulnNodes} unpatched nodes`;
-      } else { document.getElementById('pill-warn').style.display = 'none'; }
-
-      document.getElementById('scan-age').textContent = f.scanAge || '';
-      t('sb-vuln', f.vulnNodes || 0);
-      t('sb-clusters', `${f.scannedClusters || 0}/${f.totalClusters || 0}`);
-
-      renderSidebar();
-
-      if (activeScopeContext) {
-        const cluster = (f.clusters || []).find(x => x.context === activeScopeContext);
-        if (cluster) renderClusterDashboardSubView(cluster);
-      } else {
-        loadFleetGlobalView();
+    function apply() {
+      var d = fleet, inP = d.scanInProgress || false, pct = d.scanPct || 0;
+      var pf = document.getElementById('pgfill');
+      if (pf) { pf.style.width = inP ? pct + '%' : '100%'; if (!inP) setTimeout(() => pf.style.width = '0%', 800); }
+      var ps = document.getElementById('pill-scan'), pt = document.getElementById('pst');
+      if (ps) ps.style.display = inP ? 'inline-flex' : 'none';
+      if (pt && inP) pt.textContent = (d.scannedClusters + d.failedClusters) + '/' + d.totalClusters;
+      var pw = document.getElementById('pill-warn');
+      if (pw) pw.style.display = d.vulnNodes > 0 ? 'inline-flex' : 'none';
+      var pwt = document.getElementById('pwt');
+      if (pwt && d.vulnNodes > 0) pwt.textContent = d.vulnNodes + ' exposed';
+      var sa = document.getElementById('scan-age');
+      if (sa) sa.textContent = d.scanAge || '';
+      T('sbv', d.vulnNodes || 0);
+      T('sbc', (d.scannedClusters || 0) + '/' + (d.totalClusters || 0));
+      renderList();
+      renderOV();
+      if (document.getElementById('view-pred').classList.contains('active')) renderPred();
+      if (selCtx) { var c = (d.clusters || []).find(x => x.context === selCtx); if (c) renderCD(c); }
+      else if ((d.clusters || []).length > 0 && !inP) {
+        var first = (d.clusters || []).find(c => c.status === 'ok' && c.nodeCount > 0);
+        if (first) pick(first.context);
       }
     }
 
-    function loadFleetGlobalView() {
-      activeScopeContext = null;
-      document.querySelectorAll('.cl-item').forEach(el => el.classList.remove('active'));
+    // ── SIDEBAR ────────────────────────────────────────────────────────────────────
+    function setF(f, el) { fltr = f; document.querySelectorAll('.sf').forEach(s => s.classList.remove('a', 'ar')); el.classList.add(f === 'err' ? 'ar' : 'a'); renderList(); }
 
-      const f = fleetPayload;
-      const targetZone = document.getElementById('mainZone');
-      if (!f.clusters) { targetZone.innerHTML = '<div class="welcome"><div class="spin"></div></div>'; return; }
-
-      targetZone.innerHTML = `
-        <div class="dh">
-          <div>
-            <div class="dh-title">GLOBAL INFRASTRUCTURE COMPLIANCE PLANE</div>
-            <div class="dh-sub">Active Fleet Tracking Map · Aggregate Monitoring Loop</div>
-          </div>
-        </div>
-
-        <div class="metrics">
-          <div class="metric" onclick="setF('all', document.querySelector('.sf'))"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${f.totalClusters || 0}</div><div class="metric-lbl">Total Environments</div></div>
-          <div class="metric" onclick="isolateSidebarToExposed()"><div class="metric-acc" style="background:var(--red)"></div><div class="metric-val cr">${f.vulnNodes || 0}</div><div class="metric-lbl">Exposed Core Nodes</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--amber)"></div><div class="metric-val ca">${f.totalNodes || 0}</div><div class="metric-lbl">Scanned Compute Hosts</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--purple)"></div><div class="metric-val cb">${f.totalPods || 0}</div><div class="metric-lbl">Monitored Pod Frameworks</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--green)"></div><div class="metric-val cg">${f.scannedClusters || 0}</div><div class="metric-lbl">Responsive Streams</div></div>
-        </div>
-
-        <div class="visual-workspace">
-          <div class="panel">
-            <div class="panel-hdr">
-              <span class="panel-title">Systemic Configuration Deficiencies by Environment</span>
-              <div class="chart-controls">
-                <button class="sf a" id="c-btn-bar" onclick="rebuildGlobalChartTopology('bar')">Bar</button>
-                <button class="sf" id="c-btn-line" onclick="rebuildGlobalChartTopology('line')">Line</button>
-                <button class="sf" id="c-btn-doughnut" onclick="rebuildGlobalChartTopology('doughnut')">Doughnut</button>
-              </div>
-            </div>
-            <div class="chart-wrapper"><canvas id="fleetGlobalCanvas"></canvas></div>
-          </div>
-          <div class="panel">
-            <div class="panel-hdr"><span class="panel-title" style="color:var(--purple)">🔮 Predictive Threat Disclosure Intelligence</span></div>
-            <div class="threat-feed" id="predictiveFeedContainer"></div>
-          </div>
-        </div>
-
-        <div class="sec-hdr" style="margin-top:16px; margin-bottom:8px;"><span class="sec-title">Enterprise Infrastructure Matrix Cluster Grid</span></div>
-        <div class="fleet-grid" id="fleetGridContainer"></div>`;
-
-      renderPredictiveFeed();
-      rebuildGlobalChartTopology('bar');
-
-      const grid = document.getElementById('fleetGridContainer');
-      grid.innerHTML = (f.clusters || []).map(c => {
-        const isOk = c.status === 'ok';
-        const color = !isOk ? 'var(--red)' : c.vulnerable > 0 ? 'var(--amber)' : 'var(--green)';
-        return `
-          <div class="fleet-card" onclick="pickClusterTarget('${c.context}')">
-            <div class="fleet-card-hdr">
-              <span class="fleet-card-title">${c.name.toUpperCase()}</span>
-              <span style="color:${color}; font-weight:600; font-family:var(--mono);">${isOk ? (c.vulnerable || '✓') : '✗'}</span>
-            </div>
-            <div class="fleet-card-stat"><span>Region Endpoint:</span><span class="nc-val">${c.region.toUpperCase()}</span></div>
-            <div class="fleet-card-stat"><span>Host Node Count:</span><span class="nc-val">${c.nodeCount || 0}</span></div>
-            <div class="fleet-card-stat"><span>Monitored Pods:</span><span class="nc-val">${c.podCount || 0}</span></div>
-          </div>`;
-      }).join('');
-    }
-
-    function isolateSidebarToExposed() {
-      const btn = document.getElementById('filter-btn-exposed');
-      if (btn) setF('exposed', btn);
-    }
-
-    function rebuildGlobalChartTopology(topology) {
-      ['bar', 'line', 'doughnut'].forEach(t => {
-        const el = document.getElementById(`c-btn-${t}`);
-        if (el) el.className = t === topology ? "sf a" : "sf";
+    function renderList() {
+      var cs = fleet.clusters || [], q = (document.getElementById('cl-q')?.value || '').toLowerCase(), srt = document.getElementById('sort-sel')?.value || 'sev';
+      var list = [...cs];
+      if (fltr === 'vuln') list = list.filter(c => c.status === 'ok' && c.vulnerable > 0);
+      else if (fltr === 'err') list = list.filter(c => c.status !== 'ok');
+      else if (fltr === 'ok') list = list.filter(c => c.status === 'ok' && c.vulnerable === 0);
+      if (q) list = list.filter(c => (c.name || '').toLowerCase().includes(q) || (c.region || '').toLowerCase().includes(q));
+      list.sort((a, b) => {
+        if (srt === 'sev') { if (a.status !== 'ok' && b.status === 'ok') return 1; if (a.status === 'ok' && b.status !== 'ok') return -1; var ap = a.nodeCount > 0 ? a.vulnerable / a.nodeCount : 0, bp = b.nodeCount > 0 ? b.vulnerable / b.nodeCount : 0; return bp - ap || b.vulnerable - a.vulnerable; }
+        if (srt === 'nodes') return (b.nodeCount || 0) - (a.nodeCount || 0);
+        if (srt === 'az') return (a.name || '').localeCompare(b.name || '');
+        return (a.region || '').localeCompare(b.region || '');
       });
+      var el = document.getElementById('cl-list');
+      if (!list.length) { el.innerHTML = '<div style="padding:14px;text-align:center;font-size:10px;color:var(--t3)">No clusters match</div>'; return; }
+      el.innerHTML = list.map(c => {
+        var ok = c.status === 'ok', v = c.vulnerable || 0, n = c.nodeCount || 0, pct = n > 0 ? Math.round(v / n * 100) : 0;
+        var acc = !ok ? 'err' : v === 0 ? 'safe' : pct >= 80 ? 'crit' : 'high';
+        var isA = selCtx === c.context, time = c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...';
+        var vc = v > 0 ? 'var(--red)' : ok ? 'var(--grn)' : 'var(--t3)';
+        var rk = c.rank, rkC = rk === 1 ? 'rk1' : rk === 2 ? 'rk2' : rk === 3 ? 'rk3' : 'rkn';
+        return '<div class="ci' + (isA ? ' active' : '') + '" onclick="pick(\'' + c.context + '\')">' +
+          '<div class="ci-row">' +
+          '<div class="ci-acc ' + acc + '"></div>' +
+          '<div class="ci-info">' +
+          '<div class="ci-nl">' + (rk ? '<span class="ci-rank ' + rkC + '">' + rk + '</span>' : '') +
+          '<span class="ci-name" title="' + c.name + '">' + c.name + '</span>' +
+          (c.scanAge === 'stale' ? '<span class="stale">stale</span>' : '') +
+          '</div>' +
+          '<div class="ci-meta">' + (c.region || '—') + ' &middot; ' + time + '</div>' +
+          '</div>' +
+          '<div class="ci-stat"><div class="ci-vuln" style="color:' + vc + '">' + (ok ? (v === 0 ? '&#10003;' : v) : '&#10007;') + '</div><div class="ci-vlbl">' + (ok ? (v > 0 ? 'exposed' : 'clean') : 'error') + '</div></div>' +
+          '</div>' +
+          (ok && n > 0 ? '<div class="ci-bar"><div class="ci-bfill" style="width:' + pct + '%;background:' + (v > 0 ? 'var(--red)' : 'var(--grn)') + '"></div></div>' : '') +
+          (!ok && c.error ? '<div class="ci-err">' + c.error + '</div>' : '') +
+          '</div>';
+      }).join('') + '<div class="ci-foot">' + list.length + ' of ' + (cs.length) + '</div>';
+    }
 
-      const canvas = document.getElementById('fleetGlobalCanvas');
-      if (!canvas) return;
-      if (dashboardChart) dashboardChart.destroy();
+    function pick(ctx) {
+      selCtx = ctx; expandedNS = new Set(); activeTab = 'nodes';
+      renderList();
+      showView('cl', document.querySelectorAll('.ni')[1]);
+      var c = (fleet.clusters || []).find(x => x.context === ctx); if (c) renderCD(c);
+    }
 
-      const environments = (fleetPayload.clusters || []).filter(c => c.status === 'ok' && c.vulnerable > 0).slice(0, 5);
-      const labels = environments.map(c => c.name.toUpperCase());
-      const points = environments.map(c => c.vulnerable);
+    // ── OVERVIEW ───────────────────────────────────────────────────────────────────
+    function renderOV() {
+      var d = fleet, cs = d.clusters || [], vc = cs.filter(c => c.vulnerable > 0).length;
+      var pr = d.predictiveRisk || {};
+      document.getElementById('ov-kpis').innerHTML =
+        mkKPI('var(--red)', d.vulnNodes || 0, 'Nodes exposed', 'Copy Fail', '') +
+        mkKPI('var(--red)', vc, 'Clusters at risk', 'have vuln nodes', '') +
+        mkKPI('var(--amb)', d.failedClusters || 0, 'Unreachable', 'SSO/network', '') +
+        mkKPI('var(--blu)', d.totalPods || 0, 'Total pods', 'across fleet', '') +
+        mkKPI('var(--pur)', pr.overallScore || 0, 'Risk score', 'out of 100', '');
+      document.getElementById('ov-alert').innerHTML = (d.vulnNodes || 0) > 0 ?
+        '<div class="alert r"><div class="adot"></div><div><div class="atitle">CVE-2026-31431 "Copy Fail" &#8212; CVSS 9.8 &middot; CISA KEV &middot; Public PoC &middot; ' + d.vulnNodes + ' nodes &middot; ' + vc + ' clusters</div>' +
+        '<div class="abody">Unprivileged &#8594; root in 4 syscalls &middot; No disk trace &middot; Container escape &middot; AL2023 kernel &lt;6.1.141 &middot; Deploy algif_aead DaemonSet immediately</div></div></div>' :
+        '<div class="alert g"><div class="adot"></div><div><div class="atitle">&#10003; No Copy Fail exposure detected</div></div></div>';
+      buildOVCharts(d, cs);
+      var top5 = cs.filter(c => c.vulnerable > 0).sort((a, b) => b.vulnerable - a.vulnerable).slice(0, 5);
+      document.getElementById('ov-actions').innerHTML = top5.length ? '<div class="card"><div class="ch"><span class="ct">Action queue &#8212; clusters ranked by severity</span><span class="badge br">' + top5.length + ' critical</span></div><div style="padding:0">' +
+        top5.map((c, i) => {
+          var pct = c.nodeCount > 0 ? Math.round(c.vulnerable / c.nodeCount * 100) : 0; var bc = i === 0 ? 'rgba(244,63,94,.15)' : i <= 2 ? 'rgba(245,158,11,.15)' : 'rgba(59,130,246,.15)', fc = i === 0 ? 'var(--red)' : i <= 2 ? 'var(--amb)' : 'var(--blu)';
+          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--bd);cursor:pointer" onclick="pick(\'' + c.context + '\')">' +
+            '<div style="width:20px;height:20px;border-radius:5px;background:' + bc + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--mono);color:' + fc + '">' + (i + 1) + '</div>' +
+            '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;font-family:var(--mono)">' + c.name + '</div><div style="font-size:10px;color:var(--t3)">' + (c.region || '—') + ' &middot; ' + c.nodeCount + ' nodes &middot; ' + (c.podCount || 0) + ' pods</div></div>' +
+            '<div style="text-align:right"><div style="font-size:14px;font-weight:600;font-family:var(--mono);color:var(--red)">' + c.vulnerable + '</div><div style="font-size:8px;color:var(--t3)">exposed (' + pct + '%)</div></div>' +
+            '<span class="badge br">&#8594;</span></div>';
+        }).join('') + '</div></div>' : '';
+    }
 
-      dashboardChart = new Chart(canvas, {
-        type: topology,
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Exposed Machine Nodes Count',
-            data: points,
-            backgroundColor: ['rgba(244,63,94,0.7)', 'rgba(251,191,36,0.7)', 'rgba(59,130,246,0.7)', 'rgba(168,85,247,0.7)', 'rgba(16,185,129,0.7)'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: topology === 'doughnut' } },
-          scales: topology !== 'doughnut' ? {
-            y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#8fa0c2', font: { size: 9 } } },
-            x: { grid: { display: false }, ticks: { color: '#8fa0c2', font: { size: 9 } } }
-          } : {}
+    function mkKPI(acc, val, lbl, sub) { return '<div class="kpi"><div class="kpi-acc" style="background:' + acc + '"></div><div class="kpi-val" style="color:' + acc + '">' + val + '</div><div class="kpi-lbl">' + lbl + '</div><div class="kpi-sub">' + sub + '</div></div>'; }
+
+    function buildOVCharts(d, cs) {
+      var ok = cs.filter(c => c.status === 'ok'), vuln = ok.filter(c => c.vulnerable > 0).length, clean = ok.filter(c => c.vulnerable === 0).length, err = cs.filter(c => c.status !== 'ok').length;
+      var vn = d.vulnNodes || 0, sn = (d.totalNodes || 0) - vn;
+      var rm = {}; cs.forEach(c => { var r = c.region || 'other'; rm[r] = (rm[r] || 0) + 1; });
+      document.getElementById('ov-charts1').innerHTML =
+        '<div class="card"><div class="ch"><span class="ct">Cluster status</span><select class="csel" onchange="sw(\'cs\',this.value,[' + vuln + ',' + clean + ',' + err + '])"><option value="doughnut">Donut</option><option value="pie">Pie</option><option value="bar">Bar</option></select></div><div class="cb"><div class="chart-wrap" style="height:150px"><canvas id="ch-cs"></canvas></div></div></div>' +
+        '<div class="card"><div class="ch"><span class="ct">Node exposure</span><select class="csel" onchange="sw(\'ne\',this.value,[' + vn + ',' + sn + '])"><option value="doughnut">Donut</option><option value="pie">Pie</option><option value="bar">Bar</option></select></div><div class="cb"><div class="chart-wrap" style="height:150px"><canvas id="ch-ne"></canvas></div></div></div>' +
+        '<div class="card"><div class="ch"><span class="ct">By region</span></div><div class="cb"><div class="chart-wrap" style="height:150px"><canvas id="ch-reg"></canvas></div></div></div>';
+      var top10 = ok.filter(c => c.vulnerable > 0).sort((a, b) => b.vulnerable - a.vulnerable).slice(0, 10);
+      document.getElementById('ov-charts2').innerHTML =
+        '<div class="card"><div class="ch"><span class="ct">Top exposed clusters</span><select class="csel" onchange="swTop(this.value)"><option value="bar">Bar</option><option value="line">Line</option></select></div><div class="cb"><div class="chart-wrap" style="height:180px"><canvas id="ch-top"></canvas></div></div></div>' +
+        '<div class="card"><div class="ch"><span class="ct">NS risk distribution</span></div><div class="cb"><div class="chart-wrap" style="height:180px"><canvas id="ch-nsr"></canvas></div></div></div>';
+      setTimeout(() => {
+        mkC('cs', 'doughnut', [vuln, clean, err], ['Exposed', 'Clean', 'Error'], ['rgba(244,63,94,.8)', 'rgba(16,185,129,.8)', 'rgba(74,85,112,.8)'], 'ch-cs');
+        mkC('ne', 'doughnut', [vn, sn], ['Vulnerable', 'Safe'], ['rgba(244,63,94,.8)', 'rgba(16,185,129,.8)'], 'ch-ne');
+        mkReg(rm); mkTop('bar', top10); mkNSR(ok);
+      }, 60);
+    }
+
+    function mkC(key, type, data, labels, colors, canvasId) {
+      var el = document.getElementById(canvasId); if (!el) return;
+      if (charts[key]) charts[key].destroy();
+      var isB = type === 'bar';
+      charts[key] = new Chart(el, {
+        type, data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: isB ? 0 : 2, borderRadius: isB ? 4 : 0, hoverOffset: 4 }] }, options: {
+          responsive: true, maintainAspectRatio: false, plugins: { legend: { position: isB ? 'top' : 'right', labels: { color: 'rgba(255,255,255,.4)', boxWidth: 7, padding: 8, font: { size: 9 } } } },
+          ...(isB ? { scales: { x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } } }, y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } } } } } : {})
         }
       });
     }
 
-    function renderClusterDashboardSubView(c) {
-      const workspace = document.getElementById('mainZone');
-      const nsWithIssues = (c.namespaces || []).filter(x => x.issues > 0).length;
-
-      workspace.innerHTML = `
-        <div class="dh">
-          <div>
-            <div class="dh-title">${c.name.toUpperCase()}</div>
-            <div class="dh-sub">${c.context} · Region Target Space: ${c.region.toUpperCase()}</div>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-p" onclick="exportClusterCSVOnly()">Download Cluster CSV</button>
-          </div>
-        </div>
-
-        ${c.status !== 'ok' ? `<div class="alert r"><div class="alert-title">Cluster Connection Blown</div><div>${c.error}</div></div>` : ''}
-        ${c.status === 'ok' && c.vulnerable > 0 ? `<div class="alert r"><div class="alert-title">Vulnerability Active (CVE-2026-31431)</div><div>Cluster context contains unpatched instances running crypto sockets exposed to namespace escalations.</div></div>` : ''}
-
-        <div class="metrics">
-          <div class="metric" onclick="filterLocalNodes('all')"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${c.nodeCount || 0}</div><div class="metric-lbl">Total hosts</div></div>
-          <div class="metric" onclick="filterLocalNodes('exposed')"><div class="metric-acc" style="background:var(--red)"></div><div class="metric-val cr">${c.vulnerable || 0}</div><div class="metric-lbl">Exposed hosts</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--amber)"></div><div class="metric-val ca">${c.podCount || 0}</div><div class="metric-lbl">Monitored pods</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--purple)"></div><div class="metric-val cr">${nsWithIssues}</div><div class="metric-lbl">Deficient NS</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--green)"></div><div class="metric-val cg">${c.nsCount || 0}</div><div class="metric-lbl">Namespaces Monitored</div></div>
-        </div>
-
-        <div class="visual-workspace">
-          <div class="panel">
-            <div class="panel-hdr">
-              <span class="panel-title">Namespace Compliance Analytics</span>
-              <div class="chart-controls">
-                <button class="sf a" id="c-btn-bar" onclick="rebuildLocalChartTopology('bar')">Bar</button>
-                <button class="sf" id="c-btn-line" onclick="rebuildLocalChartTopology('line')">Line</button>
-                <button class="sf" id="c-btn-doughnut" onclick="rebuildLocalChartTopology('doughnut')">Doughnut</button>
-                <button class="sf" id="c-btn-radar" onclick="rebuildLocalChartTopology('radar')">Radar</button>
-              </div>
-            </div>
-            <div class="chart-wrapper"><canvas id="analyticsChartCanvas"></canvas></div>
-          </div>
-          <div class="panel">
-            <div class="panel-hdr"><span class="panel-title" style="color:var(--purple)">🔮 Predictive Threat Disclosure Intelligence</span></div>
-            <div class="threat-feed" id="predictiveFeedContainer"></div>
-          </div>
-        </div>
-
-        <div class="tabs">
-          <div class="tab ${activeTabId === 'nodes' ? 'active' : ''}" onclick="switchLocalTab('nodes')">Cluster Resource Nodes <span class="tab-badge">${c.nodeCount || 0}</span></div>
-          <div class="tab ${activeTabId === 'ns' ? 'active' : ''}" onclick="switchLocalTab('ns')">Namespace Workloads <span class="tab-badge alerting tb-red">${nsWithIssues}</span></div>
-        </div>
-        <div id="tab-injection-target"></div>`;
-
-      renderPredictiveFeed();
-      renderActiveTab(c);
-      rebuildLocalChartTopology('bar');
+    function sw(key, type, data) {
+      var map = { cs: { l: ['Exposed', 'Clean', 'Error'], c: ['rgba(244,63,94,.8)', 'rgba(16,185,129,.8)', 'rgba(74,85,112,.8)'], id: 'ch-cs' }, ne: { l: ['Vulnerable', 'Safe'], c: ['rgba(244,63,94,.8)', 'rgba(16,185,129,.8)'], id: 'ch-ne' } };
+      var m = map[key]; if (m) mkC(key, type, data, m.l, m.c, m.id);
     }
 
-    function rebuildLocalChartTopology(topology) {
-      ['bar', 'line', 'doughnut', 'radar'].forEach(t => {
-        const el = document.getElementById(`c-btn-${t}`);
-        if (el) el.className = t === topology ? "sf a" : "sf";
+    function mkReg(rm) {
+      var el = document.getElementById('ch-reg'); if (!el) return; if (charts.reg) charts.reg.destroy();
+      var e = Object.entries(rm).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      charts.reg = new Chart(el, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => x[1]), backgroundColor: 'rgba(59,130,246,.7)', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 8 } } }, y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } } } } } });
+    }
+
+    function mkTop(type, top10) {
+      var el = document.getElementById('ch-top'); if (!el) return; if (charts.top) charts.top.destroy();
+      var sn = top10.map(c => c.name.length > 14 ? c.name.slice(-13) + '\u2026' : c.name);
+      charts.top = new Chart(el, { type: type === 'line' ? 'line' : 'bar', data: { labels: sn, datasets: [{ label: 'Vuln nodes', data: top10.map(c => c.vulnerable), backgroundColor: 'rgba(244,63,94,.75)', borderColor: 'rgba(244,63,94,1)', borderWidth: type === 'line' ? 2 : 0, borderRadius: type !== 'line' ? 4 : 0, fill: type === 'line', tension: .4, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 8 } } }, y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } } } } } });
+    }
+
+    function swTop(type) { var ok = (fleet.clusters || []).filter(c => c.status === 'ok'); mkTop(type, ok.filter(c => c.vulnerable > 0).sort((a, b) => b.vulnerable - a.vulnerable).slice(0, 10)); }
+
+    function mkNSR(clusters) {
+      var el = document.getElementById('ch-nsr'); if (!el) return; if (charts.nsr) charts.nsr.destroy();
+      var crit = 0, high = 0, med = 0, low = 0;
+      clusters.forEach(c => (c.namespaces || []).forEach(ns => { if (ns.risk === 'critical') crit++; else if (ns.risk === 'high') high++; else if (ns.risk === 'medium') med++; else low++; }));
+      charts.nsr = new Chart(el, { type: 'doughnut', data: { labels: ['Critical', 'High', 'Medium', 'Low'], datasets: [{ data: [crit, high, med, low], backgroundColor: ['rgba(244,63,94,.8)', 'rgba(245,158,11,.8)', 'rgba(59,130,246,.8)', 'rgba(16,185,129,.8)'], borderWidth: 2, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'right', labels: { color: 'rgba(255,255,255,.4)', boxWidth: 7, padding: 8, font: { size: 9 } } } } } });
+    }
+
+    // ── CLUSTER DETAIL ─────────────────────────────────────────────────────────────
+    function renderCD(c) {
+      document.getElementById('cl-empty').style.display = 'none';
+      var det = document.getElementById('cl-detail'); det.style.display = 'block';
+      var v = c.vulnerable || 0, n = c.nodeCount || 0, pct = n > 0 ? Math.round(v / n * 100) : 0, nsi = (c.namespaces || []).filter(x => x.issues > 0).length;
+      det.innerHTML =
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">' +
+        '<div><div style="font-size:17px;font-weight:600;font-family:var(--mono);letter-spacing:-.4px;margin-bottom:3px">' + c.name + (c.rank ? '<span style="font-size:10px;background:rgba(244,63,94,.12);color:var(--red);border:1px solid var(--rbd);padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle">Rank #' + c.rank + '</span>' : '') + '</div>' +
+        '<div style="font-size:10px;color:var(--t3)">' + c.context + ' &middot; ' + (c.region || '—') + ' &middot; ' + (c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString() : '—') + '</div></div>' +
+        '<div style="display:flex;gap:5px"><button class="btn btn-sm" onclick="exportClCSV()">&#8659; CSV</button><button class="btn btn-p btn-sm" onclick="genReport()">&#8659; Report</button></div>' +
+        '</div>' +
+        (c.status !== 'ok' ? '<div class="alert r"><div class="adot"></div><div><div class="atitle">Unreachable &#8212; ' + c.error + '</div><div class="abody">aws eks update-kubeconfig --name ' + c.name + ' --region ' + (c.region || 'us-east-1') + '</div></div></div>' : '') +
+        (c.status === 'ok' && v > 0 ? '<div class="alert r" style="margin-bottom:10px"><div class="adot"></div><div><div class="atitle">' + v + ' node' + (v > 1 ? 's' : '') + ' vulnerable to Copy Fail &#8212; ' + pct + '% of cluster</div><div class="abody">algif_aead loaded &middot; kernel &lt;6.1.141 &middot; Deploy mitigation DaemonSet immediately</div></div></div>' :
+          c.status === 'ok' ? '<div class="alert g" style="margin-bottom:10px"><div class="adot"></div><div><div class="atitle">&#10003; No Copy Fail exposure &#8212; all ' + n + ' nodes clean</div></div></div>' : '') +
+        '<div class="kpi-row kpi6" style="margin-bottom:12px">' +
+        '<div class="kpi"><div class="kpi-acc" style="background:var(--blu)"></div><div class="kpi-val cb">' + (n || '—') + '</div><div class="kpi-lbl">Nodes</div></div>' +
+        '<div class="kpi"><div class="kpi-acc" style="background:' + (v > 0 ? 'var(--red)' : 'var(--grn)') + '"></div><div class="kpi-val ' + (v > 0 ? 'cr' : 'cg') + '">' + v + '</div><div class="kpi-lbl">Exposed</div></div>' +
+        '<div class="kpi"><div class="kpi-acc" style="background:var(--amb)"></div><div class="kpi-val cb">' + (c.podCount || 0) + '</div><div class="kpi-lbl">Pods</div></div>' +
+        '<div class="kpi"><div class="kpi-acc" style="background:' + (nsi > 0 ? 'var(--amb)' : 'var(--grn)') + '"></div><div class="kpi-val ' + (nsi > 0 ? 'ca' : 'cg') + '">' + nsi + '</div><div class="kpi-lbl">NS Issues</div></div>' +
+        '<div class="kpi"><div class="kpi-acc" style="background:var(--blu)"></div><div class="kpi-val cb">' + (c.nsCount || 0) + '</div><div class="kpi-lbl">Namespaces</div></div>' +
+        '<div class="kpi"><div class="kpi-acc" style="background:var(--pur)"></div><div class="kpi-val cp">' + pct + '%</div><div class="kpi-lbl">Exposure</div></div>' +
+        '</div>' +
+        '<div class="tabs">' +
+        '<div class="tab' + (activeTab === 'nodes' ? ' active' : '') + '" onclick="swTab(\'nodes\')">Nodes <span class="tbg ' + (v > 0 ? 'tbgr' : 'tbgb') + '">' + n + '</span></div>' +
+        '<div class="tab' + (activeTab === 'ns' ? ' active' : '') + '" onclick="swTab(\'ns\')">Namespaces &amp; Workloads <span class="tbg ' + (nsi > 0 ? 'tbgr' : 'tbgb') + '">' + (c.nsCount || 0) + '</span></div>' +
+        '<div class="tab' + (activeTab === 'charts' ? ' active' : '') + '" onclick="swTab(\'charts\')">Charts</div>' +
+        '</div>' +
+        '<div id="tab-body"></div>';
+      renderTab(c);
+    }
+
+    function swTab(t) {
+      activeTab = t;
+      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', ['nodes', 'ns', 'charts'][i] === t));
+      var c = (fleet.clusters || []).find(x => x.context === selCtx); if (c) renderTab(c);
+    }
+
+    function renderTab(c) {
+      var body = document.getElementById('tab-body'); if (!body) return;
+      if (activeTab === 'nodes') renderNodes(c, body);
+      else if (activeTab === 'ns') renderNS(c, body);
+      else renderCCharts(c, body);
+    }
+
+    function renderNodes(c, body) {
+      var nodes = (c.nodes || []).slice().sort((a, b) => b.riskScore - a.riskScore);
+      if (!nodes.length) {
+        body.innerHTML = '<div class="empty"><div class="empty-i">&#11041;</div><div class="empty-t">No node data</div></div>';
+        return;
+      }
+      var ac = s => s === 'critical' ? 'crit' : s === 'high' ? 'high' : 'safe';
+      var sc = s => s >= 65 ? 'var(--red)' : s >= 40 ? 'var(--amb)' : 'var(--grn)';
+      body.innerHTML = '<div class="sec-hdr" style="margin-bottom:8px"><span class="sec-t">Nodes by risk score</span><span class="badge ' + (nodes.filter(n => n.vulnerable).length > 0 ? 'br' : 'bg') + '">' + nodes.filter(n => n.vulnerable).length + ' / ' + nodes.length + ' vulnerable</span></div>' +
+        '<div class="ng">' + nodes.map(n => '<div class="nc" onclick="showNode(\'' + n.name + '\',\'' + c.name + '\')">' +
+          '<div class="nc-top ' + ac(n.riskLevel) + '"></div>' +
+          '<div class="nc-body">' +
+          '<div class="nc-name" title="' + n.name + '">' + n.name.split('.')[0] + '</div>' +
+          mkNR('Patch', n.patchStatus, n.patchStatus === 'patched' ? 'var(--grn)' : 'var(--red)') +
+          mkNR('algif_aead', n.algifStatus, n.algifStatus === 'loaded' ? 'var(--red)' : n.algifStatus === 'blocked' ? 'var(--grn)' : 'var(--t3)') +
+          mkNR('Instance', n.nodeType || '—', 'var(--t2)') +
+          mkNR('Zone', n.zone || '—', 'var(--t2)') +
+          mkNR('Ready', n.ready, n.ready === 'True' ? 'var(--grn)' : 'var(--red)') +
+          '<div class="nc-score"><span class="ncs-l">Risk</span><span class="ncs-v" style="color:' + sc(n.riskScore) + '">' + n.riskScore + '/99</span></div>' +
+          '<div class="nctags">' +
+          (n.vulnerable ? '<span class="nct nct-r">CVE-2026-31431</span>' : '') +
+          (n.algifStatus === 'loaded' ? '<span class="nct nct-r">algif_aead</span>' : '') +
+          (n.isSpot ? '<span class="nct nct-a">spot</span>' : '<span class="nct nct-b">on-demand</span>') +
+          (!n.vulnerable ? '<span class="nct nct-g">safe</span>' : '') +
+          '</div>' +
+          '</div></div>').join('') + '</div>';
+    }
+
+    function mkNR(k, v, c) { return '<div class="ncr"><span class="nck">' + k + '</span><span class="ncv" style="color:' + c + '">' + v + '</span></div>'; }
+
+    function renderNS(c, body) {
+      var nsList = c.namespaces || [];
+      if (!nsList.length) { body.innerHTML = '<div class="empty"><div class="empty-i">&#9678;</div><div class="empty-t">No namespace data</div><div class="empty-s">Requires pod list permission (RBAC: view or higher)</div></div>'; return; }
+      var rb = r => r === 'critical' ? 'br' : r === 'high' ? 'ba' : r === 'medium' ? 'bb' : 'bg';
+      var ic = i => i === 'privileged' || i === 'hostNetwork' ? 'it-r' : i === 'runAsRoot' ? 'it-a' : 'it-b';
+      var cvssColor = v => v >= 9 ? 'var(--red)' : v >= 7 ? 'var(--amb)' : v >= 4 ? 'var(--blu)' : 'var(--grn)';
+      var cvssCls = v => v >= 9 ? 'cvss-c' : v >= 7 ? 'cvss-h' : v >= 4 ? 'cvss-m' : 'cvss-l';
+      var trunc = (s, n) => s && s.length > n ? s.slice(0, n) + '…' : s || '—';
+      body.innerHTML = '<div class="sec-hdr" style="margin-bottom:8px"><span class="sec-t">Namespaces &amp; workloads &#8212; click to drill into CVEs</span><span class="badge ' + (nsList.filter(x => x.issues > 0).length > 0 ? 'br' : 'bg') + '">' + nsList.filter(x => x.issues > 0).length + ' / ' + nsList.length + ' have issues</span></div>' +
+        '<div class="ns-wrap">' +
+        '<div class="ns-hdr"><span>Namespace</span><span>Pods</span><span>Issues</span><span>Risk</span><span>Crit CVEs</span><span>High CVEs</span><span></span></div>' +
+        nsList.map((ns, i) => {
+          // Count CVEs across workloads in this namespace
+          var nsCritCVEs = 0, nsHighCVEs = 0;
+          (ns.apps || []).forEach(a => { nsCritCVEs += (a.critCVEs || 0); nsHighCVEs += (a.highCVEs || 0); });
+          return '<div class="ns-row">' +
+            '<div class="ns-mr" onclick="toggleNS(' + i + ')">' +
+            '<div class="ns-name"><span class="ns-arr" id="nsa-' + i + '">&#9656;</span>' + ns.name + '</div>' +
+            '<span style="font-size:11px;font-family:var(--mono)">' + ns.appCount + '</span>' +
+            '<span style="font-size:12px;font-family:var(--mono);color:' + (ns.issues > 0 ? (ns.issues > 5 ? 'var(--red)' : 'var(--amb)') : 'var(--grn)') + '">' + (ns.issues || '&#10003;') + '</span>' +
+            '<span><span class="badge ' + rb(ns.risk) + '">' + ns.risk + '</span></span>' +
+            '<span style="font-size:11px;font-family:var(--mono);color:' + (nsCritCVEs > 0 ? 'var(--red)' : 'var(--t3)') + '">' + (nsCritCVEs || '—') + '</span>' +
+            '<span style="font-size:11px;font-family:var(--mono);color:' + (nsHighCVEs > 0 ? 'var(--amb)' : 'var(--t3)') + '">' + (nsHighCVEs || '—') + '</span>' +
+            '<span style="font-size:9px;color:var(--t3)">' + (ns.apps && ns.apps.length ? '&#9662;' : '') + '</span>' +
+            '</div>' +
+            '<div class="ns-expand" id="nse-' + i + '">' +
+            (ns.apps && ns.apps.length ?
+              '<div class="wl-hdr"><span>Pod / Workload</span><span>Image</span><span>Config Issues</span><span>Risk</span><span>Crit CVEs</span><span>High CVEs</span></div>' +
+              ns.apps.map(a => '<div class="wl-row" onclick="showWorkloadModal(this,event)" data-app="' + encodeURIComponent(JSON.stringify(a)) + '">' +
+                '<div class="wl-name" title="' + a.name + '">' + a.name + '</div>' +
+                '<div class="wl-img" title="' + (a.image || '') + '">' + trunc(a.image, 24) + '</div>' +
+                '<div class="itags">' + (a.issues || []).map(iss => '<span class="it ' + ic(iss) + '">' + iss + '</span>').join('') + '</div>' +
+                '<div class="rnum" style="color:' + (a.riskScore >= 40 ? 'var(--red)' : a.riskScore >= 20 ? 'var(--amb)' : 'var(--grn)') + '">' + a.riskScore + '</div>' +
+                '<span style="font-size:11px;font-family:var(--mono);color:' + ((a.critCVEs || 0) > 0 ? 'var(--red)' : 'var(--t3)') + '">' + ((a.critCVEs || 0) || '—') + '</span>' +
+                '<span style="font-size:11px;font-family:var(--mono);color:' + ((a.highCVEs || 0) > 0 ? 'var(--amb)' : 'var(--t3)') + '">' + ((a.highCVEs || 0) || '—') + '</span>' +
+                '</div>').join('')
+              : '<div style="padding:10px 14px;font-size:10px;color:var(--t3)">No issues in this namespace</div>') +
+            '</div>' +
+            '</div>';
+        }).join('') +
+        '</div>';
+      expandedNS.forEach(i => {
+        var el = document.getElementById('nse-' + i), ar = document.getElementById('nsa-' + i);
+        if (el) el.classList.add('open'); if (ar) ar.innerHTML = '&#9662;';
       });
+    }
 
-      const c = (fleetPayload.clusters || []).find(x => x.context === activeScopeContext);
-      if (!c) return;
+    function toggleNS(i) {
+      var el = document.getElementById('nse-' + i), ar = document.getElementById('nsa-' + i); if (!el) return;
+      var open = el.classList.contains('open');
+      if (open) { el.classList.remove('open'); ar.innerHTML = '&#9656;'; expandedNS.delete(i); }
+      else { el.classList.add('open'); ar.innerHTML = '&#9662;'; expandedNS.add(i); }
+    }
 
-      const canvas = document.getElementById('analyticsChartCanvas');
-      if (!canvas) return;
-      if (dashboardChart) dashboardChart.destroy();
+    function renderCCharts(c, body) {
+      var nodes = c.nodes || [], crit = 0, high = 0, med = 0, low = 0, vuln = 0, safe = 0;
+      nodes.forEach(n => { if (n.riskLevel === 'critical') crit++; else if (n.riskLevel === 'high') high++; else if (n.riskLevel === 'medium') med++; else low++; if (n.vulnerable) vuln++; else safe++; });
+      var nsd = (c.namespaces || []).sort((a, b) => b.issues - a.issues).slice(0, 8);
+      body.innerHTML = '<div class="g3">' +
+        '<div class="card"><div class="ch"><span class="ct">Node risk levels</span><select class="csel" onchange="swCC(\'nrl\',this.value,[' + [crit, high, med, low].join(',') + '])"><option value="doughnut">Donut</option><option value="pie">Pie</option><option value="bar">Bar</option></select></div><div class="cb"><div class="chart-wrap" style="height:160px"><canvas id="ch-nrl"></canvas></div></div></div>' +
+        '<div class="card"><div class="ch"><span class="ct">Vuln vs safe</span><select class="csel" onchange="swCC(\'vs\',this.value,[' + [vuln, safe].join(',') + '])"><option value="doughnut">Donut</option><option value="pie">Pie</option><option value="bar">Bar</option></select></div><div class="cb"><div class="chart-wrap" style="height:160px"><canvas id="ch-vs"></canvas></div></div></div>' +
+        '<div class="card"><div class="ch"><span class="ct">Namespace issues</span></div><div class="cb"><div class="chart-wrap" style="height:160px"><canvas id="ch-nsb"></canvas></div></div></div></div>';
+      setTimeout(() => {
+        window._nrl = [crit, high, med, low]; window._vs = [vuln, safe];
+        mkC('nrl', 'doughnut', [crit, high, med, low], ['Critical', 'High', 'Medium', 'Low'], ['rgba(244,63,94,.8)', 'rgba(245,158,11,.8)', 'rgba(59,130,246,.8)', 'rgba(16,185,129,.8)'], 'ch-nrl');
+        mkC('vs', 'doughnut', [vuln, safe], ['Vulnerable', 'Safe'], ['rgba(244,63,94,.8)', 'rgba(16,185,129,.8)'], 'ch-vs');
+        var nc = document.getElementById('ch-nsb');
+        if (nc) { if (charts.nsb) charts.nsb.destroy(); charts.nsb = new Chart(nc, { type: 'bar', data: { labels: nsd.map(n => n.name.length > 12 ? n.name.slice(-11) + '\u2026' : n.name), datasets: [{ data: nsd.map(n => n.issues), backgroundColor: nsd.map(n => n.issues > 5 ? 'rgba(244,63,94,.75)' : n.issues > 2 ? 'rgba(245,158,11,.75)' : 'rgba(59,130,246,.75)'), borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 8 } } }, y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } } } } } }); }
+      }, 60);
+    }
+    function swCC(k, t, d) { if (k === 'nrl') mkC('nrl', t, window._nrl || [], ['Critical', 'High', 'Medium', 'Low'], ['rgba(244,63,94,.8)', 'rgba(245,158,11,.8)', 'rgba(59,130,246,.8)', 'rgba(16,185,129,.8)'], 'ch-nrl'); else if (k === 'vs') mkC('vs', t, window._vs || [], ['Vulnerable', 'Safe'], ['rgba(244,63,94,.8)', 'rgba(16,185,129,.8)'], 'ch-vs'); }
 
-      const labels = (c.namespaces || []).slice(0, 5).map(n => n.name);
-      const points = (c.namespaces || []).slice(0, 5).map(n => n.issues);
-      if (labels.length === 0) { labels.push("Clear Baseline"); points.push(0); }
+    // ── NODE MODAL ─────────────────────────────────────────────────────────────────
+    function showNode(name, clName) {
+      var c = (fleet.clusters || []).find(x => x.name === clName), n = c ? (c.nodes || []).find(x => x.name === name) : null; if (!n) return;
+      openM(n.name, clName + ' \u00B7 ' + (n.zone || '\u2014') + ' \u00B7 Risk: ' + n.riskScore + '/99',
+        '<div class="msec"><div class="msec-t">Risk summary</div><div class="mg2">' +
+        '<div class="mst"><div class="mst-v" style="color:' + (n.riskScore >= 65 ? 'var(--red)' : 'var(--amb)') + '">' + n.riskScore + '</div><div class="mst-l">Risk score</div></div>' +
+        '<div class="mst"><div class="mst-v" style="color:' + (n.vulnerable ? 'var(--red)' : 'var(--grn)') + '">' + (n.vulnerable ? 'EXPOSED' : 'SAFE') + '</div><div class="mst-l">Copy Fail</div></div>' +
+        '</div></div>' +
+        '<div class="msec"><div class="msec-t">Node details</div>' +
+        mkMR('Kernel', n.kernel || 'unknown', n.patchStatus === 'patched' ? 'var(--grn)' : 'var(--red)') +
+        mkMR('Patch status', n.patchStatus, n.patchStatus === 'patched' ? 'var(--grn)' : 'var(--red)') +
+        mkMR('algif_aead', n.algifStatus, n.algifStatus === 'loaded' ? 'var(--red)' : 'var(--grn)') +
+        mkMR('Instance', n.nodeType || '\u2014', 'var(--t1)') +
+        mkMR('Zone', n.zone || '\u2014', 'var(--t1)') +
+        mkMR('Spot', n.isSpot ? 'YES' : 'no', n.isSpot ? 'var(--amb)' : 'var(--grn)') +
+        mkMR('Ready', n.ready, n.ready === 'True' ? 'var(--grn)' : 'var(--red)') +
+        '</div>' +
+        (n.vulnerable ? '<div class="msec"><div class="msec-t">Exact remediation</div>' +
+          '<div class="mcode">## Step 1 \u2014 Immediate (no reboot)\necho "install algif_aead /bin/false" > /etc/modprobe.d/disable-algif-aead.conf\nrmmod algif_aead 2>/dev/null || true\n# Verify: lsmod | grep algif_aead  # nothing = done\n\n## Step 2 \u2014 Permanent\n# Update EC2NodeClass AMI to kernel >= 6.1.141\n# Drain node \u2014 Karpenter replaces automatically</div></div>' : ''));
+    }
 
-      dashboardChart = new Chart(canvas, {
-        type: topology,
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Configuration Gaps Count',
-            data: points,
-            backgroundColor: ['rgba(244,63,94,0.7)', 'rgba(251,191,36,0.7)', 'rgba(59,130,246,0.7)', 'rgba(168,85,247,0.7)'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: topology === 'doughnut' } },
-          scales: topology !== 'doughnut' && topology !== 'radar' ? {
-            y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#8fa0c2', font: { size: 9 } } },
-            x: { grid: { display: false }, ticks: { color: '#8fa0c2', font: { size: 9 } } }
-          } : {}
+    // ── WORKLOAD MODAL ─────────────────────────────────────────────────────────────
+    function showWorkloadModal(row, event) {
+      event.stopPropagation();
+      var app = JSON.parse(decodeURIComponent(row.dataset.app));
+      var ie = { privileged: 'Container has privileged:true \u2014 full node access post Copy Fail exploit', hostNetwork: 'hostNetwork:true \u2014 shares node network, can sniff all traffic', runAsRoot: 'Running as UID 0 \u2014 no privilege escalation needed post-exploit', noLimits: 'No CPU/memory limits \u2014 resource exhaustion attack possible' };
+      var cvssCls = v => v >= 9 ? 'cvss-c' : v >= 7 ? 'cvss-h' : v >= 4 ? 'cvss-m' : 'cvss-l';
+      var trunc = (s, n) => s && s.length > n ? s.slice(0, n) + '...' : s || '—';
+      var cveRows = (app.cves || []).slice(0, 20).map(v => '<div class="cve-mini-row">' +
+        '<span style="font-family:var(--mono);font-size:9px;color:var(--t1)">' + trunc(v.vulnName, 20) + '</span>' +
+        '<span class="cvss ' + cvssCls(parseFloat(v.cvss) || 0) + '">' + (parseFloat(v.cvss) || 0).toFixed(1) + '</span>' +
+        '<span style="font-size:9px;color:var(--t3)">' + trunc(v.packageName, 14) + '</span>' +
+        '<span style="font-family:var(--mono);font-size:9px;color:var(--t3)">' + trunc(v.packageVersion, 10) + '</span>' +
+        '<span class="pkg-path">' + trunc(v.packagePath, 18) + '</span>' +
+        '<span style="font-size:9px;color:var(--grn)">' + trunc(v.fixVersion, 14) + '</span>' +
+        '</div>').join('');
+      openM(app.name, 'Namespace: ' + app.namespace + ' \u00B7 Risk: ' + app.riskScore + '/99',
+        '<div class="msec"><div class="msec-t">Config security issues</div>' +
+        ((app.issues || []).length === 0 ? '<div style="color:var(--grn);font-size:12px">&#10003; No config issues</div>' :
+          (app.issues || []).map(iss => '<div class="alert ' + (iss === 'privileged' || iss === 'hostNetwork' ? 'r' : iss === 'runAsRoot' ? 'a' : 'b') + '" style="margin-bottom:5px"><div class="adot"></div><div><div class="atitle">' + iss + '</div><div class="abody">' + (ie[iss] || iss) + '</div></div></div>').join('')) +
+        '</div>' +
+        '<div class="msec"><div class="msec-t">Workload details</div>' +
+        mkMR('Pod name', app.name, 'var(--t1)') +
+        mkMR('Namespace', app.namespace, 'var(--t1)') +
+        mkMR('Image', app.image || '—', 'var(--t3)') +
+        mkMR('Privileged', app.privileged ? 'YES' : 'no', app.privileged ? 'var(--red)' : 'var(--grn)') +
+        mkMR('hostNetwork', app.hostNetwork ? 'YES' : 'no', app.hostNetwork ? 'var(--red)' : 'var(--grn)') +
+        mkMR('runAsRoot', app.runAsRoot ? 'YES' : 'no', app.runAsRoot ? 'var(--amb)' : 'var(--grn)') +
+        mkMR('No limits', app.noLimits ? 'YES' : 'no', app.noLimits ? 'var(--amb)' : 'var(--grn)') +
+        mkMR('Risk score', app.riskScore + '/99', app.riskScore >= 40 ? 'var(--red)' : app.riskScore >= 20 ? 'var(--amb)' : 'var(--grn)') +
+        '</div>' +
+        ((app.cves || []).length ? '<div class="msec"><div class="msec-t">Image CVEs from Sysdig (' + ((app.cves || []).length) + ' findings)</div>' +
+          '<div class="cve-mini">' +
+          '<div class="cve-mini-hdr"><span>CVE</span><span>CVSS</span><span>Package</span><span>Version</span><span>Path</span><span>Fix</span></div>' +
+          cveRows +
+          '</div></div>' : '<div class="msec"><div style="font-size:11px;color:var(--t3);padding:4px 0">No Sysdig CVE data \u2014 enable VM API access or check image scan config</div></div>') +
+        (app.cves && app.cves.length ? '<div class="msec"><div class="msec-t">Remediation</div>' +
+          '<div class="mcode">## Fix CVEs in this workload:\n# 1. Update packages in Dockerfile\n# 2. Rebuild image and push to Artifactory\n# 3. Roll out update:\nkubectl rollout restart deployment/' + app.name + '\\\n  -n ' + app.namespace + '</div></div>' : ''));
+    }
+
+    // ── VULNERABILITIES TAB ────────────────────────────────────────────────────────
+    async function loadVulns() {
+      if (vulnLoaded) { renderVulns(); return; }
+      document.getElementById('vf-content').innerHTML = '<div class="empty"><div class="empty-i"><span class="spin" style="width:24px;height:24px;border-width:2px"></span></div><div class="empty-t">Fetching vulnerability findings from Sysdig...</div></div>';
+      try {
+        const r = await fetch('/api/vulns', { cache: 'no-store' });
+        const d = await r.json();
+        if (d.error) {
+          document.getElementById('vf-content').innerHTML =
+            '<div style="padding:20px"><div class="alert r" style="margin-bottom:14px"><div class="adot"></div><div>' +
+            '<div class="atitle">Sysdig VM API \u2014 Elevated role required</div>' +
+            '<div class="abody">' + d.error + '</div></div></div>' +
+            '<div class="card"><div class="ch"><span class="ct">What this tab will show once access is granted</span></div><div class="cb">' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+            '<div style="background:var(--s2);border-radius:var(--r);padding:12px;border:1px solid var(--bd)"><div style="font-size:11px;font-weight:500;margin-bottom:6px">Per-workload CVE table</div><div style="font-size:10px;color:var(--t3);line-height:1.6">Every CVE across every container image &middot; Package name, version, path &middot; Image name &amp; ID &middot; CVSS scores &middot; CISA KEV status</div></div>' +
+            '<div style="background:var(--s2);border-radius:var(--r);padding:12px;border:1px solid var(--bd)"><div style="font-size:11px;font-weight:500;margin-bottom:6px">Cluster &rarr; NS &rarr; Workload drill-down</div><div style="font-size:10px;color:var(--t3);line-height:1.6">Filter by cluster, namespace, workload &middot; Sort by severity &middot; Fix version + date &middot; Export CSV</div></div>' +
+            '</div></div></div></div>';
+          return;
         }
-      });
-    }
-
-    function renderPredictiveFeed() {
-      const container = document.getElementById('predictiveFeedContainer');
-      if (!container || !fleetPayload.upcomingThreats) return;
-      container.innerHTML = fleetPayload.upcomingThreats.map(t => `
-        <div class="threat-item ${t.severity}">
-          <div style="max-width:75%">
-            <div class="threat-cve" style="color:${t.severity === 'CRITICAL' ? 'var(--red)' : 'var(--amber)'}">${t.cve} <span style="font-size:10px; color:var(--t3)">[${t.component}]</span></div>
-            <div class="threat-desc">${t.description}</div>
-          </div>
-          <div class="threat-right"><span style="font-size:14px; font-weight:600; color:var(--red);">${t.probabilityPct}%</span><br><span style="font-size:7px; text-transform:uppercase; color:var(--t3)">prob</span></div>
-        </div>`).join('');
-    }
-
-    function filterLocalNodes(mode) {
-      nodeSubFilter = mode;
-      const match = (fleetPayload.clusters || []).find(x => x.context === activeScopeContext);
-      if (match) { activeTabId = 'nodes'; renderActiveTab(match); }
-    }
-
-    function renderActiveTab(c) {
-      const zone = document.getElementById('tab-injection-target');
-      if (!zone) return;
-
-      if (activeTabId === 'nodes') {
-        let sortedNodes = (c.nodes || []).slice().sort((a, b) => b.riskScore - a.riskScore);
-        if (nodeSubFilter === 'exposed') sortedNodes = sortedNodes.filter(n => n.vulnerable);
-
-        zone.innerHTML = `
-          <div class="node-grid">
-            ${sortedNodes.map(n => `
-              <div class="nc">
-                <div class="nc-top ${n.riskLevel === 'critical' ? 'critical' : n.riskLevel === 'high' ? 'high' : 'low'}"></div>
-                <div class="nc-body">
-                  <div class="nc-name" title="${n.name}">${n.name.split('.')[0]}</div>
-                  <div class="nc-row"><span class="nc-key">Kernel state</span><span class="nc-val" style="color:${n.patchStatus === 'unpatched' ? 'var(--red)' : 'var(--green)'}">${n.patchStatus}</span></div>
-                  <div class="nc-row"><span class="nc-key">algif_aead</span><span class="nc-val">${n.algifStatus}</span></div>
-                  <div class="nc-row"><span class="nc-key">Risk Evaluation</span><span class="nc-val" style="color:var(--red)">${n.riskScore}/99</span></div>
-                  <div class="nc-tags">
-                    ${n.vulnerable ? '<span class="nctag nct-r">CVE-2026-31431</span>' : ''}
-                    ${n.isSpot ? '<span class="nctag nct-b">spot</span>' : '<span class="nctag nct-b">on-demand</span>'}
-                  </div>
-                </div>
-              </div>`).join('')}
-          </div>`;
-      } else {
-        const namespaces = c.namespaces || [];
-        zone.innerHTML = `
-          <div class="ns-wrap">
-            <div class="ns-hdr"><span>Namespace Target Workspace</span><span>Pods</span><span>Issues Count</span><span>Risk Baseline</span><span></span></div>
-            ${namespaces.map((ns, i) => `
-              <div class="ns-row">
-                <div class="ns-main-row" onclick="toggleNamespaceExpansion(${i})">
-                  <span class="ns-name">${ns.name}</span>
-                  <span class="ns-val">${ns.appCount}</span>
-                  <span class="ns-val" style="color:${ns.issues > 0 ? 'var(--amber)' : 'var(--green)'}">${ns.issues || '✓'}</span>
-                  <span><span class="tag ${ns.risk === 'critical' ? 'tag-red' : 'tag-amber'}">${ns.risk}</span></span>
-                  <span style="color:var(--t3)">▾</span>
-                </div>
-                <div class="ns-expand" id="ns-panel-expand-${i}">
-                  <div class="app-hdr"><span>Isolated Blueprint App Name</span><span>Container Image Target Registry Path</span><span>Compliance Structural Faults</span><span>Derived Weight</span></div>
-                  ${(ns.apps || []).map(a => `
-                    <div class="app-row">
-                      <span class="app-name">${a.name}</span>
-                      <span class="app-img" title="${a.image}">${a.image}</span>
-                      <div style="display:flex; gap:3px;">${a.issues.map(iss => `<span class="tag tag-red">${iss}</span>`).join('')}</div>
-                      <span style="font-family:var(--mono); font-weight:600; color:var(--red);">${a.riskScore}</span>
-                    </div>`).join('')}
-                </div>
-              </div>`).join('')}
-          </div>`;
-
-        activeNSPanels.forEach(i => {
-          const el = document.getElementById(`ns-panel-expand-${i}`);
-          if (el) el.classList.add('open');
-        });
+        vulnData = d.findings || [];
+        vulnLoaded = true;
+        renderVulns();
+      } catch (e) {
+        document.getElementById('vf-content').innerHTML = '<div class="empty"><div class="empty-t">Failed to reach backend</div><div class="empty-s">' + e + '</div></div>';
       }
     }
 
-    function toggleNamespaceExpansion(i) {
-      const el = document.getElementById(`ns-panel-expand-${i}`);
-      if (!el) return;
-      if (el.classList.contains('open')) { el.classList.remove('open'); activeNSPanels.delete(i); }
-      else { el.classList.add('open'); activeNSPanels.add(i); }
-    }
-
-    function renderSidebar() {
-      const cs = fleetPayload.clusters || [];
-      const query = (document.getElementById('cl-search')?.value || '').toLowerCase();
-      let filtered = cs;
-
-      if (listFilter === 'exposed') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable > 0);
-      else if (listFilter === 'error') filtered = cs.filter(c => c.status !== 'ok');
-      else if (listFilter === 'clean') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable === 0);
-
-      if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
-
-      const sortBy = document.getElementById('sort-select')?.value || 'severity';
-      filtered.sort((a, b) => {
-        if (sortBy === 'nodes-desc') return b.nodeCount - a.nodeCount;
-        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
-        if (a.status !== 'ok' && b.status === 'ok') return 1;
-        if (a.status === 'ok' && b.status !== 'ok') return -1;
-        return (b.vulnerable / (b.nodeCount || 1)) - (a.vulnerable / (a.nodeCount || 1));
+    function renderVulns() {
+      var q = (document.getElementById('vf-q')?.value || '').toLowerCase(), f = vulnFilter;
+      var list = vulnData.filter(v => {
+        if (f === 'critical') return (v.severity || '').toLowerCase() === 'critical';
+        if (f === 'high') return (v.severity || '').toLowerCase() === 'high';
+        if (f === 'fixable') return !!v.fixVersion;
+        if (f === 'kev') return !!v.cisaKevDate;
+        return true;
       });
-
-      const list = document.getElementById('cl-list');
-      list.innerHTML = filtered.map(c => {
-        const isOk = c.status === 'ok';
-        const pct = c.nodeCount > 0 ? Math.round((c.vulnerable / c.nodeCount) * 100) : 0;
-        const stateColor = !isOk ? 'var(--red)' : c.vulnerable > 0 ? 'var(--amber)' : 'var(--green)';
-        return `
-          <div class="cl-item ${activeScopeContext === c.context ? 'active' : ''}" onclick="pickClusterTarget('${c.context}')">
-            <div class="cl-top">
-              <div class="cl-name">${c.name.toUpperCase()}</div>
-              <div class="cl-vuln" style="color:${stateColor}">${isOk ? (c.vulnerable || '✓') : '✗'}</div>
-            </div>
-            <div class="cl-meta">${c.region.toUpperCase()} · ${c.nodeCount || 0} hosts</div>
-            ${isOk && c.nodeCount > 0 ? `<div class="cl-bar"><div class="cl-bar-fill" style="width:${pct}%;background:${c.vulnerable > 0 ? 'var(--red)' : 'var(--green)'}"></div></div>` : ''}
-          </div>`;
-      }).join('');
+      if (q) list = list.filter(v => (v.vulnName || '').toLowerCase().includes(q) || (v.packageName || '').toLowerCase().includes(q) || (v.clusterName || '').toLowerCase().includes(q) || (v.namespace || '').toLowerCase().includes(q) || (v.workloadName || '').toLowerCase().includes(q) || (v.imageName || '').toLowerCase().includes(q));
+      var sc2 = vulnSort.col, sd = vulnSort.dir;
+      list.sort((a, b) => {
+        var av = a[sc2] || '', bv = b[sc2] || '';
+        if (sc2 === 'severity') { var o = { critical: 4, high: 3, medium: 2, low: 1 }; av = o[(a.severity || '').toLowerCase()] || 0; bv = o[(b.severity || '').toLowerCase()] || 0; }
+        if (sc2 === 'cvss') { av = parseFloat(a.cvss) || 0; bv = parseFloat(b.cvss) || 0; }
+        return av < bv ? (sd === 'asc' ? -1 : 1) : av > bv ? (sd === 'asc' ? 1 : -1) : 0;
+      });
+      var crit = vulnData.filter(v => (v.severity || '').toLowerCase() === 'critical').length;
+      var high = vulnData.filter(v => (v.severity || '').toLowerCase() === 'high').length;
+      var fix = vulnData.filter(v => v.fixVersion).length;
+      var kev = vulnData.filter(v => v.cisaKevDate).length;
+      var cls = new Set(vulnData.map(v => v.clusterName).filter(Boolean)).size;
+      var sdot = s => { var c2 = s.toLowerCase() === 'critical' ? 'var(--red)' : s.toLowerCase() === 'high' ? 'var(--amb)' : s.toLowerCase() === 'medium' ? 'var(--blu)' : 'var(--grn)'; return '<span class="sdot" style="background:' + c2 + '"></span>'; };
+      var svcls = s => s.toLowerCase() === 'critical' ? 's-crit' : s.toLowerCase() === 'high' ? 's-high' : s.toLowerCase() === 'medium' ? 's-med' : 's-low';
+      var cpill = v => { var f2 = parseFloat(v) || 0, cls2 = f2 >= 9 ? 'cvss-c' : f2 >= 7 ? 'cvss-h' : f2 >= 4 ? 'cvss-m' : 'cvss-l'; return '<span class="cvss ' + cls2 + '">' + f2.toFixed(1) + '</span>'; };
+      var th = (col, lbl) => '<th class="' + (vulnSort.col === col ? (vulnSort.dir === 'asc' ? 'sa' : 'sd') : '') + '" onclick="svs(\'' + col + '\')" >' + lbl + '</th>';
+      var tr = (s, n) => s && s.length > n ? s.slice(0, n) + '\u2026' : s || '—';
+      var el = document.getElementById('vf-content');
+      el.innerHTML =
+        '<div class="kpi-row kpi5" style="margin-bottom:12px">' +
+        mkKPI('var(--red)', crit, 'Critical CVEs', 'image scan') + mkKPI('var(--amb)', high, 'High CVEs', 'severity \u22657.0') +
+        mkKPI('var(--grn)', fix, 'Fixable', 'fix version available') + mkKPI('var(--pur)', kev, 'CISA KEV', 'known exploited') +
+        mkKPI('var(--blu)', cls, 'Clusters', 'with findings') +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:7px;margin-bottom:12px;flex-wrap:wrap">' +
+        '<input class="vf-search" id="vf-q" placeholder="Search CVE, package, cluster, namespace, workload, image..." oninput="renderVulns()" value="' + q + '">' +
+        '<div class="vfc ' + (vulnFilter === 'all' ? 'a' : '') + '" onclick="svf(\'all\',this)">All</div>' +
+        '<div class="vfc ' + (vulnFilter === 'critical' ? 'ar' : '') + '" onclick="svf(\'critical\',this)">Critical</div>' +
+        '<div class="vfc ' + (vulnFilter === 'high' ? 'a' : '') + '" onclick="svf(\'high\',this)">High</div>' +
+        '<div class="vfc ' + (vulnFilter === 'fixable' ? 'a' : '') + '" onclick="svf(\'fixable\',this)">Fixable</div>' +
+        '<div class="vfc ' + (vulnFilter === 'kev' ? 'ar' : '') + '" onclick="svf(\'kev\',this)">CISA KEV</div>' +
+        '<span style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-left:auto">' + list.length + ' findings</span>' +
+        '<button class="btn btn-sm" onclick="expVulnCSV()">&#8659; CSV</button>' +
+        '</div>' +
+        '<div class="vf-tw" style="max-height:calc(100vh - 360px)">' +
+        '<table class="vft"><thead><tr>' +
+        th('vulnName', 'CVE / Vulnerability') + th('severity', 'Severity') + th('cvss', 'CVSS') +
+        '<th>CVSS Vector</th>' +
+        th('clusterName', 'Cluster') + th('namespace', 'Namespace') + th('workloadName', 'Workload') +
+        '<th>Type</th>' + th('containerName', 'Container') +
+        th('packageName', 'Package') + th('packageVersion', 'Version') + '<th>Pkg Type</th><th>Package Path</th>' +
+        th('imageName', 'Image') + '<th>OS</th>' +
+        th('fixVersion', 'Fix Version') + '<th>Fix Date</th><th>Disclosure</th><th>CISA KEV</th>' +
+        '</tr></thead><tbody>' +
+        list.slice(0, 300).map(v => '<tr onclick="showVulnM(this)" data-v="' + encodeURIComponent(JSON.stringify(v)) + '">' +
+          '<td style="font-family:var(--mono);color:var(--t1);font-weight:500">' + tr(v.vulnName, 20) + '</td>' +
+          '<td><span class="' + svcls((v.severity || '').toLowerCase()) + '">' + sdot((v.severity || 'unknown')) + (v.severity || '?') + '</span></td>' +
+          '<td>' + cpill(v.cvss) + '</td>' +
+          '<td class="pkg-path">' + tr(v.cvssVector, 22) + '</td>' +
+          '<td style="font-family:var(--mono);color:var(--t2)">' + tr(v.clusterName, 16) + '</td>' +
+          '<td style="font-family:var(--mono);color:var(--t2)">' + tr(v.namespace, 14) + '</td>' +
+          '<td style="font-family:var(--mono);font-weight:500">' + tr(v.workloadName, 18) + '</td>' +
+          '<td><span class="badge bb">' + tr(v.workloadType, 10) + '</span></td>' +
+          '<td style="font-family:var(--mono);color:var(--t2)">' + tr(v.containerName, 14) + '</td>' +
+          '<td style="font-family:var(--mono);color:var(--red);font-weight:500">' + tr(v.packageName, 18) + '</td>' +
+          '<td style="font-family:var(--mono)">' + tr(v.packageVersion, 12) + '</td>' +
+          '<td><span class="badge ba">' + tr(v.packageType, 8) + '</span></td>' +
+          '<td class="pkg-path" title="' + v.packagePath + '">' + tr(v.packagePath, 22) + '</td>' +
+          '<td class="pkg-path" title="' + v.imageName + '">' + tr(v.imageName, 20) + '</td>' +
+          '<td style="font-size:9px;color:var(--t3)">' + tr(v.osName, 10) + '</td>' +
+          '<td style="font-family:var(--mono);color:var(--grn)">' + tr(v.fixVersion, 14) + '</td>' +
+          '<td style="font-size:9px;color:var(--t3)">' + tr(v.fixAvailDate, 12) + '</td>' +
+          '<td style="font-size:9px;color:var(--t3)">' + tr(v.disclosureDate, 12) + '</td>' +
+          '<td>' + (v.cisaKevDate ? '<span class="badge br">KEV</span>' : '<span style="color:var(--t4);font-size:9px">—</span>') + '</td>' +
+          '</tr>').join('') +
+        '</tbody></table>' +
+        '</div>' +
+        (list.length > 300 ? '<div style="padding:7px 12px;font-size:10px;color:var(--t3);text-align:center">Showing 300 of ' + list.length + ' \u2014 use filters to narrow</div>' : '');
     }
 
-    function pickClusterTarget(ctx) { activeScopeContext = ctx; nodeSubFilter = 'all'; activeNSPanels = new Set(); activeTabId = 'nodes'; applyGlobalStateTransforms(); }
-    function switchLocalTab(t) { activeTabId = t; const match = (fleetPayload.clusters || []).find(x => x.context === activeScopeContext); if (match) renderActiveTab(match); }
-    function setF(f, el) { listFilter = f; document.querySelectorAll('.sf').forEach(s => s.classList.remove('a')); el.classList.add('a'); renderSidebar(); }
-    function toggleReportingOverlay(show) { document.getElementById('reportingModal').style.display = show ? 'flex' : 'none'; document.getElementById('modalOptCluster').style.display = activeScopeContext ? "block" : "none"; }
+    function svf(f, el) { vulnFilter = f; renderVulns(); }
+    function svs(col) { if (vulnSort.col === col) vulnSort.dir = vulnSort.dir === 'asc' ? 'desc' : 'asc'; else { vulnSort.col = col; vulnSort.dir = 'desc'; } renderVulns(); }
 
-    function generateReportSuite(scope) {
-      toggleReportingOverlay(false);
-      const f = fleetPayload;
-      const cluster = (f.clusters || []).find(x => x.context === activeScopeContext);
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    function showVulnM(row) {
+      var v = JSON.parse(decodeURIComponent(row.dataset.v));
+      var sc = parseFloat(v.cvss) || 0, col = sc >= 9 ? 'var(--red)' : sc >= 7 ? 'var(--amb)' : sc >= 4 ? 'var(--blu)' : 'var(--grn)';
+      var tr = (s, n) => s && s.length > n ? s.slice(0, n) + '...' : s || '—';
+      openM(v.vulnName || 'Vulnerability', (v.clusterName || '—') + ' \u00B7 ' + (v.namespace || '—') + ' \u00B7 ' + (v.workloadName || '—'),
+        '<div class="msec"><div class="msec-t">Vulnerability</div>' +
+        mkMR('CVE ID', v.vulnName || '—', 'var(--t1)') + mkMR('Severity', v.severity || '—', col) +
+        mkMR('CVSS Score', sc.toFixed(1), col) + mkMR('CVSS Vector', v.cvssVector || '—', 'var(--t2)') +
+        mkMR('Disclosure', v.disclosureDate || '—', 'var(--t2)') + mkMR('CISA KEV', v.cisaKevDate ? 'YES \u2014 ' + v.cisaKevDate : 'No', 'var(--t3)') +
+        '</div>' +
+        '<div class="msec"><div class="msec-t">Affected package</div>' +
+        mkMR('Package', v.packageName || '—', 'var(--red)') + mkMR('Version', v.packageVersion || '—', 'var(--t1)') +
+        mkMR('Type', v.packageType || '—', 'var(--t2)') + mkMR('Path', v.packagePath || '—', 'var(--t3)') +
+        mkMR('Fix version', v.fixVersion || 'No fix yet', v.fixVersion ? 'var(--grn)' : 'var(--red)') +
+        mkMR('Fix available', v.fixAvailDate || '—', 'var(--t2)') +
+        '</div>' +
+        '<div class="msec"><div class="msec-t">Workload context</div>' +
+        mkMR('Cluster', v.clusterName || '—', 'var(--blu)') + mkMR('Namespace', v.namespace || '—', 'var(--t1)') +
+        mkMR('Workload', v.workloadName || '—', 'var(--t1)') + mkMR('Type', v.workloadType || '—', 'var(--t2)') +
+        mkMR('Container', v.containerName || '—', 'var(--t2)') +
+        '</div>' +
+        '<div class="msec"><div class="msec-t">Container image</div>' +
+        mkMR('Image', tr(v.imageName, 55), 'var(--t2)') + mkMR('Image ID', tr(v.imageID, 36), 'var(--t3)') + mkMR('OS', v.osName || '—', 'var(--t2)') +
+        '</div>' +
+        (v.fixVersion ? '<div class="msec"><div class="msec-t">Remediation</div>' +
+          '<div class="mcode">## Update package to fix version\npkg update ' + (v.packageName || '<package>') + ' to ' + v.fixVersion + '\n\n## Rebuild container image\n## Push to Artifactory\n\n## Roll out:\nkubectl rollout restart ' + (v.workloadType || 'deployment').toLowerCase() + '/' + (v.workloadName || '<workload>') + '\\\n  -n ' + (v.namespace || '<namespace>') + '\n  --context=' + (v.clusterName || '<cluster>') + '</div></div>' : ''));
+    }
 
-      let html = `<!DOCTYPE html><html><head><title>Compliance Assessment</title>
-        <style>body{font-family:-apple-system,sans-serif; padding:40px; color:#1e293b; max-width:960px; margin:0 auto;} .header-block{border-bottom:2px solid #1e3a8a; padding-bottom:14px; margin-bottom:20px;} .report-title{font-size:20px; font-weight:700; color:#0f172a;} .sub-text{font-size:11px; color:#64748b; margin-top:4px;} h2{font-size:15px; font-weight:600; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:6px; margin-top:24px;} h3{font-size:12px; font-weight:600; margin:12px 0 6px;} table{width:100%; border-collapse:collapse; font-size:11px; margin-bottom:18px;} th,td{border:1px solid #e2e8f0; padding:6px 8px; text-align:left;} .bg-gray{background:#f8fafc;} .bg-red{background:#fef2f2;} th.red-border{border:1px solid #fecaca;} .text-red{color:#dc2626;} .text-mono{font-family:monospace;} .font-bold{font-weight:600;} .footer-text{margin-top:28px; padding-top:10px; border-top:1px solid #e2e8f0; font-size:10px; color:#94a3b8;}</style></head><body>`;
+    function expVulnCSV() {
+      var rows = [['CVE ID', 'Severity', 'CVSS', 'Package', 'Version', 'Pkg Type', 'Package Path', 'Image', 'OS', 'Cluster', 'Namespace', 'Workload', 'Type', 'Container', 'Fix Version', 'Fix Date', 'Disclosure', 'CISA KEV']];
+      vulnData.forEach(v => rows.push([v.vulnName, v.severity, v.cvss, v.packageName, v.packageVersion, v.packageType, v.packagePath, v.imageName, v.osName, v.clusterName, v.namespace, v.workloadName, v.workloadType, v.containerName, v.fixVersion, v.fixAvailDate, v.disclosureDate, v.cisaKevDate ? 'YES' : '']));
+      var csv = rows.map(r => r.map(v => '"' + (String(v || '').replace(/"/g, '""')) + '"').join(',')).join('\n');
+      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'sysdig-vulns-' + new Date().toISOString().split('T')[0] + '.csv'; a.click();
+    }
 
-      html += `<div class="header-block"><div class="report-title">Security Report</div><div class="sub-text"> ${dateStr} · Generated at ${now.toLocaleTimeString()}</div></div>`;
-
-      if (scope === 'FLEET_GLOBAL') {
-        const vulnerableClusters = (f.clusters || []).filter(c => c.vulnerable > 0).sort((a, b) => b.vulnerable - a.vulnerable);
-
-        html += `<h2>Fleet Summary</h2>
-          <table><tr class="bg-gray"><th>Metric</th><th>Value</th></tr>
-          <tr><td>Total clusters</td><td>${f.totalClusters}</td></tr>
-          <tr><td>Scanned OK</td><td>${f.scannedClusters}</td></tr>
-          <tr><td>Unreachable</td><td>${f.failedClusters}</td></tr>
-          <tr><td>Total nodes</td><td>${f.totalNodes}</td></tr>
-          <tr><td>Vulnerable nodes (Copy Fail)</td><td class="text-red font-bold">${f.vulnNodes}</td></tr>
-          <tr><td>Total pods scanned</td><td>${f.totalPods}</td></tr>
-          </table>`;
-
-        if (vulnerableClusters.length > 0) {
-          html += `<h2>Top Exposed Clusters</h2>
-            <table><tr class="bg-red"><th class="red-border">Cluster</th><th class="red-border">Region</th><th class="red-border">Nodes</th><th class="red-border">Exposed</th><th class="red-border">%</th></tr>
-            ${vulnerableClusters.map(c => {
-            const pct = c.nodeCount > 0 ? Math.round((c.vulnerable / c.nodeCount) * 100) : 0;
-            return `<tr><td class="text-mono">${c.name}</td><td>${c.region}</td><td>${c.nodeCount}</td><td class="text-red font-bold">${c.vulnerable}</td><td>${pct}%</td></tr>`;
-          }).join('')}
-            </table>`;
-        }
-      } else {
-        if (!cluster) return;
-        const vulnNodesList = (cluster.nodes || []).filter(n => n.vulnerable);
-        const badNamespaces = (cluster.namespaces || []).filter(ns => ns.issues > 0);
-
-        html += `<h2>Cluster Detail: ${cluster.name}</h2>
-          <p class="sub-text" style="margin-bottom:12px">${cluster.context} · ${cluster.region} · ${cluster.nodeCount} nodes · ${cluster.podCount} pods</p>`;
-
-        if (vulnNodesList.length > 0) {
-          html += `<h3 class="text-red">Vulnerable Nodes (${vulnNodesList.length})</h3>
-            <table><tr class="bg-red"><th class="red-border">Node</th><th class="red-border">Kernel</th><th class="red-border">algif_aead</th><th class="red-border">Instance</th><th class="red-border">Zone</th><th class="red-border">Risk</th></tr>
-            ${vulnNodesList.map(n => `<tr><td class="text-mono" style="font-size:10px;">${n.name}</td><td class="text-mono text-red">${n.kernel}</td><td class="text-red">${n.algifStatus}</td><td>${n.nodeType || '—'}</td><td>${n.zone || '—'}</td><td class="text-red font-bold">${n.riskScore}</td></tr>`).join('')}
-            </table>`;
-        }
-
-        if (badNamespaces.length > 0) {
-          html += `<h3 style="color:#d97706">Namespaces with Security Issues</h3>
-            <table><tr class="bg-gray"><th>Namespace</th><th>Pods</th><th>Issues</th><th>Risk</th><th>Top workloads</th></tr>
-            ${badNamespaces.map(ns => {
-            const topAppsStr = (ns.apps || []).slice(0, 3).map(a => `${a.name}[${(a.issues || []).join(',')}]`).join(' · ');
-            return `<tr><td class="text-mono font-bold">${ns.name}</td><td>${ns.appCount}</td><td class="text-red font-bold">${ns.issues}</td><td>${ns.risk}</td><td style="font-size:10px;">${topAppsStr}</td></tr>`;
-          }).join('')}
-            </table>`;
-        }
+    // ── PREDICTIVE ──────────────────────────────────────────────────────────────────
+    function renderPred() {
+      var d = fleet, pr = d.predictiveRisk || {};
+      if (!pr.overallScore && !pr.signals) {
+        document.getElementById('pred-content').innerHTML = '<div class="empty"><div class="empty-i">&#9881;</div><div class="empty-t">Predictive model loading...</div><div class="empty-s">Complete a full fleet scan to see threat predictions</div></div>';
+        return;
       }
-
-      html += `<div class="footer-text">Vulnerability Report · End of Document</div></body></html>`;
-      const popout = window.open('', '_blank'); popout.document.write(html); popout.document.close();
-
-      // Auto trigger the print dialog for a seamless experience
-      setTimeout(() => { popout.print(); }, 500);
+      var rc = pr.overallScore >= 70 ? 'var(--red)' : pr.overallScore >= 40 ? 'var(--amb)' : 'var(--grn)';
+      var likCls = l => l === 'critical' ? 'br' : l === 'high' ? 'ba' : l === 'medium' ? 'bb' : 'bg';
+      var catColor = c => { var m = { kernel: 'var(--red)', runtime: 'var(--amb)', network: 'var(--blu)', 'supply-chain': 'var(--pur)', visibility: 'var(--t2)' }; return m[c] || 'var(--t3)'; };
+      document.getElementById('pred-content').innerHTML =
+        '<div style="font-size:17px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px">Predictive Threat Intelligence</div>' +
+        '<div style="font-size:10px;color:var(--t3);margin-bottom:16px">Based on real fleet data: ' + (d.totalNodes || 0) + ' nodes &middot; ' + (d.totalClusters || 0) + ' clusters &middot; Karpenter/AL2023/Portworx/Sysdig infra &middot; Updated on every scan</div>' +
+        '<div class="pred-g2">' +
+        '<div class="card"><div class="ch"><span class="ct">Fleet attack probability \u2014 next 72h</span><span class="badge br">Live model</span></div><div class="cb">' +
+        '<div class="risk-big"><div class="risk-n" style="color:' + rc + '">' + (pr.attackProb72h || 0) + '%</div><div class="risk-l">probability of exploit attempt against your fleet</div></div>' +
+        '<div class="risk-bar"><div class="risk-fill" style="width:' + (pr.attackProb72h || 0) + '%;background:linear-gradient(90deg,var(--amb),var(--red))"></div></div>' +
+        '<div class="risk-lbls"><span>LOW RISK</span><span>CRITICAL</span></div>' +
+        '</div></div>' +
+        '<div class="card"><div class="ch"><span class="ct">Risk signals \u2014 from real fleet data</span></div><div class="cb">' +
+        (pr.signals || []).map(s => '<div class="sig-row">' +
+          '<span class="sig-lbl" title="' + s.detail + '">' +
+          '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + catColor(s.category) + ';margin-right:5px;vertical-align:middle"></span>' +
+          s.name +
+          '</span>' +
+          '<div class="sig-bar"><div class="sig-fill" style="width:' + s.score + '%;background:' + catColor(s.category) + '"></div></div>' +
+          '<span class="sig-v" style="color:' + catColor(s.category) + '">' + s.score + '%</span>' +
+          '</div>').join('') +
+        '</div></div>' +
+        '</div>' +
+        '<div class="card" style="margin-bottom:12px"><div class="ch"><span class="ct">Mitigation impact \u2014 what-if model</span><span class="badge bg">After DaemonSet: risk &rarr; ~' + Math.max((pr.overallScore || 0) - 40, 5) + '%</span></div><div class="cb">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        [
+          { a: 'Deploy algif_aead DaemonSet', i: '-40%', e: '15 mins', d: 'Blacklists algif_aead on ALL AL2023 nodes. Zero downtime. Eliminates Copy Fail attack vector immediately across entire fleet.' },
+          { a: 'Update EC2NodeClass AMI (Karpenter)', i: '-35%', e: '1-2 days', d: 'Permanent kernel patch. Update amiSelector in all NodePools to AL2023 with kernel 6.1.141+. Rolling zero-downtime replacement.' },
+          { a: 'Rebuild images with Go 1.25.5+', i: '-20%', e: '1 week', d: 'Fix CVE-2025-68121 (CVSS 10.0) in aws-node, cluster-autoscaler, ebs-csi-node. Push to Artifactory, roll out via kubectl.' },
+          { a: 'Enable network policies (namespace-level)', i: '-15%', e: '2 weeks', d: 'Namespace deny-all + explicit allow. Eliminates lateral movement post-exploit. Prevents pod-to-pod exfiltration.' },
+          { a: 'Request Sysdig D&R access', i: '-15%', e: '1 day', d: 'Current role (Sysdig-PDKS-Ops-s) is View Only. Request VM + D&R role from Sysdig admin. Enables real-time exploit detection.' },
+          { a: 'Fix privileged containers (non-system)', i: '-10%', e: '1 week', d: 'Remove privileged:true from application workloads. Keep only for DaemonSets that require it (aws-node, sysdig-agent).' },
+        ].map(m => '<div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:11px">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;font-weight:500">' + m.a + '</span><span style="font-size:12px;font-weight:600;font-family:var(--mono);color:var(--grn)">' + m.i + '</span></div>' +
+          '<div style="font-size:9px;color:var(--t3);margin-bottom:4px">Effort: ' + m.e + '</div>' +
+          '<div style="font-size:10px;color:var(--t2);line-height:1.5">' + m.d + '</div>' +
+          '</div>').join('') +
+        '</div></div></div>' +
+        '<div style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Attack scenarios \u2014 specific to your infra</div>' +
+        (pr.scenarios || []).map(sce => '<div class="sce-item">' +
+          '<div class="sce-head">' +
+          '<span class="badge ' + likCls(sce.likelihood) + '">' + sce.likelihood.toUpperCase() + '</span>' +
+          '<span class="sce-title">' + sce.title + '</span>' +
+          '<span style="font-size:9px;font-family:var(--mono);color:var(--t3)">' + sce.timeToExploit + '</span>' +
+          '</div>' +
+          '<div class="sce-meta">Time to exploit: ' + sce.timeToExploit + ' &middot; Impact: ' + sce.impact + '</div>' +
+          '<ol class="sce-steps">' + (sce.steps || []).map(s => '<li>' + s + '</li>').join('') + '</ol>' +
+          '<div class="sce-mit">&#10003; Mitigation: ' + sce.mitigation + '</div>' +
+          '</div>').join('');
     }
 
-    function exportClusterCSVOnly() {
-      const c = (fleetPayload.clusters || []).find(x => x.context === activeScopeContext);
-      if (!c) return;
-      const lines = [
-        ['Compute Host Node Name', 'Kernel Version Track String', 'Patch Compliance Status', 'Driver Layer algif_aead Status', 'Derived Risk Score Weight'],
-        ...c.nodes.map(n => [n.name, n.kernel, n.patchStatus, n.algifStatus, n.riskScore])
-      ];
-      const csvContent = lines.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-      const hiddenAnchor = document.createElement('a');
-      hiddenAnchor.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
-      hiddenAnchor.download = `ISOLATED-AUDIT-${c.name.toUpperCase()}.csv`;
-      hiddenAnchor.click();
+    // ── MODAL HELPERS ──────────────────────────────────────────────────────────────
+    function openM(title, sub, body) {
+      document.getElementById('m-t').textContent = title;
+      document.getElementById('m-s').textContent = sub;
+      document.getElementById('m-b').innerHTML = body;
+      document.getElementById('modal').style.display = 'flex';
+    }
+    function closeM() { document.getElementById('modal').style.display = 'none'; }
+    function mkMR(k, v, c) { return '<div class="mr"><span class="mrk">' + k + '</span><span class="mrv" style="color:' + c + '">' + v + '</span></div>'; }
+
+    // ── VIEWS ──────────────────────────────────────────────────────────────────────
+    function showView(v, el) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+      var pg = document.getElementById('view-' + v); if (pg) pg.classList.add('active');
+      if (el) el.classList.add('active');
+      if (v === 'vulns') loadVulns();
+      if (v === 'pred') renderPred();
     }
 
-    async function refresh() { await fetch('/api/refresh'); setTimeout(initializeTelemetryStream, 600); }
-    function t(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+    // ── ACTIONS ────────────────────────────────────────────────────────────────────
+    function T(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+    async function doRefresh() { try { await fetch('/api/refresh'); } catch (e) { } setTimeout(fetchData, 500); }
 
-    initializeTelemetryStream();
-    setInterval(initializeTelemetryStream, 15000);
+    function exportClCSV() {
+      var c = (fleet.clusters || []).find(x => x.context === selCtx); if (!c) return;
+      var rows = [['Node', 'Kernel', 'Patch', 'algif_aead', 'Vulnerable', 'Instance', 'Zone', 'Spot', 'Risk'], ...(c.nodes || []).map(n => [n.name, n.kernel, n.patchStatus, n.algifStatus, n.vulnerable, n.nodeType || '', n.zone || '', n.isSpot, n.riskScore])];
+      if ((c.namespaces || []).length) { rows.push([]); rows.push(['Namespace', 'Pods', 'Issues', 'Risk', 'Crit CVEs', 'High CVEs']); (c.namespaces || []).forEach(ns => { rows.push([ns.name, ns.appCount, ns.issues, ns.risk, (ns.apps || []).reduce((a, x) => a + (x.critCVEs || 0), 0), (ns.apps || []).reduce((a, x) => a + (x.highCVEs || 0), 0)]); (ns.apps || []).forEach(a => rows.push(['  ' + a.name, a.image || '', (a.issues || []).join(';'), a.riskScore, (a.critCVEs || 0), (a.highCVEs || 0)])); }); }
+      var csv = rows.map(r => r.map(v => '"' + (String(v || '').replace(/"/g, '""')) + '"').join(',')).join('\n');
+      var a2 = document.createElement('a'); a2.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a2.download = (selCtx ? selCtx.split('/').pop() : 'cluster') + '-security.csv'; a2.click();
+    }
+
+    function genReport() {
+      var d = fleet, c = selCtx ? (d.clusters || []).find(x => x.context === selCtx) : null, now = new Date();
+      var dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      var pr = d.predictiveRisk || {};
+      var allVuln = (d.clusters || []).filter(x => x.vulnerable > 0).sort((a, b) => b.vulnerable - a.vulnerable);
+      var clSec = c && c.status === 'ok' ?
+        '<h2 style="font-size:15px;font-weight:600;margin:18px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:5px">Cluster: ' + c.name + '</h2>' +
+        '<p style="color:#64748b;font-size:11px;margin-bottom:10px">' + c.context + ' &middot; ' + (c.region || '—') + ' &middot; ' + c.nodeCount + ' nodes &middot; ' + (c.podCount || 0) + ' pods</p>' +
+        ((c.nodes || []).filter(n => n.vulnerable).length ? '<h3 style="font-size:12px;margin:10px 0 6px;color:#dc2626">Vulnerable Nodes (' + ((c.nodes || []).filter(n => n.vulnerable).length) + ')</h3>' +
+          '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px"><tr style="background:#fef2f2">' +
+          '<th style="padding:5px 7px;border:1px solid #fecaca;text-align:left">Node</th><th style="padding:5px 7px;border:1px solid #fecaca;text-align:left">Kernel</th><th style="padding:5px 7px;border:1px solid #fecaca;text-align:left">algif_aead</th><th style="padding:5px 7px;border:1px solid #fecaca;text-align:left">Instance</th><th style="padding:5px 7px;border:1px solid #fecaca;text-align:left">Risk</th></tr>' +
+          (c.nodes || []).filter(n => n.vulnerable).map(n => '<tr><td style="padding:5px 7px;border:1px solid #e2e8f0;font-family:monospace;font-size:10px">' + n.name + '</td><td style="padding:5px 7px;border:1px solid #e2e8f0;color:#dc2626;font-family:monospace">' + n.kernel + '</td><td style="padding:5px 7px;border:1px solid #e2e8f0;color:#dc2626">' + n.algifStatus + '</td><td style="padding:5px 7px;border:1px solid #e2e8f0">' + (n.nodeType || '—') + '</td><td style="padding:5px 7px;border:1px solid #e2e8f0;font-weight:600;color:#dc2626">' + n.riskScore + '</td></tr>').join('') + '</table>' : '') + '' :
+        '';
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>PDKS Security Report</title>' +
+        '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;font-size:13px;color:#1e293b;padding:40px;max-width:940px;margin:0 auto}' +
+        '.btn{position:fixed;top:14px;right:14px;background:#1e40af;color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:11px}@media print{.btn{display:none}}</style></head><body>' +
+        '<button class="btn" onclick="window.print()">Print / PDF</button>' +
+        '<div style="border-bottom:2px solid #1e3a8a;padding-bottom:12px;margin-bottom:18px"><div style="font-size:20px;font-weight:700;color:#0f172a">PDKS K8s Fleet Security Report</div>' +
+        '<div style="font-size:11px;color:#64748b;margin-top:3px">Pfizer Platform Engineering &middot; ' + dateStr + ' &middot; ' + now.toLocaleTimeString() + '</div></div>' +
+        '<h2 style="font-size:15px;font-weight:600;margin-bottom:9px;border-bottom:1px solid #e2e8f0;padding-bottom:5px">Fleet Summary</h2>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px">' +
+        '<tr style="background:#f8fafc"><th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left">Metric</th><th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left">Value</th></tr>' +
+        '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">Total clusters</td><td style="padding:6px 8px;border:1px solid #e2e8f0">' + (d.totalClusters || 0) + '</td></tr>' +
+        '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">Scanned OK</td><td style="padding:6px 8px;border:1px solid #e2e8f0">' + (d.scannedClusters || 0) + '</td></tr>' +
+        '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">Unreachable</td><td style="padding:6px 8px;border:1px solid #e2e8f0">' + (d.failedClusters || 0) + '</td></tr>' +
+        '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">Total nodes</td><td style="padding:6px 8px;border:1px solid #e2e8f0">' + (d.totalNodes || 0) + '</td></tr>' +
+        '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">Vulnerable nodes (Copy Fail)</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:700;color:#dc2626">' + (d.vulnNodes || 0) + '</td></tr>' +
+        '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">Clusters at risk</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:700;color:#dc2626">' + allVuln.length + '</td></tr>' +
+        '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">Predictive risk score</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:700;color:#dc2626">' + (pr.overallScore || 0) + '/100 (' + (pr.attackProb72h || 0) + '% attack probability 72h)</td></tr>' +
+        '</table>' +
+        (allVuln.length ? '<h2 style="font-size:15px;font-weight:600;margin-bottom:9px;border-bottom:1px solid #e2e8f0;padding-bottom:5px">Top Exposed Clusters</h2>' +
+          '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px">' +
+          '<tr style="background:#fef2f2"><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Rank</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Cluster</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Region</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Nodes</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Exposed</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">%</th></tr>' +
+          allVuln.slice(0, 20).map((cl, i) => '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:700">#' + (i + 1) + '</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-family:monospace">' + cl.name + '</td><td style="padding:6px 8px;border:1px solid #e2e8f0">' + (cl.region || '—') + '</td><td style="padding:6px 8px;border:1px solid #e2e8f0">' + cl.nodeCount + '</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:700;color:#dc2626">' + cl.vulnerable + '</td><td style="padding:6px 8px;border:1px solid #e2e8f0">' + (cl.nodeCount > 0 ? Math.round(cl.vulnerable / cl.nodeCount * 100) : 0) + '%</td></tr>').join('') +
+          '</table>' : '') + clSec +
+        '<div style="margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8">PDKS Security Intelligence &middot; Pfizer Platform Engineering &middot; ' + dateStr + '</div>' +
+        '</body></html>';
+      var w = window.open('', '_blank'); w.document.write(html); w.document.close();
+    }
+
+    fetchData();
+    setInterval(fetchData, 30000);
   </script>
 </body>
 
