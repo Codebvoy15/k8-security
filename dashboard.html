@@ -108,6 +108,7 @@
       font-size: 14px;
       font-weight: 600;
       letter-spacing: -0.2px;
+      cursor: pointer;
     }
 
     .tb-sub {
@@ -236,6 +237,11 @@
       border-radius: var(--r);
       padding: 8px 10px;
       border: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .sb-stat:hover {
+      border-color: var(--blue);
     }
 
     .sb-stat-val {
@@ -420,12 +426,6 @@
       opacity: .25;
     }
 
-    .welcome-title {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--t2);
-    }
-
     .dh {
       display: flex;
       justify-content: space-between;
@@ -458,6 +458,12 @@
       border-radius: var(--rl);
       padding: 11px 13px;
       position: relative;
+      cursor: pointer;
+      transition: border-color 0.1s;
+    }
+
+    .metric:hover {
+      border-color: var(--border2);
     }
 
     .metric-acc {
@@ -483,7 +489,6 @@
       letter-spacing: .07em;
     }
 
-    /* CORE GRAPHING WORKSPACE OVERHAUL */
     .visual-workspace {
       display: grid;
       grid-template-columns: 1.3fr 1fr;
@@ -496,7 +501,7 @@
       border: 1px solid var(--border);
       border-radius: var(--rl);
       padding: 16px;
-      min-height: 250px;
+      min-height: 255px;
       display: flex;
       flex-direction: column;
     }
@@ -526,16 +531,16 @@
     .chart-wrapper {
       flex: 1;
       position: relative;
-      height: 180px;
+      height: 185px;
       width: 100%;
     }
 
     .threat-feed {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       overflow-y: auto;
-      max-height: 190px;
+      max-height: 195px;
     }
 
     .threat-item {
@@ -555,7 +560,7 @@
     .threat-cve {
       font-family: var(--mono);
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text);
     }
 
@@ -564,6 +569,11 @@
       color: var(--t3);
       margin-top: 2px;
       line-height: 1.3;
+    }
+
+    .threat-right {
+      text-align: right;
+      font-family: var(--mono);
     }
 
     .tabs {
@@ -687,16 +697,10 @@
       border-color: var(--rb);
     }
 
-    .nct-a {
-      background: var(--abg);
-      color: var(--amber);
-      border-color: var(--ab);
-    }
-
-    .nct-g {
-      background: var(--gbg);
-      color: var(--green);
-      border-color: var(--gb);
+    .nct-b {
+      background: var(--bbg);
+      color: var(--blue);
+      border-color: var(--bb);
     }
 
     .ns-wrap {
@@ -788,42 +792,62 @@
       padding-right: 8px;
     }
 
-    .alert {
-      display: flex;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: var(--r);
-      border: 1px solid;
-      margin-bottom: 14px;
-      font-size: 11px;
-    }
-
-    .alert.r {
-      background: var(--rbg);
-      border-color: var(--rb);
-      color: var(--text);
-    }
-
-    .alert.g {
-      background: var(--gbg);
-      border-color: var(--gb);
-      color: var(--text);
-    }
-
-    .alert-title {
+    .tag {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 3px;
       font-weight: 600;
-      margin-bottom: 2px;
+      border: 1px solid transparent;
     }
 
-    .alert.r .alert-title {
+    .tag-red {
+      background: var(--rbg);
       color: var(--red);
+      border-color: var(--rb);
     }
 
-    .alert.g .alert-title {
-      color: var(--green);
+    .fleet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
     }
 
-    /* DUAL SECTOR REPORTING DIALOG */
+    .fleet-card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 16px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .fleet-card:hover {
+      border-color: var(--blue);
+      transform: translateY(-2px);
+    }
+
+    .fleet-card-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .fleet-card-title {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .fleet-card-stat {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 4px;
+      color: var(--t2);
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -841,13 +865,11 @@
       width: 440px;
       border-radius: 8px;
       padding: 20px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     }
 
     .modal-title {
       font-size: 13px;
       font-weight: 600;
-      color: var(--text);
       margin-bottom: 12px;
       border-bottom: 1px solid var(--border);
       padding-bottom: 6px;
@@ -861,7 +883,6 @@
       border-radius: 6px;
       margin-bottom: 8px;
       cursor: pointer;
-      transition: all .1s;
     }
 
     .modal-opt:hover {
@@ -872,14 +893,28 @@
     .modal-opt-title {
       font-weight: 600;
       font-size: 12px;
-      color: var(--text);
     }
 
     .modal-opt-desc {
       font-size: 11px;
       color: var(--t3);
       margin-top: 3px;
-      line-height: 1.4;
+    }
+
+    .cr {
+      color: var(--red);
+    }
+
+    .ca {
+      color: var(--amber);
+    }
+
+    .cg {
+      color: var(--green);
+    }
+
+    .cb {
+      color: var(--blue);
     }
   </style>
 </head>
@@ -893,12 +928,12 @@
   <div class="topbar">
     <div class="tb-left">
       <div class="tb-logo">🛡</div>
-      <span class="tb-title">PDKS Threat Command</span>
-      <div class="tb-sep"></div>
-      <span class="tb-sub">Pfizer Platform Engineering Operations</span>
+      <span class="tb-title" onclick="renderGlobalFleetLandingHub()">PDKS Command Dashboard</span>
+      <div class="tb-sep" style="width:1px; height:14px; background:var(--border2)"></div>
+      <span class="tb-sub">Global Platform Engineering</span>
     </div>
     <div class="tb-center">
-      <div class="pill p-live"><span class="p-dot"></span>LIVE DISCOVERY PIPELINE</div>
+      <div class="pill p-live"><span class="p-dot"></span>LIVE DISCOVERY STREAM</div>
       <div class="pill p-scan" id="pill-scan" style="display:none"><span class="spin"></span><span
           id="pill-scan-txt">syncing</span></div>
       <div class="pill p-warn" id="pill-warn" style="display:none;"><span class="p-dot"></span><span
@@ -906,8 +941,8 @@
     </div>
     <div class="tb-right">
       <span id="scan-age" style="font-size:10px;color:var(--t3);font-family:var(--mono)"></span>
-      <button class="btn" onclick="refresh()">↻ Force Sync</button>
-      <button class="btn btn-p" onclick="triggerReportScopeOverlay(true)">📄 Generate Audit Report</button>
+      <button class="btn" onclick="refresh()">↻ Force Re-Scan</button>
+      <button class="btn btn-p" onclick="toggleReportingOverlay(true)">📄 Generate Audit Report</button>
     </div>
   </div>
 
@@ -915,19 +950,19 @@
     <div class="sidebar">
       <div class="sb-head">
         <div class="sb-stats">
-          <div class="sb-stat">
+          <div class="sb-stat" onclick="setF('exposed', document.getElementById('filter-btn-exposed'))">
             <div class="sb-stat-val cr" id="sb-vuln">—</div>
-            <div class="sb-stat-label">Nodes exposed</div>
+            <div class="sb-stat-label">Exposed Nodes</div>
           </div>
-          <div class="sb-stat">
+          <div class="sb-stat" onclick="renderGlobalFleetLandingHub()">
             <div class="sb-stat-val cb" id="sb-clusters">—</div>
-            <div class="sb-stat-label">Scanned context</div>
+            <div class="sb-stat-label">Scanned Scope</div>
           </div>
         </div>
-        <input class="sb-search" id="cl-search" placeholder="Filter cluster profiles..." oninput="renderSidebar()">
+        <input class="sb-search" id="cl-search" placeholder="Filter profiles..." oninput="renderSidebar()">
         <div class="sb-filters">
           <div class="sf a" onclick="setF('all',this)">All Contexts</div>
-          <div class="sf" onclick="setF('exposed',this)">Exposed</div>
+          <div class="sf" id="filter-btn-exposed" onclick="setF('exposed',this)">Exposed</div>
           <div class="sf ar" onclick="setF('error',this)">Errors</div>
           <div class="sf" onclick="setF('clean',this)">Clean</div>
         </div>
@@ -943,164 +978,103 @@
       <div class="cl-list" id="cl-list"></div>
     </div>
 
-    <div class="main" id="main">
-      <div class="welcome">
-        <div class="welcome-icon">🛡</div>
-        <div class="welcome-title">Assembling Fleet Telemetries...</div>
-      </div>
-    </div>
+    <div class="main" id="mainZone"></div>
   </div>
 
-  <div class="modal-backdrop" id="reportScopeModal" onclick="if(event.target===this)triggerReportScopeOverlay(false)">
+  <div class="modal-backdrop" id="reportingModal" onclick="if(event.target===this)toggleReportingOverlay(false)">
     <div class="modal">
-      <div class="modal-title">Select Audit Document Target Profile</div>
-      <div class="modal-opt" onclick="generateReportSuite('FLEET_WIDE')">
+      <div class="modal-title">Select Audit Document Scope Target</div>
+      <div class="modal-opt" onclick="executeReportProfileGeneration('FLEET_GLOBAL')">
         <div class="modal-opt-title">Choice 1: Global Fleet Executive Summary</div>
-        <div class="modal-opt-desc">Compiles aggregated security logs across all 170+ environments. Generates high-level
-          summaries for leadership tracking.</div>
+        <div class="modal-opt-desc">Compiles aggregated compliance parameters across all 170+ cluster environments.
+          Includes overall deviation and print-ready analytics plots.</div>
       </div>
-      <div class="modal-opt" id="modalOptCluster" onclick="generateReportSuite('CLUSTER_ISOLATED')">
-        <div class="modal-opt-title">Choice 2: Target Cluster Deep Assessment</div>
-        <div class="modal-opt-desc">Isolates telemetry documentation to the currently selected cluster. Maps structural
-          workloads by namespace to pass directly to environment group owners.</div>
+      <div class="modal-opt" id="modalOptCluster" onclick="executeReportProfileGeneration('CLUSTER_ISOLATED')">
+        <div class="modal-opt-title">Choice 2: Single Target Environment Audit</div>
+        <div class="modal-opt-desc">Isolates telemetry documentation to the currently selected cluster context. Tracks
+          precise namespace-level application pod vulnerabilities to send directly to owners.</div>
       </div>
-      <div class="modal-footer" style="display:flex; justify-content:flex-end; margin-top:12px;"><button class="btn"
-          onclick="triggerReportScopeOverlay(false)">Cancel</button></div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end;"><button class="btn"
+          onclick="toggleReportingOverlay(false)">Cancel</button></div>
     </div>
   </div>
 
   <script>
-    var fleet = {}, selectedContext = null, clusterFilter = 'all', currentTab = 'nodes', openNS = new Set(), visualChartInstance = null;
+    let fleetPayload = {}, activeScopeContext = null, listFilter = 'all', nodeSubFilter = 'all', activeTabId = 'nodes', activeNSPanels = new Set(), dashboardChart = null;
 
-    async function streamTelemetryData() {
+    async function initializeTelemetryStream() {
       try {
-        const response = await fetch('/api/data', { cache: 'no-store' });
-        if (!response.ok) throw new Error(response.status);
-        fleet = await response.json();
-        applyStateTransforms();
-      } catch (e) { console.warn('[FETCH_ERR]', e); }
+        const r = await fetch('/api/data', { cache: 'no-store' });
+        if (!r.ok) throw new Error(r.status);
+        fleetPayload = await r.json();
+        applyGlobalStateTransforms();
+      } catch (e) { console.warn('[STREAM_FAULT]', e); }
     }
 
-    function applyStateTransforms() {
-      const d = fleet;
-      const inProg = d.scanInProgress || false;
+    function applyGlobalStateTransforms() {
+      const f = fleetPayload;
+      const inProg = f.scanInProgress || false;
 
-      document.getElementById('scan-fill').style.width = inProg ? d.scanPct + '%' : '100%';
+      document.getElementById('scan-fill').style.width = inProg ? f.scanPct + '%' : '100%';
       if (!inProg) setTimeout(() => document.getElementById('scan-fill').style.width = '0%', 500);
 
-      const ps = document.getElementById('pill-scan');
-      if (ps) {
-        ps.style.display = inProg ? 'inline-flex' : 'none';
-        document.getElementById('pill-scan-txt').textContent = `${d.scannedClusters + d.failedClusters}/${d.totalClusters} scanned`;
-      }
+      document.getElementById('pill-scan').style.display = inProg ? 'inline-flex' : 'none';
+      if (inProg) document.getElementById('pill-scan-txt').textContent = `Discovery loop syncing...`;
 
-      const pw = document.getElementById('pill-warn');
-      if (pw && d.vulnNodes > 0) {
-        pw.style.display = 'inline-flex';
-        document.getElementById('pill-warn-txt').textContent = `${d.vulnNodes} unpatched nodes`;
-      } else { pw.style.display = 'none'; }
+      if (f.vulnNodes > 0) {
+        document.getElementById('pill-warn').style.display = 'inline-flex';
+        document.getElementById('pill-warn-txt').textContent = `${f.vulnNodes} unpatched nodes`;
+      } else { document.getElementById('pill-warn').style.display = 'none'; }
 
-      document.getElementById('scan-age').textContent = d.scanAge || '';
-      t('sb-vuln', d.vulnNodes || 0);
-      t('sb-clusters', `${d.scannedClusters || 0}/${d.totalClusters || 0}`);
+      document.getElementById('scan-age').textContent = f.scanAge || '';
+      t('sb-vuln', f.vulnNodes || 0);
+      t('sb-clusters', `${f.scannedClusters || 0}/${f.totalClusters || 0}`);
 
       renderSidebar();
 
-      if (selectedContext) {
-        const match = (d.clusters || []).find(x => x.context === selectedContext);
-        if (match) renderClusterDashboard(match);
+      if (activeScopeContext) {
+        const cluster = (f.clusters || []).find(x => x.context === activeScopeContext);
+        if (cluster) renderClusterDashboardSubView(cluster);
       } else {
-        const firstActive = (d.clusters || []).find(c => c.status === 'ok' && c.nodeCount > 0);
-        if (firstActive) pickClusterTarget(firstActive.context);
+        renderGlobalFleetLandingHub();
       }
     }
 
-    function renderSidebar() {
-      const cs = fleet.clusters || [];
-      const query = (document.getElementById('cl-search')?.value || '').toLowerCase();
-      let filtered = cs;
+    function renderGlobalFleetLandingHub() {
+      activeScopeContext = null;
+      document.querySelectorAll('.cl-item').forEach(el => el.classList.remove('active'));
 
-      if (clusterFilter === 'exposed') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable > 0);
-      else if (clusterFilter === 'error') filtered = cs.filter(c => c.status !== 'ok');
-      else if (clusterFilter === 'clean') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable === 0);
+      const f = fleetPayload;
+      const targetZone = document.getElementById('mainZone');
+      if (!f.clusters) { targetZone.innerHTML = '<div class="welcome"><div class="spin"></div></div>'; return; }
 
-      if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
-
-      const sortBy = document.getElementById('sort-select')?.value || 'severity';
-      filtered.sort((a, b) => {
-        if (sortBy === 'nodes-desc') return b.nodeCount - a.nodeCount;
-        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
-        if (a.status !== 'ok' && b.status === 'ok') return 1;
-        if (a.status === 'ok' && b.status !== 'ok') return -1;
-        return (b.vulnerable / (b.nodeCount || 1)) - (a.vulnerable / (a.nodeCount || 1));
-      });
-
-      const list = document.getElementById('cl-list');
-      if (!filtered.length) { list.innerHTML = '<div class="cl-count">No contexts localized</div>'; return; }
-
-      list.innerHTML = filtered.map(c => {
-        const isOk = c.status === 'ok';
-        const pct = c.nodeCount > 0 ? Math.round((c.vulnerable / c.nodeCount) * 100) : 0;
-        const stateColor = !isOk ? 'var(--red)' : c.vulnerable > 0 ? 'var(--amber)' : 'var(--green)';
-        return `
-          <div class="cl-item ${selectedContext === c.context ? 'active' : ''}" onclick="pickClusterTarget('${c.context}')">
-            <div class="cl-top">
-              <div class="cl-name">${c.name.toUpperCase()}</div>
-              <div class="cl-vuln" style="color:${stateColor}">${isOk ? (c.vulnerable || '✓') : '✗'}</div>
-            </div>
-            <div class="cl-meta">${c.region.toUpperCase()} · ${c.nodeCount || 0} compute nodes</div>
-            ${isOk && c.nodeCount > 0 ? `<div class="cl-bar"><div class="cl-bar-fill" style="width:${pct}%;background:${c.vulnerable > 0 ? 'var(--red)' : 'var(--green)'}"></div></div>` : ''}
-            ${!isOk && c.error ? `<div class="cl-err-msg">${c.error}</div>` : ''}
-          </div>`;
-      }).join('');
-    }
-
-    function pickClusterTarget(ctxToken) {
-      selectedContext = ctxToken;
-      openNS = new Set();
-      currentTab = 'nodes';
-      const match = (fleet.clusters || []).find(x => x.context === ctxToken);
-      if (!match) return;
-      renderSidebar();
-      renderClusterDashboard(match);
-    }
-
-    function renderClusterDashboard(c) {
-      const workspace = document.getElementById('main');
-      const nsWithIssues = (c.namespaces || []).filter(x => x.issues > 0).length;
-
-      workspace.innerHTML = `
+      targetZone.innerHTML = `
         <div class="dh">
           <div>
-            <div class="dh-title">${c.name.toUpperCase()}</div>
-            <div class="dh-sub">${c.context} · scanned ${c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString() : '—'}</div>
+            <div class="dh-title">GLOBAL INFRASTRUCTURE COMPLIANCE CONTROL PLANE</div>
+            <div class="dh-sub">Active Fleet Tracking Matrix · Aggregate Monitoring Loop</div>
           </div>
-          <div><button class="btn btn-p" onclick="exportClusterCSVOnly()">Download Cluster CSV</button></div>
         </div>
 
-        ${c.status !== 'ok' ? `<div class="alert r"><div class="alert-title">Cluster API Unreachable</div><div>${c.error}</div></div>` : ''}
-        ${c.status === 'ok' && c.vulnerable > 0 ? `<div class="alert r"><div class="alert-title">Vulnerability Active (CVE-2026-31431)</div><div>Cluster context contains unpatched instances running crypto sockets exposed to namespace escalations.</div></div>` : ''}
-
         <div class="metrics">
-          <div class="metric"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${c.nodeCount || 0}</div><div class="metric-lbl">Total Hosts</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--red)"></div><div class="metric-val cr">${c.vulnerable || 0}</div><div class="metric-lbl">Exposed Hosts</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--amber)"></div><div class="metric-val ca">${c.podCount || 0}</div><div class="metric-lbl">Monitored Pods</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--purple)"></div><div class="metric-val cr">${nsWithIssues}</div><div class="metric-lbl">Deficient NS</div></div>
-          <div class="metric"><div class="metric-acc" style="background:var(--green)"></div><div class="metric-val cg">${c.nsCount || 0}</div><div class="metric-lbl">Namespaces Monitored</div></div>
+          <div class="metric" onclick="setF('all', document.querySelector('.sf'))"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${f.totalClusters || 0}</div><div class="metric-lbl">Total Environments</div></div>
+          <div class="metric" onclick="setF('exposed', document.getElementById('filter-btn-exposed'))"><div class="metric-acc" style="background:var(--red)"></div><div class="metric-val cr">${f.vulnNodes || 0}</div><div class="metric-lbl">Exposed Core Nodes</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--amber)"></div><div class="metric-val ca">${f.totalNodes || 0}</div><div class="metric-lbl">Scanned Compute Hosts</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--purple)"></div><div class="metric-val cb">${f.totalPods || 0}</div><div class="metric-lbl">Monitored Pod Frameworks</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--green)"></div><div class="metric-val cg">${f.scannedClusters || 0}</div><div class="metric-lbl">Responsive Streams</div></div>
         </div>
 
         <div class="visual-workspace">
           <div class="panel">
             <div class="panel-hdr">
-              <span class="panel-title">Namespace Compliance Analytics</span>
+              <span class="panel-title">Systemic Configuration Deficiencies by Environment</span>
               <div class="chart-controls">
-                <button class="sf a" id="c-btn-bar" onclick="rebuildChartType('bar')">Bar</button>
-                <button class="sf" id="c-btn-line" onclick="rebuildChartType('line')">Line</button>
-                <button class="sf" id="c-btn-doughnut" onclick="rebuildChartType('doughnut')">Doughnut</button>
-                <button class="sf" id="c-btn-radar" onclick="rebuildChartType('radar')">Radar</button>
+                <button class="sf a" id="c-btn-bar" onclick="rebuildGlobalChartTopology('bar')">Bar</button>
+                <button class="sf" id="c-btn-line" onclick="rebuildGlobalChartTopology('line')">Line</button>
+                <button class="sf" id="c-btn-doughnut" onclick="rebuildGlobalChartTopology('doughnut')">Doughnut</button>
               </div>
             </div>
-            <div class="chart-wrapper"><canvas id="analyticsChartCanvas"></canvas></div>
+            <div class="chart-wrapper"><canvas id="fleetGlobalCanvas"></canvas></div>
           </div>
           <div class="panel">
             <div class="panel-hdr"><span class="panel-title" style="color:var(--purple)">🔮 Predictive Threat Disclosure Intelligence</span></div>
@@ -1108,52 +1082,59 @@
           </div>
         </div>
 
-        <div class="tabs">
-          <div class="tab ${currentTab === 'nodes' ? 'active' : ''}" onclick="switchLocalTab('nodes')">Compute Nodes <span class="tab-badge">${c.nodeCount || 0}</span></div>
-          <div class="tab ${currentTab === 'ns' ? 'active' : ''}" onclick="switchLocalTab('ns')">Namespace Workloads <span class="tab-badge alerting">${nsWithIssues}</span></div>
-        </div>
-        <div id="tab-injection-target"></div>`;
+        <div class="sec-hdr" style="margin-top:16px; margin-bottom:8px;"><span class="sec-title">Enterprise Infrastructure Matrix Cluster Grid</span></div>
+        <div class="fleet-grid" id="fleetGridContainer"></div>`;
 
-      renderPredictiveWatchFeed();
-      renderActiveTab(c);
-      rebuildChartType('bar'); // Initialize chart tracking state mapping
+      populatePredictiveWatchFeed();
+      rebuildGlobalChartTopology('bar');
+
+      const grid = document.getElementById('fleetGridContainer');
+      grid.innerHTML = (f.clusters || []).map(c => {
+        const isOk = c.status === 'ok';
+        const color = !isOk ? 'var(--red)' : c.vulnerable > 0 ? 'var(--amber)' : 'var(--green)';
+        return `
+          <div class="fleet-card" onclick="pickClusterTarget('${c.context}')">
+            <div class="fleet-card-hdr">
+              <span class="fleet-card-title">${c.name.toUpperCase()}</span>
+              <span style="color:${color}; font-weight:600; font-family:var(--mono);">${isOk ? (c.vulnerable || '✓') : '✗'}</span>
+            </div>
+            <div class="fleet-card-stat"><span>Region Endpoint:</span><span class="nc-val">${c.region.toUpperCase()}</span></div>
+            <div class="fleet-card-stat"><span>Host Node Count:</span><span class="nc-val">${c.nodeCount || 0}</span></div>
+            <div class="fleet-card-stat"><span>Monitored Pods:</span><span class="nc-val">${c.podCount || 0}</span></div>
+          </div>`;
+      }).join('');
     }
 
-    function rebuildChartType(typeString) {
-      ['bar', 'line', 'doughnut', 'radar'].forEach(t => {
-        const btn = document.getElementById(`c-btn-${t}`);
-        if (btn) btn.className = t === typeString ? "sf a" : "sf";
+    function rebuildGlobalChartTopology(topology) {
+      ['bar', 'line', 'doughnut'].forEach(t => {
+        const el = document.getElementById(`c-btn-${t}`);
+        if (el) el.className = t === topology ? "sf a" : "sf";
       });
 
-      const currentCluster = (fleet.clusters || []).find(x => x.context === selectedContext);
-      if (!currentCluster) return;
-
-      const canvas = document.getElementById('analyticsChartCanvas');
+      const canvas = document.getElementById('fleetGlobalCanvas');
       if (!canvas) return;
+      if (dashboardChart) dashboardChart.destroy();
 
-      if (visualChartInstance) visualChartInstance.destroy();
+      const environments = (fleetPayload.clusters || []).filter(c => c.status === 'ok' && c.vulnerable > 0).slice(0, 5);
+      const labels = environments.map(c => c.name.toUpperCase());
+      const points = environments.map(c => c.vulnerable);
 
-      const labels = (currentCluster.namespaces || []).slice(0, 5).map(n => n.name);
-      const points = (currentCluster.namespaces || []).slice(0, 5).map(n => n.issues);
-
-      if (labels.length === 0) { labels.push("Clear Baseline"); points.push(0); }
-
-      visualChartInstance = new Chart(canvas, {
-        type: typeString,
+      dashboardChart = new Chart(canvas, {
+        type: topology,
         data: {
           labels: labels,
           datasets: [{
-            label: 'Configuration Gaps Count',
+            label: 'Exposed Machine Nodes Count',
             data: points,
-            backgroundColor: ['rgba(244,63,94,0.7)', 'rgba(251,191,36,0.7)', 'rgba(59,130,246,0.7)', 'rgba(168,85,247,0.7)'],
+            backgroundColor: ['rgba(244,63,94,0.7)', 'rgba(251,191,36,0.7)', 'rgba(59,130,246,0.7)', 'rgba(168,85,247,0.7)', 'rgba(16,185,129,0.7)'],
             borderWidth: 0
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: typeString === 'doughnut' } },
-          scales: typeString !== 'doughnut' && typeString !== 'radar' ? {
+          plugins: { legend: { display: topology === 'doughnut' } },
+          scales: topology !== 'doughnut' ? {
             y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#8fa0c2', font: { size: 9 } } },
             x: { grid: { display: false }, ticks: { color: '#8fa0c2', font: { size: 9 } } }
           } : {}
@@ -1161,25 +1142,56 @@
       });
     }
 
-    function renderPredictiveWatchFeed() {
-      const el = document.getElementById('predictiveFeedContainer');
-      if (!el || !fleet.upcomingThreats) return;
-      el.innerHTML = fleet.upcomingThreats.map(t => `
-        <div class="threat-item ${t.severity}">
-          <div style="max-width:75%">
-            <div class="threat-cve" style="color:${t.severity === 'CRITICAL' ? 'var(--red)' : 'var(--amber)'}">${t.cve} <span style="font-size:10px; color:var(--t3)">[${t.component}]</span></div>
-            <div class="threat-desc">${t.description}</div>
+    function renderClusterDashboardSubView(c) {
+      const workspace = document.getElementById('mainZone');
+      const nsWithIssues = (c.namespaces || []).filter(x => x.issues > 0).length;
+
+      workspace.innerHTML = `
+        <div class="dh">
+          <div>
+            <div class="dh-title">${c.name.toUpperCase()}</div>
+            <div class="dh-sub">${c.context} · Region Target Space: ${c.region.toUpperCase()}</div>
           </div>
-          <div style="text-align:right;"><span style="font-family:var(--mono); font-size:14px; font-weight:600; color:var(--red);">${t.probabilityPct}%</span><br><span style="font-size:7px; text-transform:uppercase; color:var(--t3)">prob</span></div>
-        </div>`).join('');
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-p" onclick="exportClusterCSVOnly()">Download CSV</button>
+            <button class="btn" style="background:var(--s2); border-color:var(--border2); color:var(--text);" onclick="window.print()">Export View PDF</button>
+          </div>
+        </div>
+
+        ${c.status !== 'ok' ? `<div class="alert r"><div class="alert-title">Cluster Context Disconnected</div><div>${c.error}</div></div>` : ''}
+        ${c.status === 'ok' && c.vulnerable > 0 ? `<div class="alert r"><div class="alert-title">Active Exposure Risk Vector (CVE-2026-31431)</div><div>Host instances are executing cryptography modules vulnerable to local root escalation.</div></div>` : ''}
+
+        <div class="metrics">
+          <div class="metric" onclick="filterLocalNodes('all')"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${c.nodeCount || 0}</div><div class="metric-lbl">Total hosts</div></div>
+          <div class="metric" onclick="filterLocalNodes('exposed')"><div class="metric-acc" style="background:var(--red)"></div><div class="metric-val cr">${c.vulnerable || 0}</div><div class="metric-lbl">Exposed hosts</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--amber)"></div><div class="metric-val ca">${c.podCount || 0}</div><div class="metric-lbl">Monitored pods</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--purple)"></div><div class="metric-val cr">${nsWithIssues}</div><div class="metric-lbl">Deficient NS</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--green)"></div><div class="metric-val cg">${c.nsCount || 0}</div><div class="metric-lbl">Namespaces Monitored</div></div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab ${activeTabId === 'nodes' ? 'active' : ''}" onclick="switchLocalTab('nodes')">Cluster Resource Nodes <span class="tab-badge">${c.nodeCount || 0}</span></div>
+          <div class="tab ${activeTabId === 'ns' ? 'active' : ''}" onclick="switchLocalTab('ns')">Namespace Workloads <span class="tab-badge alerting tb-red">${nsWithIssues}</span></div>
+        </div>
+        <div id="tab-injection-target"></div>`;
+
+      renderActiveTab(c);
+    }
+
+    function filterLocalNodes(mode) {
+      nodeSubFilter = mode;
+      const match = (fleetPayload.clusters || []).find(x => x.context === activeScopeContext);
+      if (match) renderActiveTab(match);
     }
 
     function renderActiveTab(c) {
       const zone = document.getElementById('tab-injection-target');
       if (!zone) return;
 
-      if (currentTab === 'nodes') {
-        const sortedNodes = (c.nodes || []).slice().sort((a, b) => b.riskScore - a.riskScore);
+      if (activeTabId === 'nodes') {
+        let sortedNodes = (c.nodes || []).slice().sort((a, b) => b.riskScore - a.riskScore);
+        if (nodeSubFilter === 'exposed') sortedNodes = sortedNodes.filter(n => n.vulnerable);
+
         zone.innerHTML = `
           <div class="node-grid">
             ${sortedNodes.map(n => `
@@ -1192,7 +1204,7 @@
                   <div class="nc-row"><span class="nc-key">Risk Evaluation</span><span class="nc-val" style="color:var(--red)">${n.riskScore}/99</span></div>
                   <div class="nc-tags">
                     ${n.vulnerable ? '<span class="nctag nct-r">CVE-2026-31431</span>' : ''}
-                    ${n.isSpot ? '<span class="nctag nct-a">spot</span>' : '<span class="nctag nct-b">on-demand</span>'}
+                    ${n.isSpot ? '<span class="nctag nct-b">spot</span>' : '<span class="nctag nct-b">on-demand</span>'}
                   </div>
                 </div>
               </div>`).join('')}
@@ -1224,7 +1236,7 @@
               </div>`).join('')}
           </div>`;
 
-        openNS.forEach(i => {
+        activeNSPanels.forEach(i => {
           const el = document.getElementById(`ns-panel-expand-${i}`);
           if (el) el.classList.add('open');
         });
@@ -1234,49 +1246,95 @@
     function toggleNamespaceExpansion(i) {
       const el = document.getElementById(`ns-panel-expand-${i}`);
       if (!el) return;
-      if (el.classList.contains('open')) { el.classList.remove('open'); openNS.delete(i); }
-      else { el.classList.add('open'); openNS.add(i); }
+      if (el.classList.contains('open')) { el.classList.remove('open'); activeNSPanels.delete(i); }
+      else { el.classList.add('open'); activeNSPanels.add(i); }
     }
 
-    function switchLocalTab(t) { currentTab = t; const match = (fleet.clusters || []).find(x => x.context === selectedContext); if (match) renderActiveTab(match); }
-    function setF(f, el) { clusterFilter = f; renderSidebar(); }
-    function triggerReportScopeOverlay(shouldDisplay) {
-      document.getElementById('reportScopeModal').style.display = shouldDisplay ? 'flex' : 'none';
-      const clusterButton = document.getElementById('modalOptCluster');
-      if (clusterButton) clusterButton.style.display = selectedContext ? "block" : "none";
+    function populatePredictiveWatchFeed() {
+      const el = document.getElementById('predictiveFeedContainer');
+      if (!el || !fleetPayload.upcomingThreats) return;
+      el.innerHTML = fleetPayload.upcomingThreats.map(t => `
+        <div class="threat-item ${t.severity}">
+          <div style="max-width:75%">
+            <div class="threat-cve" style="color:${t.severity === 'CRITICAL' ? 'var(--red)' : 'var(--amber)'}">${t.cve} <span style="font-size:10px; color:var(--t3)">[${t.component}]</span></div>
+            <div class="threat-desc">${t.description}</div>
+          </div>
+          <div class="threat-right"><span style="font-size:14px; font-weight:600; color:var(--red);">${t.probabilityPct}%</span><br><span style="font-size:7px; text-transform:uppercase; color:var(--t3)">prob</span></div>
+        </div>`).join('');
     }
 
-    function generateReportSuite(scopeProfile) {
-      triggerReportScopeOverlay(false);
-      const f = fleet;
-      const targetCluster = (f.clusters || []).find(x => x.context === selectedContext);
+    function renderSidebar() {
+      const cs = fleetPayload.clusters || [];
+      const query = (document.getElementById('cl-search')?.value || '').toLowerCase();
+      let filtered = cs;
 
-      let htmlOutput = `<!DOCTYPE html><html><head><title>Compliance Assessment</title><style>body{font-family:-apple-system,sans-serif; padding:40px; color:#1e293b; max-width:960px; margin:0 auto;} h1{color:#0f172a; border-bottom:2px solid #1e3a8a; padding-bottom:12px;} table{width:100%; border-collapse:collapse; margin-top:16px;} th,td{border:1px solid #e2e8f0; padding:8px 12px;} th{background:#f8fafc; font-size:11px; text-transform:uppercase; color:#64748b;}</style></head><body>`;
+      if (listFilter === 'exposed') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable > 0);
+      else if (listFilter === 'error') filtered = cs.filter(c => c.status !== 'ok');
+      else if (listFilter === 'clean') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable === 0);
 
-      if (scopeProfile === 'FLEET_WIDE') {
-        htmlOutput += `<h1>Global Infrastructure Executive Summary Audit</h1>
-          <table><thead><tr><th>Metric Matrix Profile Description</th><th>Discovered Value</th></tr></thead><tbody>
+      if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
+
+      const sortBy = document.getElementById('sort-select')?.value || 'severity';
+      filtered.sort((a, b) => {
+        if (sortBy === 'nodes-desc') return b.nodeCount - a.nodeCount;
+        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
+        if (a.status !== 'ok' && b.status === 'ok') return 1;
+        if (a.status === 'ok' && b.status !== 'ok') return -1;
+        return (b.vulnerable / (b.nodeCount || 1)) - (a.vulnerable / (a.nodeCount || 1));
+      });
+
+      const list = document.getElementById('cl-list');
+      list.innerHTML = filtered.map(c => {
+        const isOk = c.status === 'ok';
+        const pct = c.nodeCount > 0 ? Math.round((c.vulnerable / c.nodeCount) * 100) : 0;
+        const stateColor = !isOk ? 'var(--red)' : c.vulnerable > 0 ? 'var(--amber)' : 'var(--green)';
+        return `
+          <div class="cl-item ${activeScopeContext === c.context ? 'active' : ''}" onclick="pickClusterTarget('${c.context}')">
+            <div class="cl-top">
+              <div class="cl-name">${c.name.toUpperCase()}</div>
+              <div class="cl-vuln" style="color:${stateColor}">${isOk ? (c.vulnerable || '✓') : '✗'}</div>
+            </div>
+            <div class="cl-meta">${c.region.toUpperCase()} · ${c.nodeCount || 0} hosts</div>
+            ${isOk && c.nodeCount > 0 ? `<div class="cl-bar"><div class="cl-bar-fill" style="width:${pct}%;background:${c.vulnerable > 0 ? 'var(--red)' : 'var(--green)'}"></div></div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    function pickClusterTarget(ctx) { activeScopeContext = ctx; nodeSubFilter = 'all'; activeNSPanels = new Set(); activeTabId = 'nodes'; applyGlobalStateTransforms(); }
+    function switchLocalTab(t) { activeTabId = t; const match = (fleetPayload.clusters || []).find(x => x.context === activeScopeContext); if (match) renderActiveTab(match); }
+    function setF(f, el) { listFilter = f; document.querySelectorAll('.sf').forEach(s => s.classList.remove('a')); el.classList.add('a'); renderSidebar(); }
+    function toggleReportingOverlay(show) { document.getElementById('reportingModal').style.display = show ? 'flex' : 'none'; document.getElementById('modalOptCluster').style.display = activeScopeContext ? "block" : "none"; }
+
+    function executeReportProfileGeneration(scope) {
+      toggleReportingOverlay(false);
+      const f = fleetPayload;
+      const cluster = (f.clusters || []).find(x => x.context === activeScopeContext);
+
+      let html = `<!DOCTYPE html><html><head><title>Compliance Assessment</title><style>body{font-family:-apple-system,sans-serif; padding:40px; color:#1e293b; max-width:960px; margin:0 auto;} h1{color:#0f172a; border-bottom:2px solid #1e3a8a; padding-bottom:12px;} table{width:100%; border-collapse:collapse; margin-top:16px;} th,td{border:1px solid #e2e8f0; padding:8px 12px;} th{background:#f8fafc; font-size:11px; text-transform:uppercase; color:#64748b;}</style></head><body>`;
+
+      if (scope === 'FLEET_GLOBAL') {
+        html += `<h1>Global Infrastructure Executive Summary Audit</h1>
+          <table><thead><tr><th>Metric Profile Target</th><th>Discovered Value</th></tr></thead><tbody>
           <tr><td>Total Registered Infrastructure Context Clusters</td><td>${f.totalClusters}</td></tr>
           <tr><td>Active Responsive Communication Context Channels</td><td>${f.scannedClusters}</td></tr>
-          <tr><td>Authentication Errors / Context Blind Spots</td><td>${f.failedClusters}</td></tr>
           <tr><td>Total Monitored Physical Compute Nodes</td><td>${f.totalNodes}</td></tr>
           <tr><td>Exposed Kernel Node Elements (CVE-2026-31431)</td><td style="color:red; font-weight:600;">${f.vulnNodes}</td></tr>
           </tbody></table>`;
       } else {
-        if (!targetCluster) return;
-        htmlOutput += `<h1>Targeted Context Assessment Report [${targetCluster.name.toUpperCase()}]</h1>
-          <p style="color:#64748b; margin-top:4px;">Context Identity Block: ${targetCluster.context}</p>
+        if (!cluster) return;
+        html += `<h1>Targeted Context Assessment Report [${cluster.name.toUpperCase()}]</h1>
+          <p style="color:#64748b; margin-top:4px;">Context Identity Block: ${cluster.context}</p>
           <table><thead><tr><th>Node Host Name</th><th>Kernel Version Track</th><th>Patch State Compliance</th><th>algif_aead State</th></tr></thead><tbody>
-          ${targetCluster.nodes.map(n => `<tr><td>${n.name}</td><td>${n.kernel}</td><td style="color:${n.patchStatus === 'unpatched' ? 'red' : 'green'}">${n.patchStatus}</td><td>${n.algifStatus}</td></tr>`).join('')}
+          ${cluster.nodes.map(n => `<tr><td>${n.name}</td><td>${n.kernel}</td><td style="color:${n.patchStatus === 'unpatched' ? 'red' : 'green'}">${n.patchStatus}</td><td>${n.algifStatus}</td></tr>`).join('')}
           </tbody></table>`;
       }
 
-      htmlOutput += `</body></html>`;
-      const popout = window.open('', '_blank'); popout.document.write(htmlOutput); popout.document.close();
+      html += `</body></html>`;
+      const popout = window.open('', '_blank'); popout.document.write(html); popout.document.print();
     }
 
     function exportClusterCSVOnly() {
-      const c = (fleet.clusters || []).find(x => x.context === selectedContext);
+      const c = (fleetPayload.clusters || []).find(x => x.context === activeScopeContext);
       if (!c) return;
       const lines = [
         ['Compute Host Node Name', 'Kernel Version Track String', 'Patch Compliance Status', 'Driver Layer algif_aead Status', 'Derived Risk Score Weight'],
@@ -1289,9 +1347,11 @@
       hiddenAnchor.click();
     }
 
-    async function refresh() { await fetch('/api/refresh'); setTimeout(streamTelemetryData, 600); }
-    streamTelemetryData();
-    setInterval(streamTelemetryData, 15000);
+    async function refresh() { await fetch('/api/refresh'); setTimeout(initializeTelemetryStream, 600); }
+    function t(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+
+    initializeTelemetryStream();
+    setInterval(initializeTelemetryStream, 15000);
   </script>
 </body>
 

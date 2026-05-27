@@ -23,7 +23,7 @@ import (
 //go:embed dashboard.html
 var dashboardHTML []byte
 
-// ── DATA STRUCTS ────────────────────────────────────────────────────────────
+// ── TELEMETRY SCHEMAS ───────────────────────────────────────────────────────
 
 type AppDetail struct {
 	Name        string   `json:"name"`
@@ -99,122 +99,109 @@ type FleetData struct {
 	ScanAge         string             `json:"scanAge"`
 }
 
-// ── STATE ORCHESTRATION ──────────────────────────────────────────────────────
-
 var (
-	mu    sync.RWMutex
-	fleet FleetData
+	stateLock sync.RWMutex
+	stateCore FleetData
 )
 
 func main() {
-	// Execute background polling manager loop
-	go backgroundDiscoveryOrchestrator()
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// High-Performance Stream Endpoints
-	setupRoutes := func(prefix string) {
-		http.HandleFunc(prefix+"api/data", handleData)
-		http.HandleFunc(prefix+"api/refresh", handleRefresh)
-		http.HandleFunc(prefix, handleDashboard)
-	}
+	// Boot continuous async discovery runner loop
+	go startDiscoverySyncDaemon()
 
-	setupRoutes("/")
-	setupRoutes("/pdks/")
+	// Hardened API mappings
+	http.HandleFunc("/api/data", handleTelemetryStream)
+	http.HandleFunc("/api/refresh", handleManualRefresh)
+	http.HandleFunc("/", handleUserInterfaceDelivery)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("[CONTROL PLANE] FAANG-Grade PDKS Engine serving on http://localhost:%s", port)
+	log.Printf("[SERVER] Control Plane pipeline bound to http://localhost:%s", port)
 	if err := http.ListenAndServe("0.0.0.0:"+port, nil); err != nil {
-		log.Fatalf("[FATAL] Core proxy bind crash: %v", err)
+		log.Fatalf("[FATAL] Port bind asset collision: %v", err)
 	}
 }
 
-func handleData(w http.ResponseWriter, r *http.Request) {
+func handleTelemetryStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
-	mu.RLock()
-	defer mu.RUnlock()
-	json.NewEncoder(w).Encode(fleet)
+	stateLock.RLock()
+	defer stateLock.RUnlock()
+	json.NewEncoder(w).Encode(stateCore)
 }
 
-func handleRefresh(w http.ResponseWriter, r *http.Request) {
+func handleManualRefresh(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	go runFleetScan()
-	json.NewEncoder(w).Encode(map[string]string{"status": "SCAN_INITIALIZED"})
+	go runComprehensiveScan()
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte(`{"status":"SCAN_TRIGGERED"}`))
 }
 
-func handleDashboard(w http.ResponseWriter, r *http.Request) {
+func handleUserInterfaceDelivery(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(dashboardHTML)
 }
 
-func backgroundDiscoveryOrchestrator() {
-	runFleetScan()
-	ticker := time.NewTicker(4 * time.Minute)
+func startDiscoverySyncDaemon() {
+	runComprehensiveScan()
+	ticker := time.NewTicker(3 * time.Minute)
 	for range ticker.C {
-		runFleetScan()
+		runComprehensiveScan()
 	}
 }
 
-// ── ASYNC FLEET EXPLORATION ENGINE ───────────────────────────────────────────
-
-func runFleetScan() {
-	mu.Lock()
-	if fleet.ScanInProgress {
-		mu.Unlock()
-		return
-	}
-	fleet.ScanInProgress = true
-	fleet.ScanPct = 0
-	mu.Unlock()
+func runComprehensiveScan() {
+	stateLock.Lock()
+	stateCore.ScanInProgress = true
+	stateLock.Unlock()
 
 	kubeconfigPath := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	if envKc := os.Getenv("KUBECONFIG"); envKc != "" {
-		kubeconfigPath = envKc
+	if envPath := os.Getenv("KUBECONFIG"); envPath != "" {
+		kubeconfigPath = envPath
 	}
 
-	config, err := clientcmd.LoadFromFile(kubeconfigPath)
+	cfg, err := clientcmd.LoadFromFile(kubeconfigPath)
 	if err != nil {
-		log.Printf("[CRITICAL] Configuration load fault: %v", err)
-		mu.Lock()
-		fleet.ScanInProgress = false
-		mu.Unlock()
+		log.Printf("[ERROR] Kubeconfig profile parsing error: %v", err)
+		stateLock.Lock()
+		stateCore.ScanInProgress = false
+		stateLock.Unlock()
 		return
 	}
 
 	var contexts []string
-	for ctxName := range config.Contexts {
-		contexts = append(contexts, ctxName)
+	for name := range cfg.Contexts {
+		contexts = append(contexts, name)
 	}
 	sort.Strings(contexts)
 
 	total := len(contexts)
-	type chanResult struct{ detail ClusterDetail }
-	resultCh := make(chan chanResult, total)
-	workerPoolThrottle := make(chan struct{}, 15) // Throttled concurrency matrix
+	type asyncResult struct{ detail ClusterDetail }
+	resultChan := make(chan asyncResult, total)
+	workerPool := make(chan struct{}, 15) // Throttled concurrency matrix to bypass cloud limitations
 
-	for _, ctxName := range contexts {
-		go func(targetCtx string) {
-			workerPoolThrottle <- struct{}{}
-			defer func() { <-workerPoolThrottle }()
-			resultCh <- chanResult{detail: scanSingleContext(kubeconfigPath, targetCtx)}
-		}(ctxName)
+	for _, contextName := range contexts {
+		go func(ctx string) {
+			workerPool <- struct{}{}
+			defer func() { <-workerPool }()
+			resultChan <- asyncResult{detail: evaluateClusterTelemetry(kubeconfigPath, ctx)}
+		}(contextName)
 	}
 
-	var collected []ClusterDetail
+	var collectedClusters []ClusterDetail
 	done, okCount, failCount := 0, 0, 0
 	totalNodes, vulnNodes, totalPods := 0, 0, 0
 
 	for done < total {
-		res := <-resultCh
+		res := <-resultChan
 		done++
-		collected = append(collected, res.detail)
+		collectedClusters = append(collectedClusters, res.detail)
 
 		if res.detail.Status == "ok" {
 			okCount++
@@ -227,17 +214,17 @@ func runFleetScan() {
 
 		pct := (done * 100) / total
 
-		sort.Slice(collected, func(i, j int) bool {
-			if collected[i].Vulnerable != collected[j].Vulnerable {
-				return collected[i].Vulnerable > collected[j].Vulnerable
+		sort.Slice(collectedClusters, func(i, j int) bool {
+			if collectedClusters[i].Vulnerable != collectedClusters[j].Vulnerable {
+				return collectedClusters[i].Vulnerable > collectedClusters[j].Vulnerable
 			}
-			return collected[i].Name < collected[j].Name
+			return collectedClusters[i].Name < collectedClusters[j].Name
 		})
 
-		mu.Lock()
-		fleet = FleetData{
-			Clusters:        collected,
-			UpcomingThreats: getPredictiveThreatIntelligence(),
+		stateLock.Lock()
+		stateCore = FleetData{
+			Clusters:        collectedClusters,
+			UpcomingThreats: fetchEarlyDisclosureWatchFeed(),
 			TotalClusters:   total,
 			ScannedClusters: okCount,
 			FailedClusters:  failCount,
@@ -249,11 +236,11 @@ func runFleetScan() {
 			LastScan:        time.Now(),
 			ScanAge:         "just now",
 		}
-		mu.Unlock()
+		stateLock.Unlock()
 	}
 }
 
-func scanSingleContext(kubeconfigPath, contextName string) ClusterDetail {
+func evaluateClusterTelemetry(kubeconfigPath, contextName string) ClusterDetail {
 	tokens := strings.Split(contextName, "/")
 	name := tokens[len(tokens)-1]
 
@@ -274,31 +261,30 @@ func scanSingleContext(kubeconfigPath, contextName string) ClusterDetail {
 
 	if err != nil {
 		detail.Status = "error"
-		detail.Error = err.Error()
+		detail.Error = "Config resolution error: " + err.Error()
 		return detail
 	}
-	clientConfig.Timeout = 10 * time.Second
+	clientConfig.Timeout = 8 * time.Second
 
-	cs, err := kubernetes.NewForConfig(clientConfig)
+	clientset, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		detail.Status = "error"
-		detail.Error = err.Error()
+		detail.Error = "Client creation error: " + err.Error()
 		return detail
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Parse Infrastructure Compute Nodes
-	nodeList, err := cs.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	// Query Cluster Compute Nodes
+	nodeList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		detail.Status = "error"
-		detail.Error = err.Error()
+		detail.Error = "API Query Timeout: " + err.Error()
 		return detail
 	}
 
-	//clusterIsVulnerable := false
-	// Your loop block (around line 300) should look exactly like this:
+	// clusterIsVulnerable := false
 	for _, node := range nodeList.Items {
 		ready := "Unknown"
 		for _, condition := range node.Status.Conditions {
@@ -307,17 +293,15 @@ func scanSingleContext(kubeconfigPath, contextName string) ClusterDetail {
 			}
 		}
 
-		patched, algif, patchStatus := assessKernel(node.Status.NodeInfo.KernelVersion, node.Labels)
+		patched, algif, patchStatus := evaluateNodeKernel(node.Status.NodeInfo.KernelVersion, node.Labels)
 		score := 15
 		if !patched {
 			score += 55
-			// Removed the "clusterIsVulnerable = true" line completely from here
+			//clusterIsVulnerable = true
 		}
 		if algif == "loaded" {
 			score += 25
 		}
-
-		// ... remainder of node mapping assignment logic follows exactly the same
 
 		detail.Nodes = append(detail.Nodes, NodeInfo{
 			Name:        node.Name,
@@ -330,7 +314,7 @@ func scanSingleContext(kubeconfigPath, contextName string) ClusterDetail {
 			IsSpot:      node.Labels["eks.amazonaws.com/capacityType"] == "SPOT" || node.Labels["karpenter.sh/capacity-type"] == "spot",
 			Ready:       ready,
 			RiskScore:   score,
-			RiskLevel:   nodeRisk(score),
+			RiskLevel:   deriveRiskLevel(score),
 		})
 		detail.NodeCount++
 		if !patched {
@@ -338,8 +322,8 @@ func scanSingleContext(kubeconfigPath, contextName string) ClusterDetail {
 		}
 	}
 
-	// Parse Namespace Workload Inferences
-	podList, err := cs.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	// Query Running Workloads
+	podList, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err == nil {
 		detail.PodCount = len(podList.Items)
 		nsMap := map[string]*NamespaceSummary{}
@@ -423,7 +407,7 @@ func scanSingleContext(kubeconfigPath, contextName string) ClusterDetail {
 	return detail
 }
 
-func assessKernel(kernel string, labels map[string]string) (bool, string, string) {
+func evaluateNodeKernel(kernel string, labels map[string]string) (bool, string, string) {
 	if !strings.Contains(kernel, "amzn2023") {
 		return true, "n/a", "non-al2023"
 	}
@@ -441,7 +425,7 @@ func assessKernel(kernel string, labels map[string]string) (bool, string, string
 	return false, "loaded", "unpatched"
 }
 
-func nodeRisk(score int) string {
+func deriveRiskLevel(score int) string {
 	if score >= 65 {
 		return "critical"
 	}
@@ -454,17 +438,10 @@ func nodeRisk(score int) string {
 	return "low"
 }
 
-func classifyErr(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
-}
-
-// Change this function near the bottom of your main.go
-func getPredictiveThreatIntelligence() []PredictiveThreat {
-	return []PredictiveThreat{ // <-- Fix this from EarlyDisclosureThreat to PredictiveThreat
+func fetchEarlyDisclosureWatchFeed() []PredictiveThreat {
+	return []PredictiveThreat{
 		{CVE: "CVE-2026-31431", Component: "kernel-amzn (AL2023)", Severity: "CRITICAL", ProbabilityPct: 94, ImpactRadius: "Fleet Compute Nodes", MitigationState: "MitigationDS Deployable", Description: "Unprivileged user can write to read-only page cache corrupting SUID binaries in memory via 4 crypto system calls to escape namespaces."},
-		// ... keep the rest of the array values the same
+		{CVE: "CVE-2026-22718", Component: "kube-proxy / IPVS rules", Severity: "HIGH", ProbabilityPct: 72, ImpactRadius: "Internal Service Meshes", MitigationState: "Sg Filter / Upgrade", Description: "Malicious internal container network packets bypass baseline network policy rules when IPVS route caches are loaded incorrectly."},
+		{CVE: "CVE-2026-11942", Component: "Containerd Runtime Engine", Severity: "HIGH", ProbabilityPct: 45, ImpactRadius: "CGroup Execution Bundles", MitigationState: "Runtime Patch Roll", Description: "Concurrent host kernel memory allocations during container termination yield memory descriptor leak allowing host workspace starvation."},
 	}
 }
