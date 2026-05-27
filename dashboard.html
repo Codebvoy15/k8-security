@@ -1,688 +1,1298 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PDKS · Security Intelligence</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#08090e;--s1:#0d0f18;--s2:#111520;--s3:#171c2c;--s4:#1c2235;
-  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.1);
-  --text:#e2e8f4;--t2:#8892aa;--t3:#4a5570;--t4:#252d42;
-  --red:#f43f5e;--rbg:rgba(244,63,94,0.08);--rb:rgba(244,63,94,0.18);
-  --amber:#f59e0b;--abg:rgba(245,158,11,0.08);--ab:rgba(245,158,11,0.18);
-  --green:#10b981;--gbg:rgba(16,185,129,0.08);--gb:rgba(16,185,129,0.18);
-  --blue:#3b82f6;--bbg:rgba(59,130,246,0.08);--bb:rgba(59,130,246,0.18);
-  --purple:#8b5cf6;
-  --mono:'JetBrains Mono',monospace;
-  --sans:'Inter',sans-serif;
-  --r:6px;--rl:10px;
-}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
-::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDKS · Security Intelligence Platform</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-/* SCAN BAR */
-#scan-bar{position:fixed;top:0;left:0;right:0;height:2px;z-index:300;background:transparent;pointer-events:none;}
-#scan-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));width:0%;transition:width 0.8s ease;border-radius:0 2px 2px 0;}
+    :root {
+      --bg: #05070f;
+      --s1: #0b0e17;
+      --s2: #101424;
+      --s3: #161c32;
+      --s4: #1c243f;
+      --border: rgba(255, 255, 255, 0.05);
+      --border2: rgba(255, 255, 255, 0.12);
+      --text: #e6edf8;
+      --t2: #8fa0c2;
+      --t3: #4e5e80;
+      --t4: #28334e;
+      --red: #f43f5e;
+      --rbg: rgba(244, 63, 94, 0.06);
+      --rb: rgba(244, 63, 94, 0.2);
+      --amber: #fbbf24;
+      --abg: rgba(251, 191, 36, 0.06);
+      --ab: rgba(251, 191, 36, 0.2);
+      --green: #10b981;
+      --gbg: rgba(16, 185, 129, 0.06);
+      --gb: rgba(16, 185, 129, 0.2);
+      --blue: #3b82f6;
+      --bbg: rgba(59, 130, 246, 0.06);
+      --bb: rgba(59, 130, 246, 0.2);
+      --purple: #8b5cf6;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', sans-serif;
+      --r: 6px;
+      --rl: 10px;
+    }
 
-/* TOPBAR */
-.topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:rgba(13,15,24,0.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);}
-.tb-left{display:flex;align-items:center;gap:10px;}
-.tb-logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-.tb-title{font-size:14px;font-weight:600;letter-spacing:-0.2px;}
-.tb-sep{width:1px;height:14px;background:var(--border2);margin:0 4px;}
-.tb-sub{font-size:11px;color:var(--t3);}
-.tb-center{display:flex;align-items:center;gap:6px;}
-.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;border:1px solid;white-space:nowrap;}
-.p-live{background:var(--gbg);border-color:var(--gb);color:var(--green);}
-.p-scan{background:var(--bbg);border-color:var(--bb);color:var(--blue);}
-.p-warn{background:var(--rbg);border-color:var(--rb);color:var(--red);}
-.p-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 1.4s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.spin{width:8px;height:8px;border:1.5px solid rgba(59,130,246,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.tb-right{display:flex;align-items:center;gap:6px;}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--r);border:1px solid var(--border2);background:var(--s2);color:var(--t2);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .12s;}
-.btn:hover{background:var(--s3);color:var(--text);border-color:rgba(255,255,255,.14);}
-.btn-p{background:var(--blue);border-color:var(--blue);color:#fff;}
-.btn-p:hover{opacity:.88;color:#fff;}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
 
-/* LAYOUT */
-.layout{display:flex;height:calc(100vh - 52px);}
+    #scan-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      z-index: 300;
+      background: transparent;
+    }
 
-/* SIDEBAR */
-.sidebar{width:252px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-.sb-head{padding:12px 12px 8px;}
-.sb-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
-.sb-stat{background:var(--s2);border-radius:var(--r);padding:8px 10px;border:1px solid var(--border);}
-.sb-stat-val{font-size:18px;font-weight:600;font-family:var(--mono);line-height:1;margin-bottom:2px;}
-.sb-stat-label{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;}
-.sb-search{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;color:var(--text);font-size:11px;outline:none;font-family:var(--sans);margin-bottom:6px;}
-.sb-search:focus{border-color:var(--blue);}
-.sb-search::placeholder{color:var(--t4);}
-.sb-filters{display:flex;gap:4px;flex-wrap:wrap;}
-.sf{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;border:1px solid var(--border);background:transparent;color:var(--t3);cursor:pointer;transition:all .1s;}
-.sf:hover{color:var(--t2);}
-.sf.a{background:var(--bbg);border-color:var(--bb);color:var(--blue);}
-.sf.ar{background:var(--rbg);border-color:var(--rb);color:var(--red);}
+    #scan-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      width: 0%;
+      transition: width 0.4s ease;
+    }
 
-/* SORT */
-.sb-sort{display:flex;align-items:center;gap:6px;padding:8px 12px 4px;border-top:1px solid var(--border);}
-.sb-sort-label{font-size:10px;color:var(--t3);}
-.sb-sort select{background:var(--s2);border:1px solid var(--border);color:var(--t2);font-size:10px;border-radius:4px;padding:2px 6px;outline:none;font-family:var(--sans);}
+    .topbar {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: rgba(13, 15, 24, 0.97);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
 
-/* CLUSTER LIST */
-.cl-list{flex:1;overflow-y:auto;padding:6px 8px;}
-.cl-item{border-radius:var(--r);border:1px solid var(--border);background:var(--s1);margin-bottom:3px;cursor:pointer;transition:all .12s;overflow:hidden;}
-.cl-item:hover{background:var(--s2);border-color:var(--border2);}
-.cl-item.active{border-color:var(--bb);background:var(--bbg);}
-.cl-item.active .cl-name{color:var(--blue);}
-.cl-top{display:flex;align-items:center;padding:8px 10px;gap:8px;}
-.cl-accent{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;}
-.cl-accent.crit{background:var(--red);}
-.cl-accent.high{background:var(--amber);}
-.cl-accent.safe{background:var(--green);}
-.cl-accent.err{background:var(--t4);}
-.cl-info{flex:1;min-width:0;}
-.cl-name{font-size:11px;font-weight:500;font-family:var(--mono);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cl-meta{font-size:9px;color:var(--t3);margin-top:1px;}
-.cl-right{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
-.cl-vuln{font-size:13px;font-weight:600;font-family:var(--mono);line-height:1;}
-.cl-vuln-lbl{font-size:8px;color:var(--t3);text-transform:uppercase;}
-.cl-bar{height:2px;margin:0 10px 5px;border-radius:1px;background:var(--s3);overflow:hidden;}
-.cl-bar-fill{height:100%;border-radius:1px;transition:width .3s;}
-.cl-err-msg{padding:3px 10px 6px 21px;font-size:9px;color:var(--red);font-family:var(--mono);line-height:1.3;}
-.cl-count{font-size:9px;color:var(--t3);padding:4px 12px 6px;text-align:center;}
+    .tb-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-/* MAIN */
-.main{flex:1;overflow-y:auto;background:var(--bg);}
+    .tb-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
 
-/* WELCOME */
-.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--t3);padding:40px;}
-.welcome-icon{font-size:36px;opacity:.25;}
-.welcome-title{font-size:15px;font-weight:500;color:var(--t2);}
-.welcome-sub{font-size:12px;text-align:center;max-width:280px;line-height:1.7;}
+    .tb-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
 
-/* CLUSTER DETAIL */
-.detail{padding:20px;}
+    .tb-sub {
+      font-size: 11px;
+      color: var(--t3);
+    }
 
-/* HEADER */
-.dh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
-.dh-left{}
-.dh-title{font-size:18px;font-weight:600;letter-spacing:-.4px;font-family:var(--mono);margin-bottom:3px;}
-.dh-sub{font-size:11px;color:var(--t3);}
-.dh-right{display:flex;gap:6px;flex-shrink:0;}
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 500;
+      border: 1px solid;
+    }
 
-/* METRICS ROW */
-.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
-.metric{background:var(--s1);border:1px solid var(--border);border-radius:var(--rl);padding:11px 13px;position:relative;overflow:hidden;}
-.metric-acc{position:absolute;top:0;left:0;right:0;height:1px;}
-.metric-val{font-size:22px;font-weight:600;font-family:var(--mono);line-height:1;margin-bottom:3px;letter-spacing:-.5px;}
-.metric-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;}
+    .p-live {
+      background: var(--gbg);
+      border-color: var(--gb);
+      color: var(--green);
+    }
 
-/* ALERT */
-.alert{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:var(--r);border:1px solid;margin-bottom:12px;}
-.alert.r{background:var(--rbg);border-color:var(--rb);}
-.alert.a{background:var(--abg);border-color:var(--ab);}
-.alert.g{background:var(--gbg);border-color:var(--gb);}
-.alert-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:2px;animation:blink 1s infinite;}
-.alert.r .alert-dot{background:var(--red);}
-.alert.a .alert-dot{background:var(--amber);}
-.alert.g .alert-dot{background:var(--green);}
-.alert-title{font-size:11px;font-weight:500;margin-bottom:2px;}
-.alert.r .alert-title{color:var(--red);}
-.alert.a .alert-title{color:var(--amber);}
-.alert.g .alert-title{color:var(--green);}
-.alert-body{font-size:10px;color:var(--t2);line-height:1.5;}
+    .p-scan {
+      background: var(--bbg);
+      border-color: var(--bb);
+      color: var(--blue);
+    }
 
-/* TABS */
-.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;}
-.tab{padding:7px 14px;font-size:11px;font-weight:500;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;position:relative;top:1px;}
-.tab:hover{color:var(--t2);}
-.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
-.tab-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;margin-left:4px;vertical-align:middle;}
-.tb-red{background:var(--rbg);color:var(--red);}
-.tb-blue{background:var(--bbg);color:var(--blue);}
+    .p-warn {
+      background: var(--rbg);
+      border-color: var(--rb);
+      color: var(--red);
+    }
 
-/* NODE GRID */
-.node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:7px;}
-.nc{background:var(--s1);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;transition:all .12s;cursor:default;}
-.nc:hover{border-color:var(--border2);transform:translateY(-1px);}
-.nc-top{height:2px;}
-.nc-top.crit{background:var(--red);}
-.nc-top.high{background:var(--amber);}
-.nc-top.safe{background:var(--green);}
-.nc-body{padding:9px 11px;}
-.nc-name{font-size:10px;font-weight:500;font-family:var(--mono);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:7px;}
-.nc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.nc-key{font-size:9px;color:var(--t3);}
-.nc-val{font-size:9px;font-weight:500;font-family:var(--mono);}
-.nc-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;}
-.nctag{font-size:8px;padding:1px 5px;border-radius:3px;border:1px solid;}
-.nct-r{background:var(--rbg);color:var(--red);border-color:var(--rb);}
-.nct-a{background:var(--abg);color:var(--amber);border-color:var(--ab);}
-.nct-g{background:var(--gbg);color:var(--green);border-color:var(--gb);}
-.nct-b{background:var(--bbg);color:var(--blue);border-color:var(--bb);}
+    .p-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 1.4s infinite;
+    }
 
-/* NAMESPACE TABLE */
-.ns-wrap{border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;}
-.ns-hdr{display:grid;grid-template-columns:2fr 60px 60px 80px 20px;padding:8px 12px;background:var(--s2);border-bottom:1px solid var(--border);}
-.ns-hdr span{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;}
-.ns-row{border-bottom:1px solid var(--border);}
-.ns-row:last-child{border-bottom:none;}
-.ns-main-row{display:grid;grid-template-columns:2fr 60px 60px 80px 20px;padding:9px 12px;cursor:pointer;align-items:center;transition:background .1s;}
-.ns-main-row:hover{background:var(--s2);}
-.ns-name{font-size:11px;font-weight:500;font-family:var(--mono);color:var(--text);}
-.ns-val{font-size:12px;font-family:var(--mono);color:var(--text);}
-.ns-arrow{font-size:9px;color:var(--t3);transition:transform .15s;}
-.ns-arrow.open{transform:rotate(90deg);}
-.ns-expand{display:none;background:var(--s2);border-top:1px solid var(--border);}
-.ns-expand.open{display:block;}
+    @keyframes blink {
 
-/* APP TABLE */
-.app-hdr{display:grid;grid-template-columns:1.5fr 1.2fr 1fr 60px;padding:6px 16px;background:var(--s3);}
-.app-hdr span{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;}
-.app-row{display:grid;grid-template-columns:1.5fr 1.2fr 1fr 60px;padding:7px 16px;border-top:1px solid var(--border);align-items:center;}
-.app-row:hover{background:var(--s3);}
-.app-name{font-size:10px;font-family:var(--mono);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.app-image{font-size:9px;font-family:var(--mono);color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.issue-tags{display:flex;flex-wrap:wrap;gap:3px;}
-.itag{font-size:8px;padding:1px 5px;border-radius:3px;border:1px solid;}
-.it-r{background:var(--rbg);color:var(--red);border-color:var(--rb);}
-.it-a{background:var(--abg);color:var(--amber);border-color:var(--ab);}
-.it-b{background:var(--bbg);color:var(--blue);border-color:var(--bb);}
-.risk-num{font-size:12px;font-weight:600;font-family:var(--mono);}
+      0%,
+      100% {
+        opacity: 1
+      }
 
-/* BADGE */
-.badge{display:inline-flex;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:600;border:1px solid;}
-.b-r{background:var(--rbg);color:var(--red);border-color:var(--rb);}
-.b-a{background:var(--abg);color:var(--amber);border-color:var(--ab);}
-.b-g{background:var(--gbg);color:var(--green);border-color:var(--gb);}
-.b-b{background:var(--bbg);color:var(--blue);border-color:var(--bb);}
-.b-x{background:var(--s3);color:var(--t3);border-color:var(--border2);}
+      50% {
+        opacity: .25
+      }
+    }
 
-/* COLORS */
-.cr{color:var(--red)}.ca{color:var(--amber)}.cg{color:var(--green)}.cb{color:var(--blue)}
+    .spin {
+      width: 8px;
+      height: 8px;
+      border: 1.5px solid rgba(59, 130, 246, .25);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
 
-/* SCANNING PLACEHOLDER */
-.scan-placeholder{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--bbg);border:1px solid var(--bb);border-radius:var(--r);margin-bottom:12px;font-size:11px;color:var(--blue);}
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
 
-/* SECTION */
-.section{margin-bottom:14px;}
-.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.sec-title{font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;}
-</style>
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: var(--r);
+      border: 1px solid var(--border2);
+      background: var(--s2);
+      color: var(--t2);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .12s;
+    }
+
+    .btn:hover {
+      background: var(--s3);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, .14);
+    }
+
+    .btn-p {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .layout {
+      display: flex;
+      height: calc(100vh - 52px);
+    }
+
+    .sidebar {
+      width: 265px;
+      flex-shrink: 0;
+      background: var(--s1);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sb-head {
+      padding: 12px;
+    }
+
+    .sb-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .sb-stat {
+      background: var(--s2);
+      border-radius: var(--r);
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+    }
+
+    .sb-stat-val {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: var(--mono);
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .sb-stat-label {
+      font-size: 9px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .sb-search {
+      width: 100%;
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 11px;
+      outline: none;
+      margin-bottom: 6px;
+    }
+
+    .sb-search:focus {
+      border-color: var(--blue);
+    }
+
+    .sb-filters {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .sf {
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--t3);
+      cursor: pointer;
+    }
+
+    .sf.a {
+      background: var(--bbg);
+      border-color: var(--bb);
+      color: var(--blue);
+    }
+
+    .sf.ar {
+      background: var(--rbg);
+      border-color: var(--rb);
+      color: var(--red);
+    }
+
+    .sb-sort {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px 4px;
+      border-top: 1px solid var(--border);
+    }
+
+    .sb-sort select {
+      background: var(--s2);
+      border: 1px solid var(--border);
+      color: var(--t2);
+      font-size: 10px;
+      border-radius: 4px;
+      padding: 2px 6px;
+      outline: none;
+    }
+
+    .cl-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 8px;
+    }
+
+    .cl-item {
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      background: var(--s1);
+      margin-bottom: 3px;
+      cursor: pointer;
+      transition: all .12s;
+      padding: 8px;
+    }
+
+    .cl-item:hover {
+      background: var(--s2);
+      border-color: var(--border2);
+    }
+
+    .cl-item.active {
+      border-color: var(--bb);
+      background: var(--bbg);
+    }
+
+    .cl-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cl-name {
+      font-size: 11px;
+      font-weight: 500;
+      font-family: var(--mono);
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .cl-meta {
+      font-size: 9px;
+      color: var(--t3);
+      margin-top: 1px;
+    }
+
+    .cl-vuln {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+
+    .cl-bar {
+      height: 2px;
+      background: var(--s3);
+      border-radius: 1px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .cl-bar-fill {
+      height: 100%;
+      border-radius: 1px;
+    }
+
+    .cl-err-msg {
+      font-size: 9px;
+      color: var(--red);
+      font-family: var(--mono);
+      padding-top: 4px;
+    }
+
+    .cl-count {
+      font-size: 9px;
+      color: var(--t3);
+      padding: 6px;
+      text-align: center;
+    }
+
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg);
+      padding: 20px;
+    }
+
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--t3);
+    }
+
+    .welcome-icon {
+      font-size: 36px;
+      opacity: .25;
+    }
+
+    .welcome-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--t2);
+    }
+
+    .dh {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .dh-title {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+
+    .dh-sub {
+      font-size: 11px;
+      color: var(--t3);
+      margin-top: 2px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 11px 13px;
+      position: relative;
+    }
+
+    .metric-acc {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+    }
+
+    .metric-val {
+      font-size: 22px;
+      font-weight: 600;
+      font-family: var(--mono);
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .metric-lbl {
+      font-size: 9px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    /* CORE GRAPHING WORKSPACE OVERHAUL */
+    .visual-workspace {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .panel {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 16px;
+      min-height: 250px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--t2);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 2px;
+    }
+
+    .chart-wrapper {
+      flex: 1;
+      position: relative;
+      height: 180px;
+      width: 100%;
+    }
+
+    .threat-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+      max-height: 190px;
+    }
+
+    .threat-item {
+      background: var(--s2);
+      border-left: 3px solid var(--purple);
+      padding: 8px 10px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .threat-item.CRITICAL {
+      border-left-color: var(--red);
+    }
+
+    .threat-cve {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .threat-desc {
+      font-size: 10px;
+      color: var(--t3);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+      gap: 2px;
+    }
+
+    .tab {
+      padding: 8px 14px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--t3);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      position: relative;
+      top: 1px;
+    }
+
+    .tab.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+      font-weight: 600;
+    }
+
+    .tab-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .tb-red {
+      background: var(--rbg);
+      color: var(--red);
+    }
+
+    .tb-blue {
+      background: var(--bbg);
+      color: var(--blue);
+    }
+
+    .node-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+    }
+
+    .nc {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      overflow: hidden;
+    }
+
+    .nc-top {
+      height: 3px;
+    }
+
+    .nc-top.critical {
+      background: var(--red);
+    }
+
+    .nc-top.high {
+      background: var(--amber);
+    }
+
+    .nc-top.low {
+      background: var(--green);
+    }
+
+    .nc-body {
+      padding: 10px;
+    }
+
+    .nc-name {
+      font-size: 10px;
+      font-weight: 600;
+      font-family: var(--mono);
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nc-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+      font-size: 11px;
+    }
+
+    .nc-key {
+      color: var(--t3);
+    }
+
+    .nc-val {
+      font-family: var(--mono);
+    }
+
+    .nc-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 8px;
+    }
+
+    .nctag {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid;
+      font-weight: 600;
+    }
+
+    .nct-r {
+      background: var(--rbg);
+      color: var(--red);
+      border-color: var(--rb);
+    }
+
+    .nct-a {
+      background: var(--abg);
+      color: var(--amber);
+      border-color: var(--ab);
+    }
+
+    .nct-g {
+      background: var(--gbg);
+      color: var(--green);
+      border-color: var(--gb);
+    }
+
+    .ns-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      overflow: hidden;
+      background: var(--s1);
+    }
+
+    .ns-hdr {
+      display: grid;
+      grid-template-columns: 2fr 70px 70px 90px 20px;
+      padding: 8px 14px;
+      background: var(--s2);
+      border-bottom: 1px solid var(--border);
+      font-size: 9px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .ns-row {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ns-main-row {
+      display: grid;
+      grid-template-columns: 2fr 70px 70px 90px 20px;
+      padding: 10px 14px;
+      cursor: pointer;
+      align-items: center;
+    }
+
+    .ns-main-row:hover {
+      background: var(--s2);
+    }
+
+    .ns-name {
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+
+    .ns-val {
+      font-family: var(--mono);
+    }
+
+    .ns-expand {
+      display: none;
+      background: #090c14;
+      border-top: 1px solid var(--border);
+    }
+
+    .ns-expand.open {
+      display: block;
+    }
+
+    .app-hdr {
+      display: grid;
+      grid-template-columns: 1.5fr 1.2fr 1.5fr 60px;
+      padding: 6px 14px;
+      background: var(--s3);
+      font-size: 9px;
+      color: var(--t3);
+    }
+
+    .app-row {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1.5fr 60px;
+      padding: 8px 14px;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+    }
+
+    .app-name {
+      font-family: var(--mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-image {
+      color: var(--t3);
+      font-family: var(--mono);
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 8px;
+    }
+
+    .alert {
+      display: flex;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--r);
+      border: 1px solid;
+      margin-bottom: 14px;
+      font-size: 11px;
+    }
+
+    .alert.r {
+      background: var(--rbg);
+      border-color: var(--rb);
+      color: var(--text);
+    }
+
+    .alert.g {
+      background: var(--gbg);
+      border-color: var(--gb);
+      color: var(--text);
+    }
+
+    .alert-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .alert.r .alert-title {
+      color: var(--red);
+    }
+
+    .alert.g .alert-title {
+      color: var(--green);
+    }
+
+    /* DUAL SECTOR REPORTING DIALOG */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 400;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal {
+      background: var(--s1);
+      border: 1px solid var(--border2);
+      width: 440px;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .modal-opt {
+      background: var(--s2);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all .1s;
+    }
+
+    .modal-opt:hover {
+      background: var(--s3);
+      border-color: var(--blue);
+    }
+
+    .modal-opt-title {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .modal-opt-desc {
+      font-size: 11px;
+      color: var(--t3);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="scan-bar"><div id="scan-fill"></div></div>
+  <div id="scan-bar">
+    <div id="scan-fill"></div>
+  </div>
 
-<div class="topbar">
-  <div class="tb-left">
-    <div class="tb-logo">🛡</div>
-    <span class="tb-title">PDKS Security Intelligence</span>
-    <div class="tb-sep"></div>
-    <span class="tb-sub">Pfizer Platform Engineering</span>
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-logo">🛡</div>
+      <span class="tb-title">PDKS Threat Command</span>
+      <div class="tb-sep"></div>
+      <span class="tb-sub">Pfizer Platform Engineering Operations</span>
+    </div>
+    <div class="tb-center">
+      <div class="pill p-live"><span class="p-dot"></span>LIVE DISCOVERY PIPELINE</div>
+      <div class="pill p-scan" id="pill-scan" style="display:none"><span class="spin"></span><span
+          id="pill-scan-txt">syncing</span></div>
+      <div class="pill p-warn" id="pill-warn" style="display:none;"><span class="p-dot"></span><span
+          id="pill-warn-txt"></span></div>
+    </div>
+    <div class="tb-right">
+      <span id="scan-age" style="font-size:10px;color:var(--t3);font-family:var(--mono)"></span>
+      <button class="btn" onclick="refresh()">↻ Force Sync</button>
+      <button class="btn btn-p" onclick="triggerReportScopeOverlay(true)">📄 Generate Audit Report</button>
+    </div>
   </div>
-  <div class="tb-center">
-    <div class="pill p-live"><span class="p-dot"></span>LIVE</div>
-    <div class="pill p-scan" id="pill-scan" style="display:none"><span class="spin"></span><span id="pill-scan-txt">scanning</span></div>
-    <div class="pill p-warn" id="pill-warn" style="display:none"><span class="p-dot"></span><span id="pill-warn-txt"></span></div>
-  </div>
-  <div class="tb-right">
-    <span id="scan-age" style="font-size:10px;color:var(--t3);font-family:var(--mono)"></span>
-    <button class="btn" onclick="refresh()">↻ Refresh</button>
-    <button class="btn btn-p" onclick="generateReport()">↓ Report</button>
-  </div>
-</div>
 
-<div class="layout">
-  <div class="sidebar">
-    <div class="sb-head">
-      <div class="sb-stats">
-        <div class="sb-stat"><div class="sb-stat-val cr" id="sb-vuln">—</div><div class="sb-stat-label">Nodes exposed</div></div>
-        <div class="sb-stat"><div class="sb-stat-val cb" id="sb-clusters">—</div><div class="sb-stat-label">Clusters scanned</div></div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-head">
+        <div class="sb-stats">
+          <div class="sb-stat">
+            <div class="sb-stat-val cr" id="sb-vuln">—</div>
+            <div class="sb-stat-label">Nodes exposed</div>
+          </div>
+          <div class="sb-stat">
+            <div class="sb-stat-val cb" id="sb-clusters">—</div>
+            <div class="sb-stat-label">Scanned context</div>
+          </div>
+        </div>
+        <input class="sb-search" id="cl-search" placeholder="Filter cluster profiles..." oninput="renderSidebar()">
+        <div class="sb-filters">
+          <div class="sf a" onclick="setF('all',this)">All Contexts</div>
+          <div class="sf" onclick="setF('exposed',this)">Exposed</div>
+          <div class="sf ar" onclick="setF('error',this)">Errors</div>
+          <div class="sf" onclick="setF('clean',this)">Clean</div>
+        </div>
       </div>
-      <input class="sb-search" id="cl-search" placeholder="Search cluster or region..." oninput="renderSidebar()">
-      <div class="sb-filters">
-        <div class="sf a" onclick="setF('all',this)">All</div>
-        <div class="sf" onclick="setF('exposed',this)">Exposed</div>
-        <div class="sf ar" onclick="setF('error',this)">Errors</div>
-        <div class="sf" onclick="setF('clean',this)">Clean</div>
+      <div class="sb-sort">
+        <span style="color:var(--t3)">Sort:</span>
+        <select id="sort-select" onchange="renderSidebar()">
+          <option value="severity">Highest Vulnerability %</option>
+          <option value="nodes-desc">Compute Density</option>
+          <option value="alpha">Alphabetical Index</option>
+        </select>
+      </div>
+      <div class="cl-list" id="cl-list"></div>
+    </div>
+
+    <div class="main" id="main">
+      <div class="welcome">
+        <div class="welcome-icon">🛡</div>
+        <div class="welcome-title">Assembling Fleet Telemetries...</div>
       </div>
     </div>
-
-    <div class="sb-sort">
-      <span class="sb-sort-label">Sort:</span>
-      <select id="sort-select" onchange="renderSidebar()">
-        <option value="severity">Highest severity</option>
-        <option value="nodes-desc">Most nodes</option>
-        <option value="alpha">A → Z</option>
-        <option value="region">By region</option>
-      </select>
-    </div>
-
-    <div class="cl-list" id="cl-list"></div>
   </div>
 
-  <div class="main" id="main">
-    <div class="welcome">
-      <div class="welcome-icon">🛡</div>
-      <div class="welcome-title">Scanning fleet clusters...</div>
-      <div class="welcome-sub">As each cluster comes in, select it from the sidebar to see nodes, namespaces, and workload vulnerabilities in real time.</div>
+  <div class="modal-backdrop" id="reportScopeModal" onclick="if(event.target===this)triggerReportScopeOverlay(false)">
+    <div class="modal">
+      <div class="modal-title">Select Audit Document Target Profile</div>
+      <div class="modal-opt" onclick="generateReportSuite('FLEET_WIDE')">
+        <div class="modal-opt-title">Choice 1: Global Fleet Executive Summary</div>
+        <div class="modal-opt-desc">Compiles aggregated security logs across all 170+ environments. Generates high-level
+          summaries for leadership tracking.</div>
+      </div>
+      <div class="modal-opt" id="modalOptCluster" onclick="generateReportSuite('CLUSTER_ISOLATED')">
+        <div class="modal-opt-title">Choice 2: Target Cluster Deep Assessment</div>
+        <div class="modal-opt-desc">Isolates telemetry documentation to the currently selected cluster. Maps structural
+          workloads by namespace to pass directly to environment group owners.</div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; margin-top:12px;"><button class="btn"
+          onclick="triggerReportScopeOverlay(false)">Cancel</button></div>
     </div>
   </div>
-</div>
 
-<script>
-var fleet={}, selected=null, fltr='all', tab='nodes', expandedNS=new Set();
+  <script>
+    var fleet = {}, selectedContext = null, clusterFilter = 'all', currentTab = 'nodes', openNS = new Set(), visualChartInstance = null;
 
-async function fetchData(){
-  try{
-    const r=await fetch('/api/data',{cache:'no-store'});
-    if(!r.ok) throw new Error(r.status);
-    fleet=await r.json();
-    apply();
-  }catch(e){console.warn('[fetch]',e);}
-}
-
-function apply(){
-  const d=fleet;
-  const inProg=d.scanInProgress||false;
-  const pct=d.scanPct||0;
-
-  // Progress bar
-  document.getElementById('scan-fill').style.width=inProg?pct+'%':'100%';
-  if(!inProg) setTimeout(()=>document.getElementById('scan-fill').style.width='0%',600);
-
-  // Pills
-  const ps=document.getElementById('pill-scan');
-  if(ps){
-    ps.style.display=inProg?'inline-flex':'none';
-    const pt=document.getElementById('pill-scan-txt');
-    if(pt&&inProg) pt.textContent=(d.scannedClusters+d.failedClusters)+'/'+d.totalClusters+' clusters';
-  }
-  const pw=document.getElementById('pill-warn');
-  const pwt=document.getElementById('pill-warn-txt');
-  if(pw&&d.vulnNodes>0){pw.style.display='inline-flex';if(pwt)pwt.textContent=d.vulnNodes+' nodes exposed';}
-
-  // Topbar
-  const sa=document.getElementById('scan-age');
-  if(sa) sa.textContent=d.scanAge||'';
-
-  // Sidebar stats
-  t('sb-vuln',d.vulnNodes||0);
-  t('sb-clusters',(d.scannedClusters||0)+' / '+(d.totalClusters||0));
-
-  renderSidebar();
-
-  // Refresh detail if cluster selected
-  if(selected){
-    const c=(d.clusters||[]).find(x=>x.context===selected);
-    if(c) renderDetail(c);
-  } else {
-    // Auto-pick first scanned OK cluster
-    const first=(d.clusters||[]).find(c=>c.status==='ok'&&c.nodeCount>0);
-    if(first) pick(first.context);
-  }
-}
-
-function setF(f,el){
-  fltr=f;
-  document.querySelectorAll('.sf').forEach(s=>s.classList.remove('a','ar'));
-  el.classList.add(f==='error'?'ar':'a');
-  renderSidebar();
-}
-
-function sortClusters(cs){
-  const sortBy=document.getElementById('sort-select')?.value||'severity';
-  return [...cs].sort((a,b)=>{
-    switch(sortBy){
-      case 'severity':{
-        // errors last, then by vuln% desc, then by vuln count
-        if(a.status!=='ok'&&b.status==='ok') return 1;
-        if(a.status==='ok'&&b.status!=='ok') return -1;
-        const ap=a.nodeCount>0?a.vulnerable/a.nodeCount:0;
-        const bp=b.nodeCount>0?b.vulnerable/b.nodeCount:0;
-        return bp-ap||b.vulnerable-a.vulnerable;
-      }
-      case 'nodes-desc': return (b.nodeCount||0)-(a.nodeCount||0);
-      case 'alpha': return (a.name||'').localeCompare(b.name||'');
-      case 'region': return (a.region||'').localeCompare(b.region||'')||(a.name||'').localeCompare(b.name||'');
-      default: return 0;
+    async function streamTelemetryData() {
+      try {
+        const response = await fetch('/api/data', { cache: 'no-store' });
+        if (!response.ok) throw new Error(response.status);
+        fleet = await response.json();
+        applyStateTransforms();
+      } catch (e) { console.warn('[FETCH_ERR]', e); }
     }
-  });
-}
 
-function renderSidebar(){
-  const cs=fleet.clusters||[];
-  const q=(document.getElementById('cl-search')?.value||'').toLowerCase();
-  let filtered=cs;
-  if(fltr==='exposed') filtered=cs.filter(c=>c.status==='ok'&&c.vulnerable>0);
-  else if(fltr==='error') filtered=cs.filter(c=>c.status!=='ok');
-  else if(fltr==='clean') filtered=cs.filter(c=>c.status==='ok'&&c.vulnerable===0);
-  if(q) filtered=filtered.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.region||'').toLowerCase().includes(q));
-  const sorted=sortClusters(filtered);
+    function applyStateTransforms() {
+      const d = fleet;
+      const inProg = d.scanInProgress || false;
 
-  const list=document.getElementById('cl-list');
-  if(!sorted.length){
-    list.innerHTML='<div class="cl-count">No clusters match</div>';
-    return;
-  }
+      document.getElementById('scan-fill').style.width = inProg ? d.scanPct + '%' : '100%';
+      if (!inProg) setTimeout(() => document.getElementById('scan-fill').style.width = '0%', 500);
 
-  list.innerHTML=sorted.map(c=>{
-    const isOk=c.status==='ok';
-    const v=c.vulnerable||0;
-    const n=c.nodeCount||0;
-    const pct=n>0?Math.round(v/n*100):0;
-    const accent=!isOk?'err':v===0?'safe':pct>=80?'crit':'high';
-    const isActive=selected===c.context;
-    const time=c.scannedAt?new Date(c.scannedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
-    const vColor=v>0?'var(--red)':isOk?'var(--green)':'var(--t3)';
-    return `<div class="cl-item${isActive?' active':''}" onclick="pick('${c.context}')">
-      <div class="cl-top">
-        <div class="cl-accent ${accent}" style="height:${Math.max(24,n>0?24:24)}px;min-height:24px;"></div>
-        <div class="cl-info">
-          <div class="cl-name" title="${c.name}">${c.name}</div>
-          <div class="cl-meta">${c.region||'—'} · ${time||'scanning'}</div>
-        </div>
-        <div class="cl-right">
-          <div class="cl-vuln" style="color:${vColor}">${isOk?(v===0?'✓':v):'✗'}</div>
-          <div class="cl-vuln-lbl">${isOk?(v>0?'exposed':'clean'):'error'}</div>
-        </div>
-      </div>
-      ${isOk&&n>0?`<div class="cl-bar"><div class="cl-bar-fill" style="width:${pct}%;background:${v>0?'var(--red)':'var(--green)'}"></div></div>`:''}
-      ${!isOk&&c.error?`<div class="cl-err-msg">${c.error}</div>`:''}
-    </div>`;
-  }).join('')+'<div class="cl-count">'+sorted.length+' of '+(cs.length)+'</div>';
-}
+      const ps = document.getElementById('pill-scan');
+      if (ps) {
+        ps.style.display = inProg ? 'inline-flex' : 'none';
+        document.getElementById('pill-scan-txt').textContent = `${d.scannedClusters + d.failedClusters}/${d.totalClusters} scanned`;
+      }
 
-function pick(ctx){
-  selected=ctx;
-  expandedNS=new Set();
-  tab='nodes';
-  const c=(fleet.clusters||[]).find(x=>x.context===ctx);
-  if(!c) return;
-  renderSidebar();
-  renderDetail(c);
-}
+      const pw = document.getElementById('pill-warn');
+      if (pw && d.vulnNodes > 0) {
+        pw.style.display = 'inline-flex';
+        document.getElementById('pill-warn-txt').textContent = `${d.vulnNodes} unpatched nodes`;
+      } else { pw.style.display = 'none'; }
 
-function renderDetail(c){
-  const main=document.getElementById('main');
-  const v=c.vulnerable||0;
-  const n=c.nodeCount||0;
-  const pods=c.podCount||0;
-  const nsCnt=c.nsCount||0;
-  const nsWithIssues=(c.namespaces||[]).filter(x=>x.issues>0).length;
-  const pct=n>0?Math.round(v/n*100):0;
-  const accColor=v===0?'var(--green)':pct>=80?'var(--red)':'var(--amber)';
+      document.getElementById('scan-age').textContent = d.scanAge || '';
+      t('sb-vuln', d.vulnNodes || 0);
+      t('sb-clusters', `${d.scannedClusters || 0}/${d.totalClusters || 0}`);
 
-  main.innerHTML=`<div class="detail">
-    <div class="dh">
-      <div class="dh-left">
-        <div class="dh-title">${c.name}</div>
-        <div class="dh-sub">${c.context} &nbsp;·&nbsp; ${c.region||'—'} &nbsp;·&nbsp; scanned ${c.scannedAt?new Date(c.scannedAt).toLocaleTimeString():'—'}</div>
-      </div>
-      <div class="dh-right">
-        <button class="btn" onclick="exportClusterCSV()">↓ CSV</button>
-        <button class="btn btn-p" onclick="generateReport()">↓ Report</button>
-      </div>
-    </div>
+      renderSidebar();
 
-    ${c.status!=='ok'?`<div class="alert r"><div class="alert-dot"></div><div>
-      <div class="alert-title">Cluster unreachable — ${c.error||'unknown error'}</div>
-      <div class="alert-body">Run: <code style="font-family:var(--mono);color:var(--red)">aws eks update-kubeconfig --name ${c.name} --region ${c.region||'us-east-1'}</code></div>
-    </div></div>`:''}
+      if (selectedContext) {
+        const match = (d.clusters || []).find(x => x.context === selectedContext);
+        if (match) renderClusterDashboard(match);
+      } else {
+        const firstActive = (d.clusters || []).find(c => c.status === 'ok' && c.nodeCount > 0);
+        if (firstActive) pickClusterTarget(firstActive.context);
+      }
+    }
 
-    ${c.status==='ok'&&v>0?`<div class="alert r"><div class="alert-dot"></div><div>
-      <div class="alert-title">${v} node${v>1?'s':''} vulnerable to CVE-2026-31431 "Copy Fail" — ${pct}% of cluster</div>
-      <div class="alert-body">algif_aead module loaded · kernel &lt;6.1.141 · unprivileged → root in 4 syscalls · container escape possible · Deploy mitigation DaemonSet immediately</div>
-    </div></div>`:c.status==='ok'?`<div class="alert g"><div class="alert-dot"></div><div>
-      <div class="alert-title">No Copy Fail exposure — all ${n} nodes are patched or non-AL2023</div>
-    </div></div>`:''}
+    function renderSidebar() {
+      const cs = fleet.clusters || [];
+      const query = (document.getElementById('cl-search')?.value || '').toLowerCase();
+      let filtered = cs;
 
-    <div class="metrics">
-      <div class="metric"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${n||'—'}</div><div class="metric-lbl">Total nodes</div></div>
-      <div class="metric"><div class="metric-acc" style="background:${v>0?'var(--red)':'var(--green)'}"></div><div class="metric-val ${v>0?'cr':'cg'}">${v}</div><div class="metric-lbl">Exposed nodes</div></div>
-      <div class="metric"><div class="metric-acc" style="background:var(--amber)"></div><div class="metric-val cb">${pods}</div><div class="metric-lbl">Total pods</div></div>
-      <div class="metric"><div class="metric-acc" style="background:${nsWithIssues>0?'var(--amber)':'var(--green)'}"></div><div class="metric-val ${nsWithIssues>0?'ca':'cg'}">${nsWithIssues}</div><div class="metric-lbl">NS with issues</div></div>
-      <div class="metric"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${nsCnt}</div><div class="metric-lbl">Total namespaces</div></div>
-    </div>
+      if (clusterFilter === 'exposed') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable > 0);
+      else if (clusterFilter === 'error') filtered = cs.filter(c => c.status !== 'ok');
+      else if (clusterFilter === 'clean') filtered = cs.filter(c => c.status === 'ok' && c.vulnerable === 0);
 
-    <div class="tabs">
-      <div class="tab${tab==='nodes'?' active':''}" onclick="switchTab('nodes')">Nodes <span class="tab-badge ${v>0?'tb-red':'tb-blue'}">${n}</span></div>
-      <div class="tab${tab==='ns'?' active':''}" onclick="switchTab('ns')">Namespaces &amp; Workloads <span class="tab-badge ${nsWithIssues>0?'tb-red':'tb-blue'}">${nsCnt}</span></div>
-    </div>
+      if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
 
-    <div id="tab-body"></div>
-  </div>`;
+      const sortBy = document.getElementById('sort-select')?.value || 'severity';
+      filtered.sort((a, b) => {
+        if (sortBy === 'nodes-desc') return b.nodeCount - a.nodeCount;
+        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
+        if (a.status !== 'ok' && b.status === 'ok') return 1;
+        if (a.status === 'ok' && b.status !== 'ok') return -1;
+        return (b.vulnerable / (b.nodeCount || 1)) - (a.vulnerable / (a.nodeCount || 1));
+      });
 
-  renderTab(c);
-}
+      const list = document.getElementById('cl-list');
+      if (!filtered.length) { list.innerHTML = '<div class="cl-count">No contexts localized</div>'; return; }
 
-function switchTab(t){
-  tab=t;
-  const c=(fleet.clusters||[]).find(x=>x.context===selected);
-  if(c) renderTab(c);
-}
-
-function renderTab(c){
-  document.querySelectorAll('.tab').forEach(el=>{
-    el.classList.toggle('active',
-      (tab==='nodes'&&el.textContent.startsWith('Nodes'))||
-      (tab==='ns'&&el.textContent.startsWith('Namespaces')));
-  });
-  const body=document.getElementById('tab-body');
-  if(!body) return;
-  if(tab==='nodes') renderNodes(c,body);
-  else renderNS(c,body);
-}
-
-function renderNodes(c,body){
-  const nodes=(c.nodes||[]).slice().sort((a,b)=>b.riskScore-a.riskScore);
-  if(!nodes.length){
-    body.innerHTML='<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px;">No node data available</div>';
-    return;
-  }
-  const topCls=s=>s==='critical'?'crit':s==='high'?'high':'safe';
-  const vc=v=>v?'var(--red)':'var(--green)';
-  const ac=s=>s==='loaded'?'var(--red)':s==='blocked'?'var(--green)':'var(--t3)';
-  body.innerHTML=`<div class="section">
-    <div class="sec-hdr">
-      <span class="sec-title">Node risk — sorted by severity</span>
-      <span class="badge ${nodes.filter(n=>n.vulnerable).length>0?'b-r':'b-g'}">${nodes.filter(n=>n.vulnerable).length} vulnerable of ${nodes.length}</span>
-    </div>
-    <div class="node-grid">
-      ${nodes.map(n=>`<div class="nc">
-        <div class="nc-top ${topCls(n.riskLevel)}"></div>
-        <div class="nc-body">
-          <div class="nc-name" title="${n.name}">${n.name.split('.')[0]}</div>
-          <div class="nc-row"><span class="nc-key">Patch status</span><span class="nc-val" style="color:${n.patchStatus==='patched'?'var(--green)':'var(--red)'}">${n.patchStatus}</span></div>
-          <div class="nc-row"><span class="nc-key">algif_aead</span><span class="nc-val" style="color:${ac(n.algifStatus)}">${n.algifStatus}</span></div>
-          <div class="nc-row"><span class="nc-key">Instance</span><span class="nc-val" style="color:var(--t2)">${n.nodeType||'—'}</span></div>
-          <div class="nc-row"><span class="nc-key">Zone</span><span class="nc-val" style="color:var(--t2)">${n.zone||'—'}</span></div>
-          <div class="nc-row"><span class="nc-key">Ready</span><span class="nc-val" style="color:${n.ready==='True'?'var(--green)':'var(--red)'}">${n.ready}</span></div>
-          <div class="nc-row"><span class="nc-key">Risk score</span><span class="nc-val" style="color:${n.riskScore>=65?'var(--red)':n.riskScore>=40?'var(--amber)':'var(--green)'}"><b>${n.riskScore}</b>/99</span></div>
-          <div class="nc-tags">
-            ${n.vulnerable?'<span class="nctag nct-r">CVE-2026-31431</span>':''}
-            ${n.algifStatus==='loaded'?'<span class="nctag nct-r">algif_aead</span>':''}
-            ${n.isSpot?'<span class="nctag nct-a">spot</span>':''}
-            ${n.patchStatus==='patched'?'<span class="nctag nct-g">patched</span>':''}
-            ${!n.vulnerable&&n.riskScore<20?'<span class="nctag nct-g">safe</span>':''}
-          </div>
-        </div>
-      </div>`).join('')}
-    </div>
-  </div>`;
-}
-
-function renderNS(c,body){
-  const nsList=c.namespaces||[];
-  if(!nsList.length){
-    body.innerHTML=`<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px;">
-      <div style="font-size:24px;opacity:.2;margin-bottom:10px;">◎</div>
-      No namespace data available.<br>
-      <span style="font-size:11px;">Requires pod list permission (ClusterRole: view or higher)</span>
-    </div>`;
-    return;
-  }
-  const rb=r=>r==='critical'?'b-r':r==='high'?'b-a':r==='medium'?'b-b':'b-g';
-  const issueColor=i=>i==='privileged'||i==='hostNetwork'?'it-r':i==='runAsRoot'?'it-a':'it-b';
-
-  body.innerHTML=`<div class="section">
-    <div class="sec-hdr">
-      <span class="sec-title">Namespaces &amp; workloads — sorted by issues</span>
-      <span class="badge ${nsList.filter(x=>x.issues>0).length>0?'b-r':'b-g'}">${nsList.filter(x=>x.issues>0).length} of ${nsList.length} have issues</span>
-    </div>
-    <div class="ns-wrap">
-      <div class="ns-hdr">
-        <span>Namespace</span>
-        <span>Pods</span>
-        <span>Issues</span>
-        <span>Risk</span>
-        <span></span>
-      </div>
-      ${nsList.map((ns,i)=>{
-        const hasApps=ns.apps&&ns.apps.length>0;
-        return `<div class="ns-row">
-          <div class="ns-main-row" onclick="toggleNS(${i})">
-            <div style="display:flex;align-items:center;gap:7px;">
-              <span class="ns-arrow" id="nsa-${i}">▶</span>
-              <span class="ns-name">${ns.name}</span>
+      list.innerHTML = filtered.map(c => {
+        const isOk = c.status === 'ok';
+        const pct = c.nodeCount > 0 ? Math.round((c.vulnerable / c.nodeCount) * 100) : 0;
+        const stateColor = !isOk ? 'var(--red)' : c.vulnerable > 0 ? 'var(--amber)' : 'var(--green)';
+        return `
+          <div class="cl-item ${selectedContext === c.context ? 'active' : ''}" onclick="pickClusterTarget('${c.context}')">
+            <div class="cl-top">
+              <div class="cl-name">${c.name.toUpperCase()}</div>
+              <div class="cl-vuln" style="color:${stateColor}">${isOk ? (c.vulnerable || '✓') : '✗'}</div>
             </div>
-            <span class="ns-val">${ns.appCount}</span>
-            <span class="ns-val" style="color:${ns.issues>0?(ns.issues>5?'var(--red)':'var(--amber)'):'var(--green)'}">${ns.issues||'✓'}</span>
-            <span><span class="badge ${rb(ns.risk)}">${ns.risk}</span></span>
-            <span style="font-size:9px;color:var(--t3)">${hasApps?'▾':''}</span>
+            <div class="cl-meta">${c.region.toUpperCase()} · ${c.nodeCount || 0} compute nodes</div>
+            ${isOk && c.nodeCount > 0 ? `<div class="cl-bar"><div class="cl-bar-fill" style="width:${pct}%;background:${c.vulnerable > 0 ? 'var(--red)' : 'var(--green)'}"></div></div>` : ''}
+            ${!isOk && c.error ? `<div class="cl-err-msg">${c.error}</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    function pickClusterTarget(ctxToken) {
+      selectedContext = ctxToken;
+      openNS = new Set();
+      currentTab = 'nodes';
+      const match = (fleet.clusters || []).find(x => x.context === ctxToken);
+      if (!match) return;
+      renderSidebar();
+      renderClusterDashboard(match);
+    }
+
+    function renderClusterDashboard(c) {
+      const workspace = document.getElementById('main');
+      const nsWithIssues = (c.namespaces || []).filter(x => x.issues > 0).length;
+
+      workspace.innerHTML = `
+        <div class="dh">
+          <div>
+            <div class="dh-title">${c.name.toUpperCase()}</div>
+            <div class="dh-sub">${c.context} · scanned ${c.scannedAt ? new Date(c.scannedAt).toLocaleTimeString() : '—'}</div>
           </div>
-          <div class="ns-expand" id="nse-${i}">
-            ${hasApps?`
-            <div class="app-hdr">
-              <span>Pod name</span>
-              <span>Image</span>
-              <span>Security issues</span>
-              <span>Risk</span>
+          <div><button class="btn btn-p" onclick="exportClusterCSVOnly()">Download Cluster CSV</button></div>
+        </div>
+
+        ${c.status !== 'ok' ? `<div class="alert r"><div class="alert-title">Cluster API Unreachable</div><div>${c.error}</div></div>` : ''}
+        ${c.status === 'ok' && c.vulnerable > 0 ? `<div class="alert r"><div class="alert-title">Vulnerability Active (CVE-2026-31431)</div><div>Cluster context contains unpatched instances running crypto sockets exposed to namespace escalations.</div></div>` : ''}
+
+        <div class="metrics">
+          <div class="metric"><div class="metric-acc" style="background:var(--blue)"></div><div class="metric-val cb">${c.nodeCount || 0}</div><div class="metric-lbl">Total Hosts</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--red)"></div><div class="metric-val cr">${c.vulnerable || 0}</div><div class="metric-lbl">Exposed Hosts</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--amber)"></div><div class="metric-val ca">${c.podCount || 0}</div><div class="metric-lbl">Monitored Pods</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--purple)"></div><div class="metric-val cr">${nsWithIssues}</div><div class="metric-lbl">Deficient NS</div></div>
+          <div class="metric"><div class="metric-acc" style="background:var(--green)"></div><div class="metric-val cg">${c.nsCount || 0}</div><div class="metric-lbl">Namespaces Monitored</div></div>
+        </div>
+
+        <div class="visual-workspace">
+          <div class="panel">
+            <div class="panel-hdr">
+              <span class="panel-title">Namespace Compliance Analytics</span>
+              <div class="chart-controls">
+                <button class="sf a" id="c-btn-bar" onclick="rebuildChartType('bar')">Bar</button>
+                <button class="sf" id="c-btn-line" onclick="rebuildChartType('line')">Line</button>
+                <button class="sf" id="c-btn-doughnut" onclick="rebuildChartType('doughnut')">Doughnut</button>
+                <button class="sf" id="c-btn-radar" onclick="rebuildChartType('radar')">Radar</button>
+              </div>
             </div>
-            ${ns.apps.map(a=>`<div class="app-row">
-              <div class="app-name" title="${a.name}">${a.name}</div>
-              <div class="app-image" title="${a.image}">${a.image||'—'}</div>
-              <div class="issue-tags">${(a.issues||[]).map(iss=>`<span class="itag ${issueColor(iss)}">${iss}</span>`).join('')}</div>
-              <div class="risk-num" style="color:${a.riskScore>=40?'var(--red)':a.riskScore>=20?'var(--amber)':'var(--green)'}">${a.riskScore}</div>
-            </div>`).join('')}`
-            :'<div style="padding:10px 16px;font-size:10px;color:var(--t3)">No security issues detected in this namespace</div>'}
+            <div class="chart-wrapper"><canvas id="analyticsChartCanvas"></canvas></div>
           </div>
-        </div>`;
-      }).join('')}
-    </div>
-  </div>`;
+          <div class="panel">
+            <div class="panel-hdr"><span class="panel-title" style="color:var(--purple)">🔮 Predictive Threat Disclosure Intelligence</span></div>
+            <div class="threat-feed" id="predictiveFeedContainer"></div>
+          </div>
+        </div>
 
-  // Restore expanded state
-  expandedNS.forEach(i=>{
-    const el=document.getElementById('nse-'+i);
-    const ar=document.getElementById('nsa-'+i);
-    if(el){el.classList.add('open');}
-    if(ar){ar.textContent='▼';}
-  });
-}
+        <div class="tabs">
+          <div class="tab ${currentTab === 'nodes' ? 'active' : ''}" onclick="switchLocalTab('nodes')">Compute Nodes <span class="tab-badge">${c.nodeCount || 0}</span></div>
+          <div class="tab ${currentTab === 'ns' ? 'active' : ''}" onclick="switchLocalTab('ns')">Namespace Workloads <span class="tab-badge alerting">${nsWithIssues}</span></div>
+        </div>
+        <div id="tab-injection-target"></div>`;
 
-function toggleNS(i){
-  const el=document.getElementById('nse-'+i);
-  const ar=document.getElementById('nsa-'+i);
-  if(!el) return;
-  const open=el.classList.contains('open');
-  if(open){el.classList.remove('open');ar.textContent='▶';expandedNS.delete(i);}
-  else{el.classList.add('open');ar.textContent='▼';expandedNS.add(i);}
-}
+      renderPredictiveWatchFeed();
+      renderActiveTab(c);
+      rebuildChartType('bar'); // Initialize chart tracking state mapping
+    }
 
-function t(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+    function rebuildChartType(typeString) {
+      ['bar', 'line', 'doughnut', 'radar'].forEach(t => {
+        const btn = document.getElementById(`c-btn-${t}`);
+        if (btn) btn.className = t === typeString ? "sf a" : "sf";
+      });
 
-async function refresh(){
-  try{await fetch('/api/refresh');}catch(e){}
-  setTimeout(fetchData,800);
-}
+      const currentCluster = (fleet.clusters || []).find(x => x.context === selectedContext);
+      if (!currentCluster) return;
 
-function exportClusterCSV(){
-  const c=(fleet.clusters||[]).find(x=>x.context===selected);
-  if(!c) return;
-  const rows=[
-    ['Node','Kernel','Patch Status','algif_aead','Vulnerable','Instance','Zone','Spot','Risk Score','Risk Level'],
-    ...(c.nodes||[]).map(n=>[n.name,n.kernel,n.patchStatus,n.algifStatus,n.vulnerable,n.nodeType||'',n.zone||'',n.isSpot,n.riskScore,n.riskLevel])
-  ];
-  if((c.namespaces||[]).length>0){
-    rows.push([]);
-    rows.push(['Namespace','Total Pods','Issues','Risk']);
-    (c.namespaces||[]).forEach(ns=>{
-      rows.push([ns.name,ns.appCount,ns.issues,ns.risk]);
-      (ns.apps||[]).forEach(a=>rows.push(['  '+a.name,a.image||'','','','','','','',(a.issues||[]).join(';'),a.riskScore]));
-    });
-  }
-  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=c.name+'-security-'+new Date().toISOString().split('T')[0]+'.csv';
-  a.click();
-}
+      const canvas = document.getElementById('analyticsChartCanvas');
+      if (!canvas) return;
 
-function generateReport(){
-  const d=fleet;
-  const c=selected?(d.clusters||[]).find(x=>x.context===selected):null;
-  const now=new Date();
-  const dateStr=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+      if (visualChartInstance) visualChartInstance.destroy();
 
-  const clSection=c&&c.status==='ok'?`
-    <h2 style="font-size:15px;font-weight:600;margin:24px 0 10px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">Cluster Detail: ${c.name}</h2>
-    <p style="font-size:11px;color:#64748b;margin-bottom:12px">${c.context} · ${c.region||'—'} · ${c.nodeCount} nodes · ${c.podCount} pods</p>
-    ${(c.nodes||[]).filter(n=>n.vulnerable).length>0?`
-      <h3 style="font-size:12px;font-weight:600;margin:12px 0 6px;color:#dc2626">Vulnerable Nodes (${(c.nodes||[]).filter(n=>n.vulnerable).length})</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px">
-        <tr style="background:#fef2f2"><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Node</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Kernel</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">algif_aead</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Instance</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Zone</th><th style="padding:6px 8px;border:1px solid #fecaca;text-align:left">Risk</th></tr>
-        ${(c.nodes||[]).filter(n=>n.vulnerable).map(n=>`<tr><td style="padding:6px 8px;border:1px solid #e2e8f0;font-family:monospace;font-size:10px">${n.name}</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-family:monospace;color:#dc2626">${n.kernel}</td><td style="padding:6px 8px;border:1px solid #e2e8f0;color:#dc2626">${n.algifStatus}</td><td style="padding:6px 8px;border:1px solid #e2e8f0">${n.nodeType||'—'}</td><td style="padding:6px 8px;border:1px solid #e2e8f0">${n.zone||'—'}</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600;color:#dc2626">${n.riskScore}</td></tr>`).join('')}
-      </table>`:''}
-    ${(c.namespaces||[]).filter(n=>n.issues>0).length>0?`
-      <h3 style="font-size:12px;font-weight:600;margin:12px 0 6px;color:#d97706">Namespaces with Security Issues</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:11px">
-        <tr style="background:#f8fafc"><th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left">Namespace</th><th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left">Pods</th><th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left">Issues</th><th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left">Risk</th><th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left">Top workloads</th></tr>
-        ${(c.namespaces||[]).filter(n=>n.issues>0).map(ns=>`<tr><td style="padding:6px 8px;border:1px solid #e2e8f0;font-family:monospace;font-weight:500">${ns.name}</td><td style="padding:6px 8px;border:1px solid #e2e8f0">${ns.appCount}</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600;color:#dc2626">${ns.issues}</td><td style="padding:6px 8px;border:1px solid #e2e8f0">${ns.risk}</td><td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10px">${(ns.apps||[]).slice(0,3).map(a=>a.name+'['+(a.issues||[]).join(',')+']').join(' · ')}</td></tr>`).join('')}
-      </table>`:''}
-  `:'';
+      const labels = (currentCluster.namespaces || []).slice(0, 5).map(n => n.name);
+      const points = (currentCluster.namespaces || []).slice(0, 5).map(n => n.issues);
 
-  const allVuln=(d.clusters||[]).filter(c=>c.vulnerable>0).sort((a,b)=>b.vulnerable-a.vulnerable);
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>PDKS Security Report</title>
-  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;font-size:13px;color:#1e293b;padding:40px;max-width:940px;margin:0 auto}
-  .print-btn{position:fixed;top:16px;right:16px;background:#1e40af;color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:12px}
-  @media print{.print-btn{display:none}}</style></head>
-  <body>
-  <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
-  <div style="border-bottom:2px solid #1e3a8a;padding-bottom:14px;margin-bottom:20px">
-    <div style="font-size:20px;font-weight:700;color:#0f172a">PDKS K8s Fleet Security Report</div>
-    <div style="font-size:11px;color:#64748b;margin-top:4px">Pfizer Platform Engineering · ${dateStr} · Generated at ${now.toLocaleTimeString()}</div>
-  </div>
-  <h2 style="font-size:15px;font-weight:600;margin-bottom:10px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">Fleet Summary</h2>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
-    <tr style="background:#f8fafc"><th style="padding:7px 8px;border:1px solid #e2e8f0;text-align:left">Metric</th><th style="padding:7px 8px;border:1px solid #e2e8f0;text-align:left">Value</th></tr>
-    <tr><td style="padding:7px 8px;border:1px solid #e2e8f0">Total clusters</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${d.totalClusters||0}</td></tr>
-    <tr><td style="padding:7px 8px;border:1px solid #e2e8f0">Scanned OK</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${d.scannedClusters||0}</td></tr>
-    <tr><td style="padding:7px 8px;border:1px solid #e2e8f0">Unreachable</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${d.failedClusters||0}</td></tr>
-    <tr><td style="padding:7px 8px;border:1px solid #e2e8f0">Total nodes</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${d.totalNodes||0}</td></tr>
-    <tr><td style="padding:7px 8px;border:1px solid #e2e8f0">Vulnerable nodes (Copy Fail)</td><td style="padding:7px 8px;border:1px solid #e2e8f0;font-weight:700;color:#dc2626">${d.vulnNodes||0}</td></tr>
-    <tr><td style="padding:7px 8px;border:1px solid #e2e8f0">Clusters with exposed nodes</td><td style="padding:7px 8px;border:1px solid #e2e8f0;font-weight:700;color:#dc2626">${allVuln.length}</td></tr>
-    <tr><td style="padding:7px 8px;border:1px solid #e2e8f0">Total pods scanned</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${d.totalPods||0}</td></tr>
-  </table>
-  ${allVuln.length>0?`<h2 style="font-size:15px;font-weight:600;margin-bottom:10px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">Top Exposed Clusters</h2>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
-    <tr style="background:#fef2f2"><th style="padding:7px 8px;border:1px solid #fecaca;text-align:left">Cluster</th><th style="padding:7px 8px;border:1px solid #fecaca;text-align:left">Region</th><th style="padding:7px 8px;border:1px solid #fecaca;text-align:left">Nodes</th><th style="padding:7px 8px;border:1px solid #fecaca;text-align:left">Exposed</th><th style="padding:7px 8px;border:1px solid #fecaca;text-align:left">%</th></tr>
-    ${allVuln.slice(0,20).map(c=>`<tr><td style="padding:7px 8px;border:1px solid #e2e8f0;font-family:monospace">${c.name}</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${c.region||'—'}</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${c.nodeCount}</td><td style="padding:7px 8px;border:1px solid #e2e8f0;font-weight:600;color:#dc2626">${c.vulnerable}</td><td style="padding:7px 8px;border:1px solid #e2e8f0">${c.nodeCount>0?Math.round(c.vulnerable/c.nodeCount*100):0}%</td></tr>`).join('')}
-  </table>`:''}
-  ${clSection}
-  <div style="margin-top:28px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8">PDKS Security Intelligence · Pfizer Platform Engineering · ssachin.kumar@pfizer.com · ${dateStr}</div>
-  </body></html>`;
-  const w=window.open('','_blank');w.document.write(html);w.document.close();
-}
+      if (labels.length === 0) { labels.push("Clear Baseline"); points.push(0); }
 
-fetchData();
-setInterval(fetchData, 30000);
-</script>
+      visualChartInstance = new Chart(canvas, {
+        type: typeString,
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Configuration Gaps Count',
+            data: points,
+            backgroundColor: ['rgba(244,63,94,0.7)', 'rgba(251,191,36,0.7)', 'rgba(59,130,246,0.7)', 'rgba(168,85,247,0.7)'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: typeString === 'doughnut' } },
+          scales: typeString !== 'doughnut' && typeString !== 'radar' ? {
+            y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#8fa0c2', font: { size: 9 } } },
+            x: { grid: { display: false }, ticks: { color: '#8fa0c2', font: { size: 9 } } }
+          } : {}
+        }
+      });
+    }
+
+    function renderPredictiveWatchFeed() {
+      const el = document.getElementById('predictiveFeedContainer');
+      if (!el || !fleet.upcomingThreats) return;
+      el.innerHTML = fleet.upcomingThreats.map(t => `
+        <div class="threat-item ${t.severity}">
+          <div style="max-width:75%">
+            <div class="threat-cve" style="color:${t.severity === 'CRITICAL' ? 'var(--red)' : 'var(--amber)'}">${t.cve} <span style="font-size:10px; color:var(--t3)">[${t.component}]</span></div>
+            <div class="threat-desc">${t.description}</div>
+          </div>
+          <div style="text-align:right;"><span style="font-family:var(--mono); font-size:14px; font-weight:600; color:var(--red);">${t.probabilityPct}%</span><br><span style="font-size:7px; text-transform:uppercase; color:var(--t3)">prob</span></div>
+        </div>`).join('');
+    }
+
+    function renderActiveTab(c) {
+      const zone = document.getElementById('tab-injection-target');
+      if (!zone) return;
+
+      if (currentTab === 'nodes') {
+        const sortedNodes = (c.nodes || []).slice().sort((a, b) => b.riskScore - a.riskScore);
+        zone.innerHTML = `
+          <div class="node-grid">
+            ${sortedNodes.map(n => `
+              <div class="nc">
+                <div class="nc-top ${n.riskLevel === 'critical' ? 'critical' : n.riskLevel === 'high' ? 'high' : 'low'}"></div>
+                <div class="nc-body">
+                  <div class="nc-name" title="${n.name}">${n.name.split('.')[0]}</div>
+                  <div class="nc-row"><span class="nc-key">Kernel state</span><span class="nc-val" style="color:${n.patchStatus === 'unpatched' ? 'var(--red)' : 'var(--green)'}">${n.patchStatus}</span></div>
+                  <div class="nc-row"><span class="nc-key">algif_aead</span><span class="nc-val">${n.algifStatus}</span></div>
+                  <div class="nc-row"><span class="nc-key">Risk Evaluation</span><span class="nc-val" style="color:var(--red)">${n.riskScore}/99</span></div>
+                  <div class="nc-tags">
+                    ${n.vulnerable ? '<span class="nctag nct-r">CVE-2026-31431</span>' : ''}
+                    ${n.isSpot ? '<span class="nctag nct-a">spot</span>' : '<span class="nctag nct-b">on-demand</span>'}
+                  </div>
+                </div>
+              </div>`).join('')}
+          </div>`;
+      } else {
+        const namespaces = c.namespaces || [];
+        zone.innerHTML = `
+          <div class="ns-wrap">
+            <div class="ns-hdr"><span>Namespace Target Workspace</span><span>Pods</span><span>Issues Count</span><span>Risk Baseline</span><span></span></div>
+            ${namespaces.map((ns, i) => `
+              <div class="ns-row">
+                <div class="ns-main-row" onclick="toggleNamespaceExpansion(${i})">
+                  <span class="ns-name">${ns.name}</span>
+                  <span class="ns-val">${ns.appCount}</span>
+                  <span class="ns-val" style="color:${ns.issues > 0 ? 'var(--amber)' : 'var(--green)'}">${ns.issues || '✓'}</span>
+                  <span><span class="tag ${ns.risk === 'critical' ? 'tag-red' : 'tag-amber'}">${ns.risk}</span></span>
+                  <span style="color:var(--t3)">▾</span>
+                </div>
+                <div class="ns-expand" id="ns-panel-expand-${i}">
+                  <div class="app-hdr"><span>Isolated Blueprint App Name</span><span>Container Image Target Registry Path</span><span>Compliance Structural Faults</span><span>Derived Weight</span></div>
+                  ${(ns.apps || []).map(a => `
+                    <div class="app-row">
+                      <span class="app-name">${a.name}</span>
+                      <span class="app-img" title="${a.image}">${a.image}</span>
+                      <div style="display:flex; gap:3px;">${a.issues.map(iss => `<span class="tag tag-red">${iss}</span>`).join('')}</div>
+                      <span style="font-family:var(--mono); font-weight:600; color:var(--red);">${a.riskScore}</span>
+                    </div>`).join('')}
+                </div>
+              </div>`).join('')}
+          </div>`;
+
+        openNS.forEach(i => {
+          const el = document.getElementById(`ns-panel-expand-${i}`);
+          if (el) el.classList.add('open');
+        });
+      }
+    }
+
+    function toggleNamespaceExpansion(i) {
+      const el = document.getElementById(`ns-panel-expand-${i}`);
+      if (!el) return;
+      if (el.classList.contains('open')) { el.classList.remove('open'); openNS.delete(i); }
+      else { el.classList.add('open'); openNS.add(i); }
+    }
+
+    function switchLocalTab(t) { currentTab = t; const match = (fleet.clusters || []).find(x => x.context === selectedContext); if (match) renderActiveTab(match); }
+    function setF(f, el) { clusterFilter = f; renderSidebar(); }
+    function triggerReportScopeOverlay(shouldDisplay) {
+      document.getElementById('reportScopeModal').style.display = shouldDisplay ? 'flex' : 'none';
+      const clusterButton = document.getElementById('modalOptCluster');
+      if (clusterButton) clusterButton.style.display = selectedContext ? "block" : "none";
+    }
+
+    function generateReportSuite(scopeProfile) {
+      triggerReportScopeOverlay(false);
+      const f = fleet;
+      const targetCluster = (f.clusters || []).find(x => x.context === selectedContext);
+
+      let htmlOutput = `<!DOCTYPE html><html><head><title>Compliance Assessment</title><style>body{font-family:-apple-system,sans-serif; padding:40px; color:#1e293b; max-width:960px; margin:0 auto;} h1{color:#0f172a; border-bottom:2px solid #1e3a8a; padding-bottom:12px;} table{width:100%; border-collapse:collapse; margin-top:16px;} th,td{border:1px solid #e2e8f0; padding:8px 12px;} th{background:#f8fafc; font-size:11px; text-transform:uppercase; color:#64748b;}</style></head><body>`;
+
+      if (scopeProfile === 'FLEET_WIDE') {
+        htmlOutput += `<h1>Global Infrastructure Executive Summary Audit</h1>
+          <table><thead><tr><th>Metric Matrix Profile Description</th><th>Discovered Value</th></tr></thead><tbody>
+          <tr><td>Total Registered Infrastructure Context Clusters</td><td>${f.totalClusters}</td></tr>
+          <tr><td>Active Responsive Communication Context Channels</td><td>${f.scannedClusters}</td></tr>
+          <tr><td>Authentication Errors / Context Blind Spots</td><td>${f.failedClusters}</td></tr>
+          <tr><td>Total Monitored Physical Compute Nodes</td><td>${f.totalNodes}</td></tr>
+          <tr><td>Exposed Kernel Node Elements (CVE-2026-31431)</td><td style="color:red; font-weight:600;">${f.vulnNodes}</td></tr>
+          </tbody></table>`;
+      } else {
+        if (!targetCluster) return;
+        htmlOutput += `<h1>Targeted Context Assessment Report [${targetCluster.name.toUpperCase()}]</h1>
+          <p style="color:#64748b; margin-top:4px;">Context Identity Block: ${targetCluster.context}</p>
+          <table><thead><tr><th>Node Host Name</th><th>Kernel Version Track</th><th>Patch State Compliance</th><th>algif_aead State</th></tr></thead><tbody>
+          ${targetCluster.nodes.map(n => `<tr><td>${n.name}</td><td>${n.kernel}</td><td style="color:${n.patchStatus === 'unpatched' ? 'red' : 'green'}">${n.patchStatus}</td><td>${n.algifStatus}</td></tr>`).join('')}
+          </tbody></table>`;
+      }
+
+      htmlOutput += `</body></html>`;
+      const popout = window.open('', '_blank'); popout.document.write(htmlOutput); popout.document.close();
+    }
+
+    function exportClusterCSVOnly() {
+      const c = (fleet.clusters || []).find(x => x.context === selectedContext);
+      if (!c) return;
+      const lines = [
+        ['Compute Host Node Name', 'Kernel Version Track String', 'Patch Compliance Status', 'Driver Layer algif_aead Status', 'Derived Risk Score Weight'],
+        ...c.nodes.map(n => [n.name, n.kernel, n.patchStatus, n.algifStatus, n.riskScore])
+      ];
+      const csvContent = lines.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const hiddenAnchor = document.createElement('a');
+      hiddenAnchor.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+      hiddenAnchor.download = `PDKS-ISOLATED-AUDIT-${c.name.toUpperCase()}.csv`;
+      hiddenAnchor.click();
+    }
+
+    async function refresh() { await fetch('/api/refresh'); setTimeout(streamTelemetryData, 600); }
+    streamTelemetryData();
+    setInterval(streamTelemetryData, 15000);
+  </script>
 </body>
+
 </html>
