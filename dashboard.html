@@ -2118,8 +2118,10 @@
       }
       var ac = s => s === 'critical' ? 'crit' : s === 'high' ? 'high' : 'safe';
       var sc = s => s >= 65 ? 'var(--red)' : s >= 40 ? 'var(--amb)' : 'var(--grn)';
+
       body.innerHTML = '<div class="sec-hdr" style="margin-bottom:8px"><span class="sec-t">Nodes by risk score</span><span class="badge ' + (nodes.filter(n => n.vulnerable).length > 0 ? 'br' : 'bg') + '">' + nodes.filter(n => n.vulnerable).length + ' / ' + nodes.length + ' vulnerable</span></div>' +
-        '<div class="ng">' + nodes.map(n => '<div class="nc" onclick="showNode(\'' + n.name + '\',\'' + c.name + '\')">' +
+        '<div class="ng">' + nodes.map(n =>
+          '<div class="nc" onclick="showNode(\'' + n.name + '\',\'' + c.name + '\')">' +
           '<div class="nc-top ' + ac(n.riskLevel) + '"></div>' +
           '<div class="nc-body">' +
           '<div class="nc-name" title="' + n.name + '">' + n.name.split('.')[0] + '</div>' +
@@ -2135,7 +2137,8 @@
           (n.isSpot ? '<span class="nct nct-a">spot</span>' : '<span class="nct nct-b">on-demand</span>') +
           (!n.vulnerable ? '<span class="nct nct-g">safe</span>' : '') +
           '</div>' +
-          '</div></div>').join('') + '</div>';
+          '</div></div>'
+        ).join('') + '</div>';
     }
 
     function mkNR(k, v, c) { return '<div class="ncr"><span class="nck">' + k + '</span><span class="ncv" style="color:' + c + '">' + v + '</span></div>'; }
