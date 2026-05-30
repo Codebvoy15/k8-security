@@ -1096,6 +1096,11 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
+	// Only serve dashboard on exact "/" — reject all other unmatched paths
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
 	// Serve file if present (hot reload), otherwise embedded
 	if b, err := os.ReadFile("dashboard.html"); err == nil {
 		w.Header().Set("Content-Type", "text/html")
